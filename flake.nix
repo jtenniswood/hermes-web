@@ -52,7 +52,7 @@
           # renderer sources from the pinned input.
           rm -rf $out/apps/desktop $out/apps/shared
           mkdir -p $out/apps/desktop $out/apps/shared
-          cp -r ${hermes}/apps/desktop/src $out/apps/desktop/src
+          cp -r ${hermes}/apps/desktop/. $out/apps/desktop/
           cp -r ${hermes}/apps/shared/src $out/apps/shared/src
         '';
       in
@@ -63,6 +63,9 @@
           version = "0.1.1";
 
           inherit src;
+          HERMES_WRAPPER_REV = self.rev or "dirty";
+          HERMES_RELEASE_CHANNEL = "nix";
+          SOURCE_DATE_EPOCH = toString (self.lastModified or 0);
 
           # pnpmConfigHook (nixpkgs) unpacks the FOD store tarball, rebuilds
           # the v11 index.db from the SQL dump (sqlite) and runs the offline
@@ -86,7 +89,7 @@
             # `pnpm config set store-dir` in buildPhase.
             fetcherVersion = 4;
             inherit src;
-            hash = "sha256-3/vkcdFya9FJtjwi3eL/Pv4gDvDlylv+JPc6pJLuvG4=";
+            hash = "sha256-nWRSEuzqkNznYp+tBSG1AJCTVsRP7ZoPq4OoLWaJb/I=";
           };
 
           buildPhase = ''

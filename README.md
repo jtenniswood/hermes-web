@@ -22,8 +22,9 @@ upstream renderer sources.
 ## Development
 
 ```bash
-nix develop
-pnpm install
+corepack enable
+pnpm prepare:renderer
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
@@ -78,12 +79,19 @@ The example environment file sets:
 - `WEB_ALLOWED_HOSTS` — additional hostnames allowed by Vite during local
   development.
 
-Docker uses `HERMES_RENDERER_REV=main` by default. Pin a commit or tag for a
-reproducible build:
+Docker, development, and Nix use the exact Hermes revision in `flake.lock`.
+`pnpm prepare:renderer` fetches that revision into an ignored cache and creates
+the source links. It refuses to overwrite existing or modified renderer sources.
+Use `pnpm check:renderer` to verify a checkout.
 
-```bash
-docker build --build-arg HERMES_RENDERER_REV=<commit-or-tag> -t hermes-web .
-```
+The application emits `build-info.json` with the wrapper revision, renderer
+revision, dependency-lock hash, timestamp, and release channel. CI supplies the
+wrapper identity to Docker; local image builds can supply `HERMES_WRAPPER_REV`.
+The frontend version is separate from the connected gateway version.
+
+Pull requests run strict wrapper and reachable-renderer typechecking, foundation
+tests, gateway regression tests, and a production build. Upstream diagnostics
+are not broadly ignored; the explicit diagnostic baseline is currently empty.
 
 ### Connecting to a remote gateway
 

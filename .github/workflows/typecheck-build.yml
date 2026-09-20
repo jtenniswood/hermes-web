@@ -1,47 +1,41 @@
-name: typecheck-build
-
-# Build Hermes Web on GitHub so the VPS never runs a local build. Mirrors what
-# deploy.sh does (`nix build .#`) but only verifies compilation — it does NOT
-# deploy and does not touch the running site on :4174 (that serves from
-# ~/.hermes/desktop-web, outside this repo).
-
+name: compatibility
 on:
+  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
-
+permissions:
+  contents: read
+concurrency:
+  group: compatibility-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  build:
-    runs-on: [self-hosted, linux, X64, hermes-web, dev]
+  compatibility:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - name: Prepare exact renderer
+        run: node scripts/renderer.mjs
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:renderer
+      - run: pnpm typecheck
+      - run: pnpm test:foundation
+      - run: pnpm --filter web-desktop test:gateway
+      - name: Build production frontend
+        run: pnpm build
+        env:
+          HERMES_WRAPPER_REV: ${{ github.sha }}
+          HERMES_RELEASE_CHANNEL: verification
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-${{ github.sha }}
+          path: apps/web-desktop/dist
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
-
-      # tsc is NOT run by the vite build, so run it explicitly (same dev shell
-      # the skill documents). pnpm install pulls the dependency closure; the
-      # fitler in flake.nix drops node_modules from the build source anyway.
-      - name: Typecheck (our code only)
-        run: |
-          nix develop -c pnpm install --frozen-lockfile
-          # tsc typechecks the WHOLE upstream renderer, which drifts with the
-          # always-latest hermes pin and reports upstream-only errors (implicit
-          # any, missing vitest, missing @hermes/shared/translucency) that do
-          # NOT block the vite build. Fail only on OUR files (apps/web-desktop/src).
-          set +e
-          nix develop -c pnpm --filter web-desktop run typecheck 2>&1 | tee /tmp/tsc.log
-          if grep -E '^src/' /tmp/tsc.log | grep -q 'error TS'; then
-            echo "::error::TypeScript errors in our code (apps/web-desktop/src):"
-            grep -E '^src/' /tmp/tsc.log | grep 'error TS'
-            exit 1
-          fi
-          echo "OK - no TypeScript errors in our code (upstream ../desktop, ../shared noise ignored)."
-          exit 0
-
-      # Production build is PROVEN by the docker-build workflow (primary image
-      # path: plain pnpm `vite build`). Don't duplicate it here — building the
-      # huge always-latest renderer under the CI nix sandbox is resource-fragile
-      # (rolldown OOM mid-transform). Just verify the flake still evaluates.
-      - name: Flake evaluates
-        run: nix --extra-experimental-features 'nix-command flakes' eval .#packages.x86_64-linux.default.drvPath --no-write-lock-file
+      - name: Verify locked Nix inputs and evaluate package
+        run: nix eval .#packages.x86_64-linux.default.drvPath --no-write-lock-file
+      - name: Verify Nix dependency closure
+        run: nix build .#packages.x86_64-linux.default.pnpmDeps --no-link --no-write-lock-file

@@ -1,3 +1,4 @@
+import { buildInfo } from '../build-info'
 /**
  * Browser implementation of the `window.hermesDesktop` preload bridge.
  *
@@ -33,7 +34,6 @@ import type {
   DesktopSshResolveResult,
   HermesApiRequest,
   HermesConnection,
-  HermesNotification,
   HermesReadDirResult,
   HermesReadFileTextResult
 } from '@/global'
@@ -838,7 +838,8 @@ async function webNotify(payload: HermesNotification): Promise<boolean> {
  * self-disable (terminal), or never reach the native path in remote mode
  * (git). The browser provides its own zoom implementation below.
  */
-type WebBridge = Omit<Window['hermesDesktop'], 'terminal' | 'git'>
+type HermesNotification = Parameters<Window['hermesDesktop']['notify']>[0]
+type WebBridge = Omit<Window['hermesDesktop'], 'terminal' | 'git'> & { agentPluginsRoot: () => Promise<string> }
 
 export function createWebBridge(): Window['hermesDesktop'] {
   window.__HERMES_WEB_BRIDGE__ = true
@@ -1177,6 +1178,7 @@ export function createWebBridge(): Window['hermesDesktop'] {
 
       return blob ? registerWebFile(blob) : ''
     },
+    savePastedText: async text => registerWebFile(new Blob([text], { type: 'text/plain' }), 'pasted-text.txt'),
     getPathForFile: file => registerWebFile(file, file.name),
     normalizePreviewTarget: async () => null,
     watchPreviewFile: async url => ({ id: '', path: url }),
@@ -1268,21 +1270,21 @@ export function createWebBridge(): Window['hermesDesktop'] {
     continueBootstrapLocal: async () => ({ ok: true }),
     onBootstrapEvent: unsubscribed,
     getVersion: async () => {
-      // Report the RUNNING gateway's version (from /api/status) so the web
-      // client always matches Hermes Desktop — both answer to the same
-      // gateway, so this stays in sync without manual version bumps.
-      let appVersion = ''
+      // Frontend and backend versions have independent release lifecycles.
+      let backendVersion = ''
       try {
         const status = await fetchStatus(baseUrl(), activeUpstreamOrigin())
         if (status?.version) {
-          appVersion = status.version
+          backendVersion = status.version
         }
       } catch {
         // Gateway unreachable → leave blank; the UI falls back to the
         // "version unavailable" state.
       }
       return {
-        appVersion,
+        appVersion: `web-${buildInfo.wrapperRevision.slice(0, 12)}`,
+        backendVersion,
+        rendererRevision: buildInfo.rendererRevision,
         electronVersion: '',
         nodeVersion: '',
         platform: 'web',
@@ -1328,5 +1330,7 @@ export function createWebBridge(): Window['hermesDesktop'] {
     onFoundInPage: unsubscribed
   }
 
-  return bridge as Window['hermesDesktop']
+  // Desktop declares terminal as required, but browser consumers probe for it.
+  // Keep native APIs absent; the checked WebBridge type covers every supported member.
+  return bridge as unknown as Window['hermesDesktop']
 }

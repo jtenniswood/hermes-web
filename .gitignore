@@ -16,3 +16,6 @@ apps/web-desktop/dist/
 apps/web-desktop/logs/
 
 /result
+
+# Exact renderer checkout prepared from flake.lock
+.renderer/

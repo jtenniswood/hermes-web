@@ -64,6 +64,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            HERMES_RENDERER_REV=main
+            HERMES_WRAPPER_REV=${{ github.sha }}
+            HERMES_RELEASE_CHANNEL=${{ github.event_name == 'schedule' && 'nightly' || 'stable' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
