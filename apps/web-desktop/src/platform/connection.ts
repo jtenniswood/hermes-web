@@ -319,9 +319,8 @@ export async function toConnectionConfig(stored: StoredConnection): Promise<Desk
   const remoteOauthConnected = stored.remoteAuthMode === 'oauth' ? await probeAuthConnected() : false
 
   return {
-    // The web build has no environment overrides, so the settings screen is
-    // always editable.
-    envOverride: false,
+    // The server owns the gateway address; authentication remains browser state.
+    envOverride: true,
     mode: stored.mode,
     profile: null,
     remoteAuthMode: stored.remoteAuthMode,

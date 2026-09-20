@@ -36,23 +36,19 @@ pnpm typecheck
 
 ## Build and deploy
 
-Build the web files with Nix:
+Release builds and Nix dependency verification run in GitHub Actions. Download
+and extract the `web-dist-<commit>` artifact to stage a static deployment:
 
 ```bash
-nix build .#
+HERMES_WEB_DIST_DIR="$HOME/.hermes/desktop-web" \
+  apps/web-desktop/scripts/deploy.sh /absolute/path/to/extracted-artifact
 ```
 
-To build, copy, and health-check the files served by the Nix-managed Hermes
-dashboard:
-
-```bash
-cp apps/web-desktop/.env.example apps/web-desktop/.env
-# Set HERMES_WEB_URL in apps/web-desktop/.env
-apps/web-desktop/scripts/deploy.sh
-```
-
-The deploy script copies the build to `~/.hermes/desktop-web` by default. It
-does not start or restart any processes.
+The script validates build identity, preserves immutable release directories,
+and atomically changes the `current` link. It does not build or restart anything.
+Restart the configured web service separately to activate a staged release.
+The Nix home-manager module serves these artifacts with nginx; `directory` now
+means the extracted artifact directory, not a source checkout.
 
 ## Docker
 
@@ -95,21 +91,22 @@ are not broadly ignored; the explicit diagnostic baseline is currently empty.
 
 ### Connecting to a remote gateway
 
-Set `HERMES_GATEWAY_URL` in `apps/web-desktop/.env` to the remote gateway's
-base URL, then restart the dev/preview server or recreate the Docker container
-with the updated environment. The web server must be able to reach that URL.
-In the connection settings, use that same URL or the web app's own origin.
+Set `HERMES_GATEWAY_URL` to one HTTP(S) origin, without credentials or a path.
+Restart development or recreate the container to apply a server change. The
+browser connects through the web server for HTTP, login, and WebSockets.
+Connection settings offer browser sign-in or a session token, connection testing,
+and sign-out. Changing the gateway address is an operator setting.
 
-The browser connects through the web server's proxy for HTTP, login, and
-WebSockets. Unlike the Mac desktop app, a browser cannot directly fetch an
-HTTP gateway from an HTTPS page. Entering a remote URL in settings alone does
-not configure the server's proxy. For additional dev/preview gateways, set
-`HERMES_GATEWAY_WHITELIST` to a comma-separated list in the same environment
-file.
+Additional gateway whitelists and browser routing selectors are no longer used.
+`HERMES_GATEWAY_NAME` optionally sets the connection label. Runtime configuration
+is validated before nginx starts and excluded from the PWA cache. The previous
+`gateway-config.js` endpoint remains available for older installed clients.
+Docker accepts environment variables through `--env-file`; it no longer evaluates
+an executable mounted `/app/.env` file.
 
-If an existing installed PWA still reports an unreachable gateway after an
-update, close and reopen it after the new service worker activates. Runtime
-gateway configuration is excluded from the app's offline cache.
+The nginx image includes Node only for the shared configuration generator at
+startup; nginx handles all requests. The same generator and route contract are
+used by development and the Nix service.
 
 GitHub Actions publishes multi-architecture images to GHCR after changes are
 merged to `main` and for version tags.

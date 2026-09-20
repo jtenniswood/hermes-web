@@ -32,3 +32,5 @@ function interceptSessionsMinimize(event: MouseEvent): void {
 
 // Capture before React's root listener so the upstream closer never runs.
 window.addEventListener('click', interceptSessionsMinimize, true)
+
+export {}

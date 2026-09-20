@@ -106,14 +106,24 @@
           '';
         };
 
-        # `nix run .#` — serve the built dist through the SYSTEM hermes
-        # (backend-with-UI mode) on 4174, same-origin. The nix-managed
-        # dashboard on 9119 stays untouched.
+        # Serve the pinned static artifact with the same nginx contract as Docker.
         apps.default = {
           type = "app";
           program = "${pkgs.writeShellScript "hermes-web-serve" ''
-            export HERMES_WEB_DIST=${self.packages.${system}.default}
-            exec hermes dashboard --port 4174 --host 0.0.0.0 --skip-build --no-open
+            set -eu
+            runtime_dir=$(mktemp -d)
+            trap 'rm -rf "$runtime_dir"' EXIT
+            mkdir -p "$runtime_dir/html"
+            cp -r ${self.packages.${system}.default}/. "$runtime_dir/html/"
+            chmod -R u+w "$runtime_dir/html"
+            export HERMES_STATIC_ROOT="$runtime_dir/html"
+            export HERMES_STATE_DIR="$runtime_dir/nginx"
+            export HERMES_NGINX_CONFIG="$runtime_dir/nginx.conf"
+            export HERMES_NGINX_TEMPLATE=${pkgs.writeText "hermes-nginx-template" (builtins.replaceStrings [ "/etc/nginx/mime.types" ] [ "${pkgs.nginx}/conf/mime.types" ] (builtins.readFile ./nginx.conf.template))}
+            export HERMES_PORT="''${HERMES_PORT:-4174}"
+            export HERMES_HOME="''${HERMES_HOME:-$HOME/.hermes}"
+            ${nodejs}/bin/node ${./scripts/runtime-config.mjs}
+            ${pkgs.nginx}/bin/nginx -c "$runtime_dir/nginx.conf" -g 'daemon off;'
           ''}";
         };
 

@@ -1,75 +1,52 @@
-# Hermes Web — persistent systemd service for the WEB build of the Hermes
-# Desktop renderer (hermes-mobile). Serves ONLY the production build
-# (vite preview from apps/web-desktop/dist) on 0.0.0.0:4174 as its OWN process.
-#
-# The dashboard on 9119 (and the gateway) are SEPARATE services
-# (hermes-dashboard / hermes-agent from the main nix-config) — this module
-# neither touches nor installs them. The dynamic vite proxy (/api, /auth,
-# /login, /api/ws) points to the gateway (default http://127.0.0.1:9119).
-#
-# Wiring in the main nix-config (home-manager), e.g. flakes/*.nix:
-#   imports = [ inputs.hermes-mobile.homeManagerModules.hermes-web ];
-#   services.hermes-web.enable    = true;
-#   services.hermes-web.directory = "/home/ubuntu/Main/Code/hermes-mobile";
-#
-# Requirements in `directory`: a production build in apps/web-desktop/dist
-# (pnpm --filter web-desktop run build or `nix build`) + node_modules.
+# Serve a CI-built artifact with the same nginx contract used by Docker.
 { config, lib, pkgs, ... }:
-
 let
   cfg = config.services.hermes-web;
-in
-{
+  state = "${config.xdg.cacheHome}/hermes-web";
+  prepare = pkgs.writeShellScript "prepare-hermes-web" ''
+    set -eu
+    test -f ${lib.escapeShellArg cfg.directory}/index.html
+    mkdir -p ${lib.escapeShellArg state}/html
+    cp -r ${lib.escapeShellArg cfg.directory}/. ${lib.escapeShellArg state}/html/
+    chmod -R u+w ${lib.escapeShellArg state}/html
+    ${pkgs.nodejs_24}/bin/node ${../scripts/runtime-config.mjs}
+  '';
+  template = pkgs.writeText "hermes-nginx-template" (
+    builtins.replaceStrings [ "/etc/nginx/mime.types" ] [ "${pkgs.nginx}/conf/mime.types" ] (builtins.readFile ../nginx.conf.template)
+  );
+in {
   options.services.hermes-web = {
-    enable = lib.mkEnableOption "Hermes Web — desktop-based renderer production preview on :4174";
-
+    enable = lib.mkEnableOption "Hermes Web nginx service";
     directory = lib.mkOption {
       type = lib.types.str;
-      default = "/home/ubuntu/Main/Code/hermes-mobile";
-      description = ''
-        Repo root with web-desktop (must have a build in
-        apps/web-desktop/dist and installed node_modules). vite preview needs
-        node_modules at runtime (runtime vite + proxy plugin).
-      '';
+      default = "${config.home.homeDirectory}/.hermes/desktop-web/current";
+      description = "Directory containing the extracted CI frontend artifact (index.html and assets).";
     };
-
-    host = lib.mkOption {
-      type = lib.types.str;
-      default = "0.0.0.0";
-      description = "Address the preview listens on (tsbridge → 127.0.0.1:4174).";
-    };
-
-    port = lib.mkOption {
-      type = lib.types.port;
-      default = 4174;
-      description = "Preview port — must match the backend_addr of the tsbridge (hermes-web) service.";
-    };
+    gatewayUrl = lib.mkOption { type = lib.types.str; default = "http://127.0.0.1:9119"; description = "The single configured Hermes gateway origin."; };
+    hermesHome = lib.mkOption { type = lib.types.str; default = "${config.home.homeDirectory}/.hermes"; description = "Directory containing plugin assets."; };
+    host = lib.mkOption { type = lib.types.str; default = "127.0.0.1"; description = "Bind address for nginx."; };
+    port = lib.mkOption { type = lib.types.port; default = 4174; description = "HTTP listening port."; };
   };
-
   config = lib.mkIf cfg.enable {
-    home.packages = [ pkgs.nodejs_24 pkgs.pnpm ];
-
     systemd.user.services.hermes-web = {
-      Unit = {
-        Description = "Hermes Web (Hermes Desktop renderer) — production preview on :${toString cfg.port}";
-        # Requires node + a dist at the repo root; no network.
-        After = [ "network.target" ];
-      };
-
+      Unit = { Description = "Hermes Web"; After = [ "network.target" ]; };
       Service = {
-        # PRODUCTION ONLY: `vite preview` (NOT `vite serve`/dev) — serves the
-        # built dist. Production build only.
-        WorkingDirectory = cfg.directory;
-        ExecStart = "${pkgs.pnpm}/bin/pnpm --filter web-desktop run preview -- --host ${cfg.host} --port ${toString cfg.port}";
+        Environment = [
+          "HERMES_GATEWAY_URL=${cfg.gatewayUrl}"
+          "HERMES_HOME=${cfg.hermesHome}"
+          "HERMES_STATIC_ROOT=${state}/html"
+          "HERMES_STATE_DIR=${state}/nginx"
+          "HERMES_NGINX_TEMPLATE=${template}"
+          "HERMES_NGINX_CONFIG=${state}/nginx.conf"
+          "HERMES_BIND=${cfg.host}"
+          "HERMES_PORT=${toString cfg.port}"
+        ];
+        ExecStartPre = prepare;
+        ExecStart = "${pkgs.nginx}/bin/nginx -c ${state}/nginx.conf -g 'daemon off;'";
         Restart = "on-failure";
         RestartSec = "5s";
-        # No build is done here before start — the dist is produced by `build`
-        # or `nix build` (separately). The service serves whatever is in dist.
       };
-
-      Install = {
-        WantedBy = [ "default.target" ];
-      };
+      Install.WantedBy = [ "default.target" ];
     };
   };
 }

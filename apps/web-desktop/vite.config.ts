@@ -1,3 +1,5 @@
+import { rendererOverrides } from './src/upstream/overrides'
+import { runtimeConfiguration, runtimeScripts, matchesGatewayRoute, type HostingConfiguration } from '../../scripts/runtime-config.mjs'
 import { rendererAliases } from '../../scripts/aliases.mjs'
 import { buildInfoPlugin } from '../../scripts/build-info.mjs'
 import { defineConfig, loadEnv, type Plugin, type PreviewServer } from 'vite'
@@ -5,7 +7,6 @@ import { rendererCompatibilityPlugin } from './src/upstream/transforms'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { createProxyServer, type ProxyServer } from 'http-proxy-3'
-import crypto from 'node:crypto'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -88,7 +89,7 @@ const emojibaseAssets = () => ({
 // The web bridge lists and loads installed desktop plugins at runtime from
 // the Hermes home dir; serve both plugin roots over HTTP (dev + preview).
 // HERMES_HOME overrides the default ~/.hermes location.
-const hermesHome = process.env.HERMES_HOME ?? path.join(os.homedir(), '.hermes')
+let hermesHome = process.env.HERMES_HOME ?? path.join(os.homedir(), '.hermes')
 
 // Shared structural type for the dev AND preview middleware servers.
 interface PluginsServerLike {
@@ -166,165 +167,8 @@ const hermesPluginsAssets = () => {
   }
 }
 
-// --- Dynamic dev proxy (ported from hermes-ui, MIT) --------------------------
-let GATEWAY = process.env.HERMES_GATEWAY_URL ?? 'http://127.0.0.1:9119'
-
-// Optional repo-root config.json (git-ignored) whose `gateways` array whitelists
-// additional gateway URLs for the dev proxy.
-function readLocalConfig(): { gateways?: unknown } | null {
-  const file = path.resolve(__dirname, '..', '..', 'config.json')
-
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'))
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.warn(`[hermes] ignoring unreadable config.json: ${(error as Error).message}`)
-    }
-
-    return null
-  }
-}
-
-function configGatewayUrls(config: { gateways?: unknown } | null): string[] {
-  const raw = config?.gateways
-
-  if (!Array.isArray(raw)) {return []}
-
-  return raw
-    .map(entry => (typeof entry === 'string' ? entry : (entry as { url?: unknown })?.url))
-    .filter((url): url is string => typeof url === 'string' && url.trim() !== '')
-    .map(url => url.trim())
-}
-
-function envGatewayUrls(): string[] {
-  return (process.env.HERMES_GATEWAY_WHITELIST ?? '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean)
-}
-
-const LOCAL_CONFIG = readLocalConfig()
-
-let TARGETS = new Map<string, string>()
-let GATEWAY_WHITELIST: string[] = []
-let DEFAULT_TARGET = 'http://127.0.0.1:9119'
-
-function configureGateway(gateway: string | undefined, extraGateways: string[] = []): void {
-  GATEWAY = gateway ?? 'http://127.0.0.1:9119'
-  TARGETS = new Map<string, string>()
-
-  for (const url of [GATEWAY, ...configGatewayUrls(LOCAL_CONFIG), ...envGatewayUrls(), ...extraGateways]) {
-    try {
-      const origin = new URL(url).origin
-
-      if (!TARGETS.has(origin)) {TARGETS.set(origin, url)}
-    } catch {
-      // skip non-absolute / unparseable entries
-    }
-  }
-
-  GATEWAY_WHITELIST = [...TARGETS.keys()]
-
-  try {
-    new URL(GATEWAY)
-    DEFAULT_TARGET = GATEWAY
-  } catch {
-    DEFAULT_TARGET = 'http://127.0.0.1:9119'
-  }
-}
-
-configureGateway(GATEWAY)
-
-const PROXY_PREFIXES = ['/api', '/auth', '/login']
-const ROUTE_COOKIE = 'hermes_dev_gateway'
-const ROUTE_PARAM = '__hgw'
-const TARGET_ORIGIN = Symbol('hermesTargetOrigin')
-
-function matchesPrefix(url: string | undefined): boolean {
-  if (!url) {return false}
-
-  return PROXY_PREFIXES.some(p => url === p || url.startsWith(`${p}/`) || url.startsWith(`${p}?`))
-}
-
-function readCookie(header: string | undefined, name: string): string | undefined {
-  if (!header) {return undefined}
-
-  for (const part of header.split(';')) {
-    const eq = part.indexOf('=')
-
-    if (eq === -1) {continue}
-
-    if (part.slice(0, eq).trim() === name) {return decodeURIComponent(part.slice(eq + 1).trim())}
-  }
-
-  return undefined
-}
-
-function validOrigin(raw: null | string | undefined): string | undefined {
-  if (!raw) {return undefined}
-
-  try {
-    const origin = new URL(raw).origin
-
-    return TARGETS.has(origin) ? origin : undefined
-  } catch {
-    return undefined
-  }
-}
-
-function resolveOrigin(req: IncomingMessage): string {
-  const parsed = req.url ? new URL(req.url, 'http://x') : null
-
-  return (
-    validOrigin(parsed?.searchParams.get(ROUTE_PARAM)) ??
-    validOrigin(readCookie(req.headers.cookie, ROUTE_COOKIE)) ??
-    new URL(DEFAULT_TARGET).origin
-  )
-}
-
-function targetTag(origin: string): string {
-  return crypto.createHash('sha256').update(origin).digest('hex').slice(0, 8)
-}
-
-function rewriteCookieHeader(header: string | undefined, tag: string): string | undefined {
-  if (!header) {return undefined}
-
-  const suffix = `__hg_${tag}`
-  const kept: string[] = []
-
-  for (const part of header.split(';')) {
-    const eq = part.indexOf('=')
-
-    if (eq === -1) {continue}
-    const name = part.slice(0, eq).trim()
-
-    if (name === ROUTE_COOKIE) {continue}
-
-    if (name.endsWith(suffix)) {kept.push(`${name.slice(0, -suffix.length)}=${part.slice(eq + 1).trim()}`)}
-  }
-
-  return kept.length ? kept.join('; ') : undefined
-}
-
-function namespaceSetCookie(cookie: string, tag: string): string {
-  const segments = cookie.split(';')
-  const first = segments[0]
-  const eq = first.indexOf('=')
-
-  if (eq === -1) {return cookie}
-  const name = first.slice(0, eq).trim()
-  const value = first.slice(eq + 1)
-  const attrs = segments.slice(1).filter(s => !/^\s*domain=/i.test(s))
-
-  return [`${name}__hg_${tag}=${value}`, ...attrs].join(';')
-}
-
-function stripRouteParam(req: IncomingMessage): void {
-  if (!req.url || !req.url.includes(ROUTE_PARAM)) {return}
-  const u = new URL(req.url, 'http://x')
-  u.searchParams.delete(ROUTE_PARAM)
-  req.url = u.pathname + u.search
-}
+// A single configured target is shared by development, preview, and nginx.
+let hosting: HostingConfiguration = runtimeConfiguration()
 
 // Shared wiring for the dev AND preview servers (preview serves the built
 // dist — the production bundle — which still needs same-origin /api routing).
@@ -335,18 +179,7 @@ interface ProxyServerLike {
 }
 
 function attachDynamicProxy(server: ProxyServerLike): void {
-  const proxy: ProxyServer = createProxyServer({ changeOrigin: false, secure: false, ws: true })
-
-  proxy.on('proxyRes', (proxyRes, req) => {
-    const setCookie = proxyRes.headers['set-cookie']
-
-    if (!setCookie) {return}
-    const origin = (req as unknown as Record<symbol, string>)[TARGET_ORIGIN]
-
-    if (!origin) {return}
-    const tag = targetTag(origin)
-    proxyRes.headers['set-cookie'] = setCookie.map(c => namespaceSetCookie(c, tag))
-  })
+  const proxy: ProxyServer = createProxyServer({ changeOrigin: false, secure: true, ws: true })
 
   proxy.on('error', (err, _req, resOrSocket) => {
     server.config.logger.error(`[hermes-proxy] ${err.message}`, { timestamp: true })
@@ -361,40 +194,22 @@ function attachDynamicProxy(server: ProxyServerLike): void {
     }
   })
 
-  const route = (req: IncomingMessage): string => {
-    const origin = resolveOrigin(req)
-    const cookie = rewriteCookieHeader(req.headers.cookie, targetTag(origin))
-
-    if (cookie === undefined) {
-      delete req.headers.cookie
-    } else {
-      req.headers.cookie = cookie
-    }
-    stripRouteParam(req)
-    ;(req as unknown as Record<symbol, string>)[TARGET_ORIGIN] = origin
-
-    return TARGETS.get(origin) ?? DEFAULT_TARGET
-  }
-
   server.middlewares.use((req, res, next) => {
-    // Serve runtime config from the same proxy in both dev and preview.
-    // Preview does not run transformIndexHtml, and an injected head script in
-    // dev was overwritten by the public gateway-config.js loaded after it.
-    if (req.url?.split('?')[0] === '/gateway-config.js') {
+    const pathname = req.url?.split('?')[0]
+    const scripts = runtimeScripts(hosting)
+    if (pathname && Object.hasOwn(scripts, pathname.slice(1))) {
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
       res.setHeader('Cache-Control', 'no-store')
-      res.end(`window.__HERMES_GATEWAY_WHITELIST__ = ${JSON.stringify(GATEWAY_WHITELIST).replace(/</g, '\\u003c')};\n`)
-
+      res.end(scripts[pathname.slice(1)])
       return
     }
-
-    if (!matchesPrefix(req.url)) {return next()}
-    proxy.web(req, res, { target: route(req) })
+    if (!matchesGatewayRoute(req.url)) return next()
+    proxy.web(req, res, { target: hosting.target })
   })
 
   server.httpServer?.on('upgrade', (req, socket, head) => {
-    if (!req.url || !req.url.startsWith('/api')) {return}
-    proxy.ws(req, socket, head, { target: route(req) })
+    if (!matchesGatewayRoute(req.url)) return
+    proxy.ws(req, socket, head, { target: hosting.target })
   })
 }
 
@@ -414,13 +229,8 @@ export default defineConfig(({ command, mode }) => {
   // Extra hostnames allowed past Vite's Host check, from apps/web-desktop/.env
   // (WEB_ALLOWED_HOSTS, comma-separated) — e.g. Tailscale names, LAN hostnames.
   const env = loadEnv(mode, __dirname, '')
-  configureGateway(
-    process.env.HERMES_GATEWAY_URL ?? env.HERMES_GATEWAY_URL,
-    (process.env.HERMES_GATEWAY_WHITELIST ?? env.HERMES_GATEWAY_WHITELIST ?? '')
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean)
-  )
+  hosting = runtimeConfiguration({ ...env, HERMES_HOME: path.join(os.homedir(), '.hermes'), ...process.env })
+  hermesHome = hosting.home
   const envAllowedHosts = (env.WEB_ALLOWED_HOSTS ?? '')
     .split(',')
     .map(s => s.trim())
@@ -430,6 +240,7 @@ export default defineConfig(({ command, mode }) => {
   base: './',
   plugins: [
     buildInfoPlugin(),
+    rendererOverrides(__dirname),
     hermesDynamicProxy(),
     react(),
     tailwindcss(),
@@ -462,7 +273,7 @@ export default defineConfig(({ command, mode }) => {
         globPatterns: ['**/*.{js,css,html,woff,woff2,ttf,otf,eot,png,jpg,jpeg,svg,gif,webp,ico}'],
         // Generated by the running proxy/container, not by the frontend build.
         // Precaching the empty build-time file hides the configured gateway.
-        globIgnores: ['**/gateway-config.js'],
+        globIgnores: ['**/gateway-config.js', '**/runtime-config.js', '**/build-info.json'],
         maximumFileSizeToCacheInBytes: 32 * 1024 * 1024,
         navigateFallback: 'index.html',
         // Never hijack the gateway: /api (REST + WS upgrade), /auth, /login

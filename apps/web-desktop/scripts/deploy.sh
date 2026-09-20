@@ -1,47 +1,23 @@
 #!/usr/bin/env bash
-# Deploy Hermes Web — BUILD ONLY; no process management.
-#
-# Serving is done by the existing, nix-managed hermes dashboard, which has
-# HERMES_WEB_DIST set ONCE (in the nix service config) to the directory this
-# script deploys into (default ~/.hermes/desktop-web). Static files are picked
-# up from disk on the next request — no restart, no process handling here.
-#
-# This script:
-#   1. reads apps/web-desktop/.env (HERMES_WEB_URL, ...)
-#   2. nix build — web-only build, upstream pinned by flake.lock
-#      (update upstream separately with: nix flake update hermes)
-#   3. copies result/ -> $HERMES_WEB_DIST_DIR (default ~/.hermes/desktop-web)
-#   4. health-checks the URL from .env and prints it
+# Stage an already downloaded CI artifact. Never build or restart services here.
 set -euo pipefail
-
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ENV_FILE="$REPO_DIR/apps/web-desktop/.env"
-WEB_DIST_DIR="${HERMES_WEB_DIST_DIR:-$HOME/.hermes/desktop-web}"
-
-if [ -f "$ENV_FILE" ]; then
-  set -a
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
-  set +a
-else
-  echo "⚠ No $ENV_FILE — copy .env.example to .env first."
-  exit 1
+: "${1:?usage: deploy.sh /absolute/path/to/extracted-ci-artifact}"
+artifact_dir="$(cd "$1" && pwd)"
+: "${HERMES_WEB_DIST_DIR:=$HOME/.hermes/desktop-web}"
+test -f "$artifact_dir/index.html"
+test -f "$artifact_dir/build-info.json"
+revision="$(node -e 'const fs=require("node:fs"); const b=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(!/^[a-f0-9]{40}$/.test(b.wrapperRevision)||!/^[a-f0-9]{40}$/.test(b.rendererRevision)) process.exit(1); process.stdout.write(b.wrapperRevision+"-"+b.rendererRevision)' "$artifact_dir/build-info.json")"
+release_dir="$HERMES_WEB_DIST_DIR/releases/$revision"
+mkdir -p "$HERMES_WEB_DIST_DIR/releases"
+if [ ! -d "$release_dir" ]; then
+  staging_dir="$(mktemp -d "$HERMES_WEB_DIST_DIR/releases/.staging.XXXXXX")"
+  trap 'rm -rf "$staging_dir"' EXIT
+  cp -r "$artifact_dir/." "$staging_dir/"
+  mv "$staging_dir" "$release_dir"
+  trap - EXIT
 fi
-
-: "${HERMES_WEB_URL:?set HERMES_WEB_URL in $ENV_FILE}"
-
-echo "==> [1/3] nix build (web-only; upstream pinned by flake.lock)"
-nix --extra-experimental-features 'nix-command flakes' build "$REPO_DIR" -o "$REPO_DIR/result"
-
-echo "==> [2/3] copy dist -> $WEB_DIST_DIR"
-mkdir -p "$WEB_DIST_DIR"
-cp -r "$REPO_DIR/result/." "$WEB_DIST_DIR/"
-
-echo "==> [3/3] health-check: $HERMES_WEB_URL"
-if curl -fsS --max-time 10 -o /dev/null "$HERMES_WEB_URL/"; then
-  echo "✅ OK — Hermes Web: $HERMES_WEB_URL"
-else
-  echo "⚠ Build done, but $HERMES_WEB_URL is not answering."
-  echo "  Check that the nix-managed dashboard has HERMES_WEB_DIST=$WEB_DIST_DIR"
-  exit 1
-fi
+link_dir="$(mktemp -d "$HERMES_WEB_DIST_DIR/.link.XXXXXX")"
+trap 'rm -rf "$link_dir"' EXIT
+ln -s "$release_dir" "$link_dir/current"
+mv -Tf "$link_dir/current" "$HERMES_WEB_DIST_DIR/current"
+echo "Staged $revision. Restart the configured web service separately to activate it."

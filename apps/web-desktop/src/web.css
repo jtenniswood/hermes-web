@@ -6,4 +6,5 @@
    sources into this workspace (which is what hermes-ui does).
    The @import pulls in the upstream stylesheet itself, untouched. */
 @source "../../desktop/src";
+@source "./";
 @import "../../desktop/src/styles.css";

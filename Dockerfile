@@ -23,10 +23,13 @@ RUN node scripts/renderer.mjs --check \
 
 # ---- runtime stage: nginx -------------------------------------------------------
 FROM nginx:alpine
+# Node runs only the shared configuration generator at startup; nginx serves requests.
+RUN apk add --no-cache nodejs
 
 # The gateway URL + HERMES_HOME are injected by docker-entrypoint.sh via
 # envsubst into the nginx template at container start.
-COPY nginx.conf.template /etc/nginx/nginx.conf
+COPY nginx.conf.template /etc/nginx/hermes.conf.template
+COPY scripts/runtime-config.mjs /opt/hermes/runtime-config.mjs
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
