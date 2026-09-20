@@ -1,0 +1,44 @@
+[
+  {
+    "module": "sdk/index.ts",
+    "name": "bot-session-cancellation",
+    "reason": "Keep superseded Bot opens on the shared browser connection",
+    "sourceHash": "e68ccb464f1a8baf812d5881b603153c4ca57af6bffc3d5d677d6345204a9fff",
+    "outputHash": "9281962e18c43201e36539835e250aabffb7c035645e3959005d950405e1acf4"
+  },
+  {
+    "module": "store/gateway.ts",
+    "name": "shared-gateway-activation",
+    "reason": "Use the existing shared gateway for browser profiles",
+    "sourceHash": "a4a6bff9328d941578d4e81a178e00d00cb7e1e4ee13ebe7548de539a569eb24",
+    "outputHash": "4eb44c9966f2dc19ee47b9e23e61cd2fec2685a62f68c51fcb428637c4babeac"
+  },
+  {
+    "module": "store/profile.ts",
+    "name": "browser-profile-selection",
+    "reason": "Select a profile without starting a desktop backend",
+    "sourceHash": "ef162f7cef5ebde1224c68328a663351594cfe63224e274b6450bd8ec0fcac6e",
+    "outputHash": "f0de161d8f6a14e0248ec11adf8a11ec2a6911e4ffb17ae654a2675c9b23c18e"
+  },
+  {
+    "module": "plugins/hermes-bots/roster-actions.ts",
+    "name": "bot-roster-opening",
+    "reason": "Avoid focusing a stale Bot tab after selection",
+    "sourceHash": "634f424fb9530ebb2bb2a066d0f0f507054eee4d9efdefe8fdbf47fad47c9dd5",
+    "outputHash": "f884349dc3d57c8892dc8acb2b5def7a5c5130078453a0184b449b1d9c64c833"
+  },
+  {
+    "module": "app/session/hooks/use-session-list-actions.ts",
+    "name": "profile-session-refresh",
+    "reason": "Refresh the session list when the active profile changes",
+    "sourceHash": "2705e6e01fa11386a1ba2bff0859f4f64da5fc20acb5ae32edba776092897b3a",
+    "outputHash": "abe92be42a45c075b96c66693d08d8a4ac6f2160cbbd9d77763a627079528c9f"
+  },
+  {
+    "module": "plugins/hermes-bots/canonical-chat.ts",
+    "name": "canonical-bot-chat",
+    "reason": "Deduplicate concurrent canonical chat opens on the shared gateway",
+    "sourceHash": "f8688d56d1fd49844d00d3311b5b1fb08d131ce74fc44c4edc62ae01d877e179",
+    "outputHash": "142560b3a201bb8bfe172987da6612d096bb79b28e60e0cbe2c26b4ebfd8ca00"
+  }
+]

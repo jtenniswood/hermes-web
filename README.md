@@ -127,3 +127,17 @@ Change only this repository’s files:
 
 After updating the upstream renderer with `nix flake update hermes`, verify
 that any configured aliases still match its module paths.
+
+## Browser integration boundaries
+
+Browser services live in `apps/web-desktop/src/platform/`. Only the
+`src/upstream/` adapter imports renderer internals. The public browser bridge
+keeps the desktop API shape while composing transport, files, clipboard,
+notifications, and display services. Native terminal and git APIs remain absent.
+
+The renderer transforms have named, reviewed source/output fingerprints. A
+change to a targeted upstream module stops the compatibility build until the
+transform is reviewed; the updater must never regenerate these fixtures itself.
+This deliberately favors a delayed upstream update over silently changed chat
+routing. `pnpm test:foundation` checks the transforms, import boundary, and
+shared TypeScript/Vite alias mappings.

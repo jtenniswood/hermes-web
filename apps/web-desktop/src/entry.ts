@@ -17,4 +17,4 @@ registerPwa()
 
 // The upstream desktop renderer, imported LIVE from apps/desktop/src — no
 // copy is made, so `git pull` from upstream never conflicts with this file.
-import '../../desktop/src/main'
+import './upstream/entry'
