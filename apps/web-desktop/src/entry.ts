@@ -9,11 +9,13 @@ import './web-bridge/install'
 import './web.css'
 import './web-overrides.css'
 import './web-sidebar-collapse'
+import { installMobileExperience } from './platform/mobile'
 
 // PWA: register the service worker (no-op off HTTPS / in dev).
 import { registerPwa } from './pwa/register'
 
 registerPwa()
+installMobileExperience()
 
 // The upstream desktop renderer, imported LIVE from apps/desktop/src — no
 // copy is made, so `git pull` from upstream never conflicts with this file.
