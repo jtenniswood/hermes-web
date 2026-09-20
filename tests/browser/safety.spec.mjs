@@ -6,7 +6,9 @@ import ts from 'typescript'
 
 let server, container, origin, workerVersion = 1
 const read = file => readFileSync(new URL(`../../apps/web-desktop/${file}`, import.meta.url), 'utf8')
-const compile = file => ts.transpileModule(read(file), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
+// This fixture embeds classic scripts, so apply the production DEV constant
+// normally supplied by Vite before transpiling the application modules.
+const compile = file => ts.transpileModule(read(file).replaceAll('import.meta.env.DEV', 'false'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
 const guard = compile('src/platform/reload-safety.ts')
 const state = compile('src/platform/connection-state.ts')
 const registration = compile('src/pwa/register.ts')
