@@ -40,5 +40,26 @@
     "reason": "Deduplicate concurrent canonical chat opens on the shared gateway",
     "sourceHash": "f8688d56d1fd49844d00d3311b5b1fb08d131ce74fc44c4edc62ae01d877e179",
     "outputHash": "142560b3a201bb8bfe172987da6612d096bb79b28e60e0cbe2c26b4ebfd8ca00"
+  },
+  {
+    "module": "store/composer.ts",
+    "name": "browser-draft-snapshot",
+    "reason": "Expose the upstream draft stash after flushing all mounted composers",
+    "sourceHash": "c103325f85b186116535bc2dd445dbac7cec45a5e29290ae7cb0efffaca0710c",
+    "outputHash": "6da7600ab288a216f2f5186c260517595fc5bb471d62434f7ed00ce61fd60f18"
+  },
+  {
+    "module": "app/chat/composer/hooks/use-composer-draft.ts",
+    "name": "browser-flush-all-composers",
+    "reason": "Flush main and tile text drafts, refusing queue edits and history browsing",
+    "sourceHash": "c55ffcbde9c0557e0718ae9c8e5601053a33e9254162c54ddd49ac6300eda80a",
+    "outputHash": "d2b2c329960bafc2adccde89ca2f0c3f3063e8f8d7290a105e7e0ea6c9bbc266"
+  },
+  {
+    "module": "components/boot-failure-overlay.tsx",
+    "name": "browser-gateway-recovery",
+    "reason": "Offer configured-gateway settings and soft retry without native backend or log actions",
+    "sourceHash": "43d0c90ed67d36fd54bf61df9f1182539d0754db045b968c25d9e4a793350078",
+    "outputHash": "2ea2f51f9ab1608bb0c09344dcb4221c9c597ed2ae7f5231819ab347d55f6b12"
   }
 ]

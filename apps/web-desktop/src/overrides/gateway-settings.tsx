@@ -1,3 +1,5 @@
+import { assertSafeConnectionChange } from '../platform/reload-safety'
+import { connectionState } from '../platform/connection-state'
 import { useEffect, useState } from 'react'
 import { Button, Input, SettingsContent } from '../upstream/ui'
 import { runtimeConfig } from '../platform/runtime'
@@ -29,22 +31,27 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
     </label>}
     <div className="flex flex-wrap gap-2">
       <Button disabled={busy} onClick={() => void run(async () => {
+        assertSafeConnectionChange()
         updateGateway(gateway.id, { authMode: mode, ...(mode === 'oauth' ? { token: '' } : token ? { token } : {}) })
         if (mode === 'oauth') {
           const result = await window.hermesDesktop.oauthLoginConnectionConfig(window.location.origin)
           if (!result.connected) { setMessage('Sign-in did not complete. Allow the sign-in window and try again.'); return }
         }
-        setToken(''); window.location.reload()
+        setToken('')
+        await window.hermesDesktop.applyConnectionConfig({ mode: 'remote', remoteAuthMode: mode })
+        setMessage(connectionState().persisted() ? 'Reconnecting to the configured gateway.' : 'Reconnecting. Your sign-in works in this tab but may not survive a reload.')
       })}>{mode === 'oauth' ? 'Sign in' : 'Save and reconnect'}</Button>
       <Button variant="outline" disabled={busy} onClick={() => void run(async () => {
         await window.hermesDesktop.testConnectionConfig({ mode: 'remote', remoteUrl: window.location.origin })
         setMessage('The configured gateway is reachable.')
       })}>Test connection</Button>
       <Button variant="outline" disabled={busy} onClick={() => void run(async () => {
+        assertSafeConnectionChange()
         await window.hermesDesktop.oauthLogoutConnectionConfig(window.location.origin)
-        updateGateway(gateway.id, { authMode: 'oauth', token: '' }); setToken(''); setMessage('Signed out.')
+        await window.hermesDesktop.applyConnectionConfig({ mode: 'remote', remoteAuthMode: 'oauth', remoteToken: '' }); setToken(''); setMessage('Signed out.')
       })}>Sign out</Button>
     </div>
+    {!connectionState().persisted() && <p role="status" className="text-sm">Browser storage is unavailable. Your sign-in works in this tab but may not survive a reload.</p>}
     {message && <p role="status" className="text-sm">{message}</p>}
   </section>
   return embedded ? content : <SettingsContent>{content}</SettingsContent>

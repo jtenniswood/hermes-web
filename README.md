@@ -138,3 +138,32 @@ transform is reviewed; the updater must never regenerate these fixtures itself.
 This deliberately favors a delayed upstream update over silently changed chat
 routing. `pnpm test:foundation` checks the transforms, import boundary, and
 shared TypeScript/Vite alias mappings.
+
+### Browser state and application updates
+
+Credentials are stored under `hermes-web.connection.v2.<gateway identity>`.
+Only an explicitly matching active legacy connection can migrate a token;
+ambiguous records remain untouched and require sign-in. Theme, zoom, desktop
+layout and upstream text-draft keys remain unchanged. When storage is blocked,
+sign-in remains in memory and the connection screen explains the limitation.
+
+A waiting service worker shows **Update when safe**. It flushes upstream text
+drafts and checks all open app tabs before activation. Active responses, file
+selection/uploads, recording, unsent attachments, unsaved text, conflicting
+cross-tab drafts and unresponsive older tabs postpone the update. Finish that
+work or close older tabs, then retry. This does not add offline chat: cached
+application assets still need the configured gateway for chat and sign-in.
+Runtime configuration, authentication, API responses and plugin files are not
+part of the application precache.
+
+Run browser checks against a built image:
+
+```sh
+pnpm exec playwright install chromium
+HERMES_TEST_IMAGE=hermes-web pnpm exec playwright test
+```
+
+The tests use a local synthetic backend without model requests. They cover
+browser recovery, credential migration and the all-tab update protocol through
+nginx. CI retains screenshots and failure traces. Full chat/Bot parity and a
+real-gateway smoke test are additional rollout gates.

@@ -1,3 +1,4 @@
+import { beginOperation } from './reload-safety'
 import type { DesktopConnectionConfig, DesktopConnectionConfigInput, DesktopOauthLoginResult, HermesApiRequest, HermesConnection } from '../upstream/types'
 import {
   activeUpstreamOrigin,
@@ -11,7 +12,6 @@ import {
   withGatewayRoute
 } from '../web-bridge/gateways'
 
-const TOKEN_STORAGE_KEY = 'hermes-web.session-token'
 export const WEB_CONNECTION_ID = 'web-single'
 
 /**
@@ -52,37 +52,10 @@ export function baseUrl(): string {
   return normalizeBase(getActiveGateway().url)
 }
 
-/**
- * Token resolution order: gateway HTML injection (loopback/token mode), a
- * `?token=` URL param (persisted then stripped so it never lingers in the
- * address bar), a previously persisted param token, then a token saved on the
- * active gateway. Empty string means cookie (gated/OAuth) mode.
- */
+/** Only the active deployment's explicitly bound credential is eligible. */
 export function resolveToken(): string {
-  if (window.__HERMES_SESSION_TOKEN__) {return window.__HERMES_SESSION_TOKEN__}
-
-  try {
-    const url = new URL(window.location.href)
-    const param = url.searchParams.get('token')
-
-    if (param) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, param)
-      url.searchParams.delete('token')
-      window.history.replaceState(null, '', url.toString())
-
-      return param
-    }
-
-    const stored = localStorage.getItem(TOKEN_STORAGE_KEY)
-
-    if (stored) {return stored}
-  } catch {
-    // fall through to the active gateway's token
-  }
-
   const gateway = getActiveGateway()
-
-  return gateway.authMode === 'token' ? (gateway.token ?? '') : ''
+  return gateway.authMode === 'token' ? gateway.token ?? '' : ''
 }
 
 export function wsBaseUrl(): string {
@@ -245,6 +218,8 @@ export async function apiFetch<T>(request: HermesApiRequest): Promise<T> {
 
   if (token) {headers['X-Hermes-Session-Token'] = token}
 
+  const finish = method === 'GET' ? () => {} : beginOperation()
+  try {
   const res = await fetch(withGatewayRoute(url, activeUpstreamOrigin()), {
     method,
     headers,
@@ -272,6 +247,7 @@ export async function apiFetch<T>(request: HermesApiRequest): Promise<T> {
   }
 
   return JSON.parse(text) as T
+  } finally { finish() }
 }
 
 export function connection(profile?: string | null): HermesConnection {

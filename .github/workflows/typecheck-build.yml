@@ -36,6 +36,19 @@ jobs:
         run: pnpm --filter web-desktop test:gateway
         env:
           HERMES_TEST_IMAGE: hermes-web:verification
+      - name: Install browser for production-image tests
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Verify browser state and update safety through nginx
+        run: pnpm exec playwright test
+        env:
+          HERMES_TEST_IMAGE: hermes-web:verification
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-evidence-${{ github.sha }}
+          path: |
+            test-results
+            playwright-report
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist-${{ github.sha }}

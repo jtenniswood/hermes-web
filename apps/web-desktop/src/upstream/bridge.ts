@@ -1,3 +1,4 @@
+import { assertSafeConnectionChange, setActiveWork } from '../platform/reload-safety'
 import type { DesktopBootProgress, DesktopCloudAgentSignInResult, DesktopCloudDiscoverResult, DesktopCloudStatus, QuickEntryStatus, QuickEntrySubmitPayload } from '../upstream/types'
 import {
   activeUpstreamOrigin,
@@ -43,6 +44,7 @@ type WebBridge = Omit<Window['hermesDesktop'], 'terminal' | 'git'> & { agentPlug
 export function createWebBridge(): Window['hermesDesktop'] {
   window.__HERMES_WEB_BRIDGE__ = true
 
+  const connectionListeners = new Set<() => void>()
   const bridge: WebBridge = {
     zoom: createWebZoomBridge(),
     getConnection: async profile => connection(profile),
@@ -160,12 +162,10 @@ export function createWebBridge(): Window['hermesDesktop'] {
     getConnectionConfig: async () => toConnectionConfig(loadStoredConnection()),
     saveConnectionConfig: async input => toConnectionConfig(persistConnection(input)),
     applyConnectionConfig: async input => {
+      assertSafeConnectionChange()
       const next = persistConnection(input)
-      // Reconnecting the live socket in place is fiddly; a reload re-runs the
-      // whole boot path against the new connection, which is exactly what the
-      // desktop shell does on "Save and reconnect". Defer so this promise
-      // resolves (and the UI can settle) before the navigation.
-      setTimeout(() => window.location.reload(), 50)
+      // Use upstream's normal soft reconnect, preserving in-memory credentials.
+      queueMicrotask(() => { for (const callback of connectionListeners) callback() })
 
       return toConnectionConfig(next)
     },
@@ -239,7 +239,8 @@ export function createWebBridge(): Window['hermesDesktop'] {
     oauthLogoutConnectionConfig: async remoteUrl => {
       const base = remoteUrl ? normalizeBase(remoteUrl) : baseUrl()
       const origin = remoteUrl ? upstreamOriginFor(remoteUrl) : activeUpstreamOrigin()
-      await fetch(withGatewayRoute(`${base}/auth/logout`, origin), { method: 'POST', credentials: 'same-origin' })
+      const response = await fetch(withGatewayRoute(`${base}/auth/logout`, origin), { method: 'POST', credentials: 'same-origin' })
+      if (!response.ok) throw new Error(`Sign-out failed (${response.status}). Try again.`)
 
       return { ok: true, connected: false }
     },
@@ -373,7 +374,7 @@ export function createWebBridge(): Window['hermesDesktop'] {
     setNativeTheme: noop,
     setTranslucency: noop,
     setPreviewShortcutActive: noop,
-    setActiveWork: noop,
+    setActiveWork,
     setKeepAwake: noop,
     openExternal: async url => {
       window.open(url, '_blank', 'noopener')
@@ -434,7 +435,7 @@ export function createWebBridge(): Window['hermesDesktop'] {
     onPreviewFileChanged: unsubscribed,
     onBackendExit: unsubscribed,
     onPowerResume: unsubscribed,
-    onConnectionApplied: unsubscribed,
+    onConnectionApplied: callback => { connectionListeners.add(callback); return () => { connectionListeners.delete(callback) } },
     getOnBattery: async () => false,
     onBatteryChanged: unsubscribed,
     onBootProgress: unsubscribed,

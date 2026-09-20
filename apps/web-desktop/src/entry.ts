@@ -1,3 +1,5 @@
+import { trackMediaRequests } from './platform/reload-safety'
+import { consumeConnectionToken } from './platform/connection-state'
 import './web.css'
 import './web-overrides.css'
 import { runtimeConfig } from './platform/runtime'
@@ -8,6 +10,8 @@ registerPwa()
 async function start(): Promise<void> {
   try {
     runtimeConfig()
+    trackMediaRequests()
+    consumeConnectionToken()
     // Complete bridge installation before any upstream module evaluates.
     await import('./web-bridge/install')
     await import('./web-sidebar-collapse')

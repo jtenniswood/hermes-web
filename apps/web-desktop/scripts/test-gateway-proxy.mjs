@@ -112,8 +112,14 @@ test('configured remote gateways survive page startup in dev and preview', async
       const source = await readFile(path.join(root, 'src/web-bridge/gateways.ts'), 'utf8')
       const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
       context.exports = {}
+      const stateSource = await readFile(path.join(root, 'src/platform/connection-state.ts'), 'utf8')
+      context.exports = {}
       context.require = () => runtime
-      vm.runInContext(compiled, context)
+      vm.runInContext(ts.transpileModule(stateSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, context)
+      const state = context.exports
+      context.exports = {}
+      context.require = specifier => specifier.includes('connection-state') ? state : runtime
+      vm.runInContext('(function(){' + compiled + '\n})()', context)
       const routing = context.exports
       assert.equal(routing.classifyGatewayReach(configuredTarget), null)
       assert.equal(routing.normalizeBase(configuredTarget), origin)

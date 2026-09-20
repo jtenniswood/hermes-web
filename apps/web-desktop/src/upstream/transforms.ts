@@ -7,6 +7,55 @@ import fixtures from './transform-fixtures.json'
 function rewrite(code: string, id: string): { code: string; map: null } | null {
 
     const normalizedId = id.replaceAll('\\', '/').split('?')[0]
+    if (normalizedId.endsWith('/desktop/src/components/boot-failure-overlay.tsx')) {
+      let patched = code.replace("  if (view === 'connect') {", `
+  if (window.__HERMES_WEB_BRIDGE__) {
+    actions = [settingsAction, { ...retryAction, variant: 'secondary', onClick: () => {
+      setBusy('retry')
+      void window.hermesDesktop.applyConnectionConfig({ mode: 'remote' })
+        .catch(error => notifyError(error, 'Could not reconnect'))
+        .finally(() => setBusy(null))
+    } }]
+    hint = 'Sign in to the configured gateway, or retry when it is available. The browser app does not run a local backend.'
+  }
+  if (view === 'connect') {`)
+      patched = patched.replace(
+        '<Button onClick={openLogs} variant="ghost">',
+        '{!window.__HERMES_WEB_BRIDGE__ && <Button onClick={openLogs} variant="ghost">'
+      ).replace('{copy.openLogs}\n              </Button>', '{copy.openLogs}\n              </Button>}')
+      return { code: patched, map: null }
+    }
+
+    if (normalizedId.endsWith('/desktop/src/store/composer.ts')) {
+      return { map: null, code: code + `
+// Browser update safety: flush the existing composers, then inspect upstream's stash.
+window.__HERMES_WEB_DRAFT_SNAPSHOT__ = () => {
+  window.__HERMES_WEB_DRAFT_BLOCKED__ = false
+  requestComposerDraftSync('flush', 'web-all')
+  return {
+    blocked: window.__HERMES_WEB_DRAFT_BLOCKED__,
+    storageKey: SESSION_DRAFTS_STORAGE_KEY,
+    texts: Object.fromEntries([...draftsBySession].filter(([, draft]) => draft.text).map(([key, draft]) => [key, draft.text])),
+    attachments: $composerAttachments.get().length + [...draftsBySession.values()].reduce((count, draft) => count + draft.attachments.length, 0)
+  }
+}
+` }
+    }
+    if (normalizedId.endsWith('/desktop/src/app/chat/composer/hooks/use-composer-draft.ts')) {
+      return { map: null, code: code.replace(
+        'onComposerDraftSyncRequest(({ mode, target: requested }) => {',
+        `onComposerDraftSyncRequest(({ mode, target: requested }) => {
+        if (requested === 'web-all') {
+          if (queueEditStateRef.current || isBrowsingHistory(sessionIdRef.current)) {
+            window.__HERMES_WEB_DRAFT_BLOCKED__ = true
+          } else {
+            syncDraftRef.current(mode)
+          }
+          return
+        }`
+      ) }
+    }
+
 
     if (normalizedId.endsWith('/apps/desktop/src/sdk/index.ts') || normalizedId.endsWith('/desktop/src/sdk/index.ts')) {
       const retryableMarker = code.indexOf('const retryable')

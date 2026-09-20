@@ -1,3 +1,4 @@
+import { beginOperation } from './reload-safety'
 import { servingBase } from '../web-bridge/gateways'
 
 /**
@@ -106,6 +107,7 @@ export function ensureFileInput(): HTMLInputElement {
  *  input.click() must stay inside the triggering click's user-gesture window;
  *  the Promise executor runs synchronously, so it does. */
 export function pickWithInput(input: HTMLInputElement): Promise<File[]> {
+  const finish = beginOperation()
   input.value = '' // allow re-selecting the same file
 
   return new Promise(resolve => {
@@ -113,7 +115,7 @@ export function pickWithInput(input: HTMLInputElement): Promise<File[]> {
 
     input.addEventListener('change', onChange)
     input.addEventListener('cancel', onCancel)
-    input.click()
+    try { input.click() } catch (error) { finish(); throw error }
 
     // Some mobile / webview pickers never fire `cancel`, which would leave this
     // pending forever. Fall back to [] if nothing settles in time — far longer
@@ -126,6 +128,7 @@ export function pickWithInput(input: HTMLInputElement): Promise<File[]> {
       clearTimeout(pendingTimer)
       input.removeEventListener('change', onChange)
       input.removeEventListener('cancel', onCancel)
+      finish()
       resolve(files)
     }
 

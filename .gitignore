@@ -19,3 +19,7 @@ apps/web-desktop/logs/
 
 # Exact renderer checkout prepared from flake.lock
 .renderer/
+
+# Browser test output
+test-results/
+playwright-report/
