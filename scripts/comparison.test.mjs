@@ -14,6 +14,30 @@ function load(file, globals = {}) {
   return context.exports
 }
 const { comparisonPlugin, scopeComparisonStorage } = load('src/upstream/comparison-plugin.ts')
+test('browser microphone capture distinguishes insecure origins and lets getUserMedia own permission', async () => {
+  const { useBrowserMicrophoneCapture } = load('src/upstream/comparison-plugin.ts')
+  const source = readFileSync(path.join(root, '../desktop/src/app/chat/composer/hooks/use-mic-recorder.ts'), 'utf8')
+  const output = useBrowserMicrophoneCapture(source)
+  assert.doesNotMatch(output, /requestMicrophoneAccess/)
+  assert.throws(() => useBrowserMicrophoneCapture(source.replace('navigator.mediaDevices?.getUserMedia', 'navigator.getUserMedia')), /capture target changed/)
+  const context = vm.createContext({
+    exports: {}, DOMException,
+    window: { isSecureContext: false }, navigator: {},
+    require: () => ({ useState: value => [value, () => {}], useRef: current => ({ current }), useEffect: () => {} })
+  })
+  vm.runInContext(ts.transpileModule(output, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, context)
+  const copy = { microphoneUnsupported: 'Unsupported', microphoneAccessDenied: 'Access denied', microphonePermissionDenied: 'Permission denied', noMicrophone: 'No microphone' }
+  const { handle } = context.exports.useMicRecorder(copy)
+  await assert.rejects(handle.start(), /HTTPS or localhost/)
+  context.window.isSecureContext = true
+  await assert.rejects(handle.start(), /Unsupported/)
+  context.MediaRecorder = class {}
+  context.navigator.mediaDevices = { getUserMedia: async () => { throw new DOMException('Blocked', 'NotAllowedError') } }
+  await assert.rejects(handle.start(), /browser settings/)
+  context.navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('Missing', 'NotFoundError') }
+  await assert.rejects(handle.start(), /No microphone/)
+})
+
 test('comparison shell contracts reject missing or changed upstream modules', t => {
   comparisonPlugin(root).buildStart()
   const fixture = mkdtempSync(path.join(tmpdir(), 'comparison-contract-'))
@@ -43,33 +67,64 @@ test('browser layout storage is isolated, deterministic and checked without movi
   assert.equal(store.get('hermes.desktop.composerDrafts'), 'shared-draft')
   assert.equal(store.get('hermes.desktop.theme'), 'dark')
   context.document.documentElement.dataset.experience = 'desktop'
-  assert.equal(readKey('hermes.desktop.layout.tree'), null)
+  assert.equal(readKey('hermes.desktop.layout.tree'), 'browser-layout')
   writeKey('hermes.desktop.layout.tree', 'desktop-layout')
   context.document.documentElement.dataset.experience = 'browser'
-  assert.equal(readKey('hermes.desktop.layout.tree'), 'browser-layout')
+  assert.equal(readKey('hermes.desktop.layout.tree'), 'desktop-layout')
 })
-test('experience selection respects explicit links, per-tab choice and safe reloads without changing hashes', () => {
-  let blocked = false, assigned
-  const store = new Map()
-  const globals = { URL, URLSearchParams, document: { documentElement: { dataset: {} } }, sessionStorage: { getItem: key => store.get(key) ?? null, setItem: (key, value) => store.set(key, value) }, window: { location: { search: '', href: 'https://preview.test/?other=keep#/session-123', assign: url => { assigned = url } } }, require: () => ({ assertSafeReload() { if (blocked) throw new Error('busy') } }) }
+test('browser selection always initializes the browser-focused shell', () => {
+  const globals = { document: { documentElement: { dataset: {} } } }
   const selection = load('src/experience/selection.ts', globals)
-  assert.equal(selection.resolveExperience('', null), 'desktop')
-  assert.equal(selection.resolveExperience('', 'browser'), 'browser')
-  assert.equal(selection.resolveExperience('?experience=desktop', 'browser'), 'desktop')
-  assert.equal(selection.resolveExperience('?experience=unknown', null), 'desktop')
   selection.initializeComparison()
-  blocked = true
-  assert.throws(() => selection.switchExperience('browser'), /busy/)
-  assert.equal(assigned, undefined)
-  blocked = false
-  selection.switchExperience('browser')
-  const url = new URL(assigned)
-  assert.equal(url.hash, '#/session-123')
-  assert.equal(url.searchParams.get('other'), 'keep')
-  assert.equal(url.searchParams.get('experience'), 'browser')
+  assert.equal(globals.document.documentElement.dataset.experience, 'browser')
 })
 
-test('browser workspace retains upstream tabs and tool groups while excluding duplicate navigation', () => {
+test('browser shell does not register chat tab creation actions', () => {
+  const { disableBrowserSessionTabs } = load('src/upstream/comparison-plugin.ts')
+  const source = readFileSync(path.join(root, '../desktop/src/app/contrib/wiring.tsx'), 'utf8')
+  const output = disableBrowserSessionTabs(source)
+  assert.doesNotMatch(output, /\n    openNewSessionTab,\n/)
+  assert.match(output, /\$newSessionTabAction\.set\(null\)/)
+  assert.equal(disableBrowserSessionTabs(output), output)
+})
+
+test('browser startup keeps shared controller registration without rendering desktop UI', () => {
+  const initializer = readFileSync(path.join(root, 'src/upstream/comparison-initialize.ts'), 'utf8')
+  const browserRoot = readFileSync(path.join(root, 'src/upstream/comparison-root.tsx'), 'utf8')
+  assert.match(initializer, /import ['"]\.\.\/\.\.\/\.\.\/desktop\/src\/app\/contrib\/controller['"];?/)
+  assert.match(browserRoot, /import ['"]\.\/comparison-initialize['"];?/)
+  assert.doesNotMatch(browserRoot, /ContribController/)
+})
+
+test('browser settings remove desktop-only keybind rows', () => {
+  const { filterBrowserKeybinds } = load('src/upstream/comparison-plugin.ts')
+  const source = readFileSync(path.join(root, '../desktop/src/app/settings/keybind-settings.tsx'), 'utf8')
+  const output = filterBrowserKeybinds(source)
+  assert.match(output, /BROWSER_UNSUPPORTED_KEYBINDS/)
+  assert.match(output, /allKeybindActions\(contributions\)\.filter/)
+  assert.match(output, /browserReadonly\.filter/)
+  assert.equal(filterBrowserKeybinds(output), output)
+  assert.throws(() => filterBrowserKeybinds(source.replace("const [query, setQuery] = useState('')", "const [query, setQuery] = useState('changed')")), /keybind contract changed/)
+})
+
+test('browser session rows resume chats instead of opening tabs or windows', () => {
+  const { disableBrowserSessionRowTabs } = load('src/upstream/comparison-plugin.ts')
+  const source = readFileSync(path.join(root, '../desktop/src/app/chat/sidebar/session-row.tsx'), 'utf8')
+  const output = disableBrowserSessionRowTabs(source)
+  assert.doesNotMatch(output, /openSession\(session\.id, \(\) => undefined, '(?:tab|window)'\)/)
+  assert.equal((output.match(/onResume\(\)/g) || []).length, (source.match(/onResume\(\)/g) || []).length + 3)
+})
+
+test('browser session menus omit tab and window actions', () => {
+  const { disableBrowserSessionOpenActions } = load('src/upstream/comparison-plugin.ts')
+  const source = readFileSync(path.join(root, '../desktop/src/app/chat/sidebar/session-actions-menu.tsx'), 'utf8')
+  const output = disableBrowserSessionOpenActions(source)
+  assert.doesNotMatch(output, /surface === 'row' && !alreadyTabbed/)
+  assert.doesNotMatch(output, /canOpenSessionWindow\(\)/)
+  assert.match(output, /canOpenSessionInTerminal\(\)/)
+})
+
+test('browser workspace removes chat tabs while retaining tool groups', () => {
   const { browserWorkspaceTree } = load('src/upstream/workspace-tree.ts')
   const tree = { type: 'split', id: 'root', orientation: 'row', weights: [1, 3, 1], children: [
     { type: 'group', id: 'navigation', panes: ['sessions', 'hermes-bots:pane'], active: 'sessions' },
@@ -85,7 +140,7 @@ test('browser workspace retains upstream tabs and tool groups while excluding du
   assert.equal(tree.children[2].active, 'terminal', 'Projection must leave upstream layout state untouched')
   const withPanels = browserWorkspaceTree(tree, new Set(['plugin:tool']))
   assert.equal(withPanels.children[1].tabStrip, 'always', 'Contributed panels must retain a close handle')
-  assert.equal(withPanels.children[0].tabStrip, undefined, 'Chat layout preferences stay unchanged')
+  assert.equal(withPanels.children[0].tabStrip, 'never', 'The browser chat group must not expose tabs')
   assert.equal(tree.children[2].tabStrip, undefined, 'Close handles must not rewrite the saved layout')
 })
 test('narrow tool overlays retain upstream behavior without duplicating browser navigation', () => {
@@ -98,13 +153,13 @@ test('narrow tool overlays retain upstream behavior without duplicating browser 
   assert.throws(() => filterBrowserNarrowNavigation(output.replace('closeTabPane(revealed.id)', 'closeTabPane("files")')), /contract changed/)
 })
 
-test('empty workspace panels retain a working close action without changing desktop behavior', () => {
+test('empty workspace panels retain a working close action', () => {
   const { closeBrowserWorkspacePanels } = load('src/upstream/comparison-plugin.ts')
   const source = readFileSync(path.join(root, '../desktop/src/components/pane-shell/tree/store.ts'), 'utf8')
   const output = closeBrowserWorkspacePanels(source)
   assert.equal(closeBrowserWorkspacePanels(output), output)
   assert.throws(() => closeBrowserWorkspacePanels(source + '\n// drift'), /close contract changed/)
-  assert.match(output, /dataset.experience === 'browser'/)
+  assert.match(output, /\['files', 'review'\].includes\(paneId\)/)
   assert.throws(() => closeBrowserWorkspacePanels(output.replace('setTreePaneHidden(paneId, true)', 'setTreePaneHidden(paneId, false)')), /close contract changed/)
 })
 

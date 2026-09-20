@@ -85,6 +85,13 @@ revision, dependency-lock hash, timestamp, and release channel. CI supplies the
 wrapper identity to Docker; local image builds can supply `HERMES_WRAPPER_REV`.
 The frontend version is separate from the connected gateway version.
 
+Microphone recording requires HTTPS when opening the app from another device.
+Use an HTTPS reverse proxy (or Tailscale Serve for a private demo); an HTTP LAN
+or tailnet address cannot request microphone permission. Local development on
+`http://localhost` also supports recording. Click the microphone and allow access
+when the browser asks. If access was previously blocked, enable Microphone in
+the browser's site permissions and try again.
+
 Pull requests run strict wrapper and reachable-renderer typechecking, foundation
 tests, gateway regression tests, and a production build. Upstream diagnostics
 are not broadly ignored; the explicit diagnostic baseline is currently empty.
@@ -176,9 +183,10 @@ rollback by digest. Daily renderer proposals use the exact upstream commit and
 can change only renderer lock metadata. `release.yml` is the single publisher;
 a release publishes an image without restarting the production deployment.
 
-### Interface comparison preview
+### Browser-focused preview
 
-The review-only comparison build offers **Desktop familiar** and **Browser
-focused**, backed by the same upstream chat engine. See the [preview guide](docs/interface-comparison.md)
-for the isolated Compose stack, exact PR images, safe experience switch, and
-comparison walkthrough. Stable builds omit the comparison controls.
+The preview build uses the browser-focused shell backed by the upstream chat
+engine. See the [preview guide](docs/interface-comparison.md) for the isolated
+Compose stack and exact PR images. The browser-focused shell is the only web
+entry point in stable and preview builds; preview images add only the synthetic
+gateway and review fixtures.

@@ -238,15 +238,16 @@ export default defineConfig(({ command, mode }) => {
     .map(s => s.trim())
     .filter(Boolean)
 
-  const comparison = (process.env.HERMES_COMPARISON ?? env.HERMES_COMPARISON) === '1'
+  // The browser shell is the only supported web entry point. Installing the
+  // wrapper plugin unconditionally prevents a stale desktop build from being
+  // shipped when a developer or deployment omits the old comparison flag.
   return {
-  define: { __HERMES_COMPARISON__: JSON.stringify(comparison) },
   base: './',
   plugins: [
     dependencyCompatibilityPlugin(__dirname),
     buildInfoPlugin(),
     rendererOverrides(__dirname),
-    ...(comparison ? [comparisonPlugin(__dirname)] : []),
+    comparisonPlugin(__dirname),
     hermesDynamicProxy(),
     react(),
     tailwindcss(),

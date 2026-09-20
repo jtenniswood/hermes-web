@@ -16,6 +16,14 @@
     "sourceHash": "816669c25c0fab0f2388768eb142bbce5e1435d0b9d62326170f0f4b1adc4e8d"
   },
   {
+    "module": "app/chat/sidebar/session-row.tsx",
+    "sourceHash": "9f667fd4b055f69b4919c6f5eeefc560a4e68bafc2d255b6db0c7773c3fda911"
+  },
+  {
+    "module": "app/chat/sidebar/session-actions-menu.tsx",
+    "sourceHash": "235143c976b1d6b777dd2f13ad1f1ddadd6d0a3ff2b5bb83034d8fc9b630dc71"
+  },
+  {
     "module": "app/shell/titlebar-controls.tsx",
     "sourceHash": "895e7795254f8c51f0d3d8b2dfe1bd38ee28bece0ffdc7516f93168ba525853e"
   },

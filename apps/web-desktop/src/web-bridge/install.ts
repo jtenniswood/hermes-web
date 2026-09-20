@@ -10,13 +10,11 @@
  */
 import { createWebBridge } from './bridge'
 
-// The browser shell does not have the desktop renderer's contextual-menu
-// handlers, so suppress the browser page menu there. Leave desktop events
-// untouched: its profile bar, status bar, and layout controls own the
-// context-menu event and need to receive it before the default is cancelled.
+// The browser shell owns its contextual menus, so suppress the browser page
+// menu before the renderer's default handler can consume the event.
 if (typeof window !== 'undefined') {
   window.addEventListener('contextmenu', event => {
-    if (document.documentElement.dataset.experience !== 'desktop') {
+    if (document.documentElement.dataset.experience === 'browser') {
       event.preventDefault()
     }
   }, true)

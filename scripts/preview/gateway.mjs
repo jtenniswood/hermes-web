@@ -67,6 +67,7 @@ export function createPreviewGateway({ log = () => {}, delay = 95 } = {}) {
     }
     if (method === 'config.get' || method === 'model.info') return { ...info, model: info.model, provider: 'custom', config: { model: { default: info.model, provider: 'custom' }, display: {} } }
     if (method === 'profiles.get') return { ...profiles.find(p => p.name === params.name), config: { model: { default: info.model } } }
+    if (method === 'pet.gallery') return { enabled: false, active: '', pets: [] }
     if (method === 'prompt.submit') {
       if (!sessions.has(id)) addSession(id, 'New conversation')
       messages.get(id).push({ id: `${id}-${Date.now()}`, role: 'user', content: params.text || '', timestamp: now() })

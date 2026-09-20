@@ -25,6 +25,11 @@ function publishPwaUpdate(notice: PwaUpdateNotice | null): void {
 
 /** A waiting worker performs an all-tab handshake before it activates. */
 export function registerPwa(): void {
+  // Vite serves `/sw.js` as the application fallback during development,
+  // which produces an HTML service-worker response and a misleading MIME
+  // error before the browser shell starts. The production bundle injects the
+  // real worker and remains fully registered.
+  if (import.meta.env.DEV) return
   if (!('serviceWorker' in navigator)) return
   const { hostname, protocol } = window.location
   const local = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost')

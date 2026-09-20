@@ -1,95 +1,144 @@
-/* Review-only browser chrome. The chat, composer, themes and surfaces are upstream. */
-.experience-control { display:flex; align-items:center; gap:.6rem; min-width:0; }
-.experience-control label { display:flex; align-items:center; gap:.6rem; font-size:.75rem; font-weight:500; }
-.experience-control select { border:1px solid var(--border); border-radius:.5rem; padding:.42rem 1.4rem .42rem .65rem; background:var(--background); color:var(--foreground); font:inherit; }
-.experience-control select:disabled { opacity:.55; cursor:wait; }
-.experience-reason { max-width:15rem; font-size:.65rem; line-height:1.3; color:var(--muted-foreground); }
-.desktop-comparison-bar { height:3.25rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:.5rem 1rem; border-bottom:1px solid var(--border); background:var(--background); color:var(--foreground); }
-.desktop-comparison-bar > span { font-weight:600; font-size:.875rem; }
-.desktop-comparison-bar small { margin-left:.5rem; color:var(--muted-foreground); font-weight:400; }
-html[data-experience="desktop"] #root { display:flex; flex-direction:column; overflow:hidden; }
-.desktop-comparison-bar { flex-shrink:0; height:auto; min-height:3.25rem; }
-/* Establish a containing block for upstream fixed controls below the review bar. */
-.desktop-comparison-content { flex:1; min-height:0; position:relative; transform:translateZ(0); }
+/* Browser-focused shell chrome. The chat, composer, themes and surfaces are upstream. */
 .browser-provider { height:100%; min-height:0; display:block; }
-.browser-shell { --browser-panel-divider:var(--border); height:100%; display:flex; flex-direction:column; color:var(--foreground); background:var(--background); overflow:hidden; }
-.browser-header { height:4.5rem; flex-shrink:0; padding:.75rem 1.5rem; display:flex; gap:1rem; align-items:center; border-bottom:1px solid var(--border); background:var(--background); }
-.browser-menu { width:2.25rem; height:2.25rem; align-items:center; justify-content:center; border:0; border-radius:.35rem; color:var(--muted-foreground); background:var(--accent); cursor:pointer; }
-.browser-menu:hover,.browser-menu:focus-visible { color:var(--foreground); background:color-mix(in srgb,var(--accent) 80%,var(--foreground)); outline:none; }
-.browser-brand { display:flex; align-items:center; gap:.7rem; color:inherit; text-decoration:none; font-size:1.05rem; font-weight:650; letter-spacing:-.025em; }
-.browser-brand small { display:block; font-size:.66rem; line-height:1.5; font-weight:400; letter-spacing:0; color:var(--muted-foreground); }
-.browser-header-end { margin-left:auto; display:flex; align-items:center; gap:1.3rem; }
-.browser-chat-toolbar { height:2.5rem; flex-shrink:0; display:flex; align-items:center; justify-content:flex-end; padding:0 .75rem; border-bottom:1px solid var(--border); background:var(--background); }
+.browser-shell { --browser-panel-divider:var(--border); --browser-hover-fill:color-mix(in srgb,var(--primary,#4d86ff) 20%,var(--background)); height:100%; display:flex; flex-direction:column; color:var(--foreground); background:var(--background); overflow:hidden; }
+.browser-menu { display:inline-flex; flex-shrink:0; width:2.25rem; height:2.25rem; align-items:center; justify-content:center; border:0; border-radius:.35rem; color:var(--ui-text-secondary); background:transparent; cursor:pointer; }
+.browser-menu:hover,.browser-menu:focus-visible { color:var(--ui-text-secondary); background:var(--browser-hover-fill); outline:none; }
+.browser-chat-toolbar { height:2.75rem; flex-shrink:0; display:flex; align-items:center; gap:.5rem; padding:0 .75rem; border-bottom:1px solid var(--border); background:var(--background); }
+.browser-chat-title { min-width:0; flex:1 1 auto; overflow:hidden; color:var(--foreground); font-size:.75rem; font-weight:500; line-height:1.25; text-overflow:ellipsis; white-space:nowrap; }
 .browser-chat-toolbar .browser-actions { margin-left:auto; }
-.browser-chat-toolbar .browser-actions button { width:2rem; height:2rem; display:inline-flex; align-items:center; justify-content:center; padding:.35rem; border:0; border-radius:.35rem; color:var(--muted-foreground); background:transparent; }
-.browser-chat-toolbar .browser-actions button:hover,.browser-chat-toolbar .browser-actions button:focus-visible { color:var(--foreground); background:var(--accent); outline:none; }
+.browser-chat-toolbar .browser-actions > button,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button { width:2rem; height:2rem; display:inline-flex; align-items:center; justify-content:center; padding:.35rem; border:0; border-radius:.35rem; color:var(--ui-text-secondary); background:transparent; }
+.browser-chat-toolbar .browser-actions > button:hover,.browser-chat-toolbar .browser-actions > button:focus-visible,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button:hover,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button:focus-visible { color:var(--ui-text-secondary); background:var(--browser-hover-fill); outline:none; }
 .browser-actions { display:flex; align-items:center; gap:.4rem; }
-.browser-actions button,.browser-tool-title button { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .65rem; font-size:.75rem; background:var(--background); cursor:pointer; }
+.browser-panels-menu-wrap { position:relative; }
+.browser-panels-menu { position:absolute; top:calc(100% + .4rem); right:0; z-index:40; width:15rem; max-height:min(24rem,calc(100vh - 5rem)); overflow:auto; padding:.35rem; border:1px solid var(--border); border-radius:.55rem; background:var(--popover,var(--background)); box-shadow:0 .6rem 1.5rem #0006; }
+.browser-panels-menu .browser-tool-row { width:100%; min-height:2rem; height:auto; display:flex; align-items:center; justify-content:flex-start; gap:.5rem; padding:.35rem .45rem; border:1px solid transparent; border-radius:.4rem; color:var(--foreground); background:transparent; text-align:left; font:inherit; font-size:.75rem; cursor:pointer; box-sizing:border-box; }
+.browser-panels-menu .browser-tool-row:hover,.browser-panels-menu .browser-tool-row:focus-visible { border-color:transparent; background:var(--browser-hover-fill); outline:none; }
+.browser-tool-title button { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .65rem; font-size:.75rem; background:var(--background); cursor:pointer; }
 .browser-actions svg { width:1rem; height:1rem; }
-.browser-actions button { position:relative; }
+.browser-chat-toolbar .browser-actions > button,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button { position:relative; }
 .browser-action-badge { position:absolute; top:-.4rem; right:-.35rem; padding:.1rem .25rem; border-radius:.5rem; background:var(--primary); color:var(--primary-foreground); font-size:.55rem; }
 .browser-workspace { flex:1; min-height:0; display:flex; position:relative; }
-.browser-navigation { width:var(--browser-navigation-width,19rem); flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--browser-panel-divider); background:var(--sidebar,var(--background)); overflow:hidden; }
+.browser-navigation { position:relative; width:var(--browser-navigation-width,19rem); flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--sidebar-edge-border,var(--ui-stroke-secondary)); background:var(--sidebar,var(--background)); overflow:hidden; }
+/* The shell owns the divider so it continues alongside the profile footer. */
+.browser-navigation [data-slot="sidebar"] { border-right-width:0; }
+.browser-navigation[hidden],.browser-navigation-resizer[hidden] { display:none; }
 .browser-navigation-resizer { width:.35rem; flex:0 0 .35rem; z-index:2; margin-left:-.175rem; cursor:col-resize; background:transparent; touch-action:none; }
 .browser-navigation-resizer:hover,.browser-navigation-resizer:focus-visible { background:var(--primary,#4d86ff); outline:none; }
 .browser-navigation-tabs { display:flex; gap:0; min-width:0; overflow-x:auto; border-bottom:1px solid var(--browser-panel-divider); background:var(--sidebar,var(--background)); scrollbar-width:none; }
 .browser-navigation-tabs::-webkit-scrollbar { display:none; }
 .browser-navigation-tabs button { position:relative; flex:0 0 auto; min-width:0; max-width:12rem; min-height:2.75rem; border:0; border-radius:0; padding:0 .75rem; color:var(--muted-foreground); background:var(--sidebar,var(--background)); font-size:.5625rem; font-weight:500; letter-spacing:.025em; text-transform:uppercase; cursor:pointer; }
 .browser-navigation-tabs button + button::before { position:absolute; top:.35rem; bottom:.35rem; left:0; width:1px; background:color-mix(in srgb,var(--foreground) 14%,transparent); content:""; }
-.browser-navigation-tabs button:hover { color:var(--foreground); background:color-mix(in srgb,#000 7%,transparent); }
+.browser-navigation-tabs button:hover { color:var(--foreground); background:var(--browser-hover-fill); }
 .browser-navigation-tabs button[aria-selected="true"] { color:var(--foreground); background:var(--background); box-shadow:inset 0 -2px 0 var(--primary,#4d86ff); }
-.browser-navigation-tabs button:focus-visible { outline:2px solid var(--ring); outline-offset:-2px; }
+.browser-navigation-tabs button:focus-visible { color:var(--foreground); background:var(--browser-hover-fill); outline:none; }
 .browser-navigation-tabs-menu { position:fixed; z-index:100; min-width:9rem; padding:.3rem; border:1px solid var(--border); border-radius:.45rem; background:var(--popover,var(--background)); box-shadow:0 .5rem 1.5rem #0005; }
 .browser-navigation-tabs-menu button { width:100%; display:flex; align-items:center; gap:.45rem; padding:.4rem .55rem; border:0; border-radius:.3rem; color:var(--foreground); background:transparent; font:inherit; font-size:.75rem; line-height:1.35; text-align:left; white-space:nowrap; cursor:pointer; }
-.browser-navigation-tabs-menu button:hover,.browser-navigation-tabs-menu button:focus-visible { background:var(--accent); outline:none; }
+.browser-navigation-tabs-menu button:hover,.browser-navigation-tabs-menu button:focus-visible { background:var(--browser-hover-fill); outline:none; }
 .browser-navigation-tabs-menu button:disabled { color:var(--muted-foreground); cursor:not-allowed; opacity:.65; }
 .browser-navigation-tabs-menu button > span { width:.8rem; color:var(--primary,#4d86ff); font-weight:700; text-align:center; }
-.browser-navigation-body { flex:1; min-height:0; overflow:hidden; }
+.browser-navigation-body { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+/* Keep the disclosure in the search/navigation flow so expansion reserves space. */
+.browser-more-wrap { width:calc(100% + 1rem); margin:1px -.5rem 0; }
+.browser-more-trigger { width:100%; height:1.5rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.6875rem; font-weight:500; text-align:left; cursor:pointer; }
+.browser-more-trigger > .codicon { width:1rem; flex:0 0 1rem; text-align:center; }
+.browser-more-trigger:hover,.browser-more-trigger:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
+.browser-more-list { display:flex; flex-direction:column; gap:1px; margin-bottom:.25rem; }
+.browser-more-list[hidden] { display:none; }
+.browser-more-list button { width:100%; height:1.75rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.8125rem; font-weight:500; text-align:left; cursor:pointer; }
+.browser-more-list button > .codicon { color:color-mix(in srgb,currentColor 72%,transparent); }
+.browser-more-list button:hover,.browser-more-list button:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
 .browser-profile-footer { position:relative; display:flex; align-items:center; gap:.45rem; flex-shrink:0; padding:.6rem .75rem .7rem; background:var(--sidebar,var(--background)); }
-.browser-profile-footer select { min-width:0; flex:1; padding:.3rem .45rem; border:1px solid var(--border); border-radius:.4rem; color:var(--foreground); background:var(--background); }
-.browser-profile-actions { position:relative; flex:0 0 auto; }
-.browser-profile-actions-trigger { width:1.8rem; height:1.8rem; display:inline-flex; align-items:center; justify-content:center; border:1px solid transparent; border-radius:.4rem; color:var(--muted-foreground); background:transparent; font-size:1.1rem; line-height:1; cursor:pointer; }
-.browser-profile-actions-trigger:hover,.browser-profile-actions-trigger[aria-expanded="true"] { border-color:var(--border); background:var(--accent); color:var(--foreground); }
-.browser-profile-actions-trigger:focus-visible { outline:2px solid var(--ring); outline-offset:1px; }
-.browser-profile-actions-menu { position:absolute; right:0; bottom:calc(100% + .4rem); z-index:70; min-width:10rem; padding:.3rem; border:1px solid var(--border); border-radius:.45rem; background:var(--popover,var(--background)); box-shadow:0 .5rem 1.5rem #0005; }
-.browser-profile-actions-menu button { width:100%; display:block; padding:.4rem .55rem; border:0; border-radius:.3rem; color:var(--foreground); background:transparent; font:inherit; font-size:.75rem; line-height:1.35; text-align:left; white-space:nowrap; cursor:pointer; }
-.browser-profile-actions-menu button:hover,.browser-profile-actions-menu button:focus-visible { background:var(--accent); outline:none; }
+.browser-profile-rail { min-width:0; width:100%; display:flex; align-items:center; gap:.4rem; overflow-x:auto; scrollbar-width:none; }
+.browser-profile-slot { position:relative; display:flex; align-items:center; flex:0 0 2.5rem; }
+.browser-profile-slot > .browser-profile-drop-indicator { position:absolute; top:50%; left:-.3rem; transform:translateY(-50%); }
+.browser-profile-choice img { pointer-events:none; -webkit-user-drag:none; }
+.browser-profile-drop-end { position:relative; align-self:stretch; flex:1 0 1rem; min-height:2.5rem; }
+.browser-profile-drop-end > .browser-profile-drop-indicator { position:absolute; top:50%; left:0; transform:translateY(-50%); }
+.browser-profile-rail::-webkit-scrollbar { display:none; }
+.browser-profile-drop-indicator { width:.2rem; height:2.25rem; flex:0 0 .2rem; border-radius:999px; background:var(--primary,#4d86ff); box-shadow:0 0 .45rem color-mix(in srgb,var(--primary,#4d86ff) 70%,transparent); pointer-events:none; }
+.browser-profile-choice { width:2.5rem; height:2.5rem; flex:0 0 2.5rem; display:inline-flex; align-items:center; justify-content:center; padding:0; border:1px solid transparent; border-radius:.6rem; color:var(--muted-foreground); background:transparent; cursor:pointer; }
+.browser-profile-choice[draggable="true"] { cursor:grab; }
+.browser-profile-choice[draggable="true"]:active,.browser-profile-choice.is-dragging { cursor:grabbing; opacity:.55; }
+.browser-profile-choice:hover,.browser-profile-choice:focus-visible { background:var(--browser-hover-fill); color:var(--foreground); outline:none; }
+.browser-profile-choice.is-drop-target { background:var(--browser-hover-fill); box-shadow:inset 0 0 0 1px var(--primary,#4d86ff); }
+.browser-profile-choice[aria-pressed="true"] { border-color:var(--primary,#4d86ff); background:color-mix(in srgb,var(--primary,#4d86ff) 16%,transparent); color:var(--foreground); }
+.browser-profile-choice > :is(img,span) { width:2.25rem !important; height:2.25rem !important; }
+.browser-profile-all { color:var(--muted-foreground); }
+.browser-profile-context-menu { position:fixed; z-index:110; min-width:8.5rem; padding:.3rem; border:1px solid var(--border); border-radius:.45rem; background:var(--popover,var(--background)); box-shadow:0 .5rem 1.5rem #0005; }
+.browser-profile-context-menu button { width:100%; display:flex; align-items:center; padding:.4rem .55rem; border:0; border-radius:.3rem; color:var(--foreground); background:transparent; font:inherit; font-size:.75rem; line-height:1.35; text-align:left; white-space:nowrap; cursor:pointer; }
+.browser-profile-context-menu button:hover,.browser-profile-context-menu button:focus-visible { background:var(--browser-hover-fill); outline:none; }
+.browser-profile-context-menu button:disabled { color:var(--muted-foreground); cursor:not-allowed; opacity:.65; }
 .browser-update-panel { flex-shrink:0; margin:.55rem .65rem 0; padding:.6rem; border:1px solid var(--border); border-radius:.55rem; background:var(--background); color:var(--foreground); box-shadow:0 .25rem .8rem #0002; }
 .browser-update-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:.5rem; font-size:.75rem; }
 .browser-update-panel-heading strong { font-weight:600; }
 .browser-update-panel-heading button { width:1.35rem; height:1.35rem; display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:.3rem; color:var(--muted-foreground); background:transparent; font-size:1rem; line-height:1; cursor:pointer; }
-.browser-update-panel-heading button:hover,.browser-update-panel-heading button:focus-visible { background:var(--accent); color:var(--foreground); outline:none; }
+.browser-update-panel-heading button:hover,.browser-update-panel-heading button:focus-visible { background:var(--browser-hover-fill); color:var(--foreground); outline:none; }
 .browser-update-panel p { margin:.35rem 0 .55rem; color:var(--muted-foreground); font-size:.7rem; line-height:1.35; }
 .browser-update-panel-action { width:100%; padding:.35rem .5rem; border:1px solid var(--border); border-radius:.35rem; color:var(--foreground); background:var(--accent); font:inherit; font-size:.7rem; cursor:pointer; }
-.browser-update-panel-action:hover,.browser-update-panel-action:focus-visible { border-color:var(--ring); outline:none; }
+.browser-update-panel-action:hover,.browser-update-panel-action:focus-visible { border-color:transparent; background:var(--browser-hover-fill); outline:none; }
 .browser-pane { height:100%; min-height:0; }
 .browser-sessions-pane { padding-top:.5rem; }
-/* Match the existing Pinned/Sessions rhythm across every sidebar section,
-   including consecutive messaging services and Cron jobs. */
-.browser-sessions-pane [data-sidebar="group"] { padding-bottom:.25rem; }
+/* Use one stack gap for Pinned, Sessions, messaging services, and Cron. The
+   upstream sections carry different content padding, which otherwise makes
+   the visible gap change from one section to the next. */
+.browser-sessions-pane [data-sessions-mode] { row-gap:.5rem; padding-top:.5rem; }
+.browser-sessions-pane [data-sessions-mode] > [data-sidebar="group"] > .group\/section { min-height:1.75rem; padding-block:.125rem; }
+.browser-sessions-pane [data-sessions-mode] > [data-sidebar="group"] { padding-bottom:0 !important; }
+.browser-sessions-pane [data-sessions-mode] > [data-sidebar="group"] > [data-sidebar="group-content"] { padding-bottom:0 !important; }
+/* Keep the recents section content-sized in the browser rail. The upstream
+   sidebar gives it the remaining flex height, which leaves messaging and Cron
+   pinned to the bottom when the list is short or empty. */
+.browser-sessions-pane [data-sidebar="group"][class~="min-h-32"][class~="flex-1"] { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
+.browser-sessions-pane [data-sidebar="group"][class~="min-h-32"][class~="flex-1"] > [data-sidebar="group-content"] { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
 .browser-pane[hidden],.browser-chat[hidden] { display:none; }
+/* Match the session search field to the surrounding navigation rows. The
+   upstream field intentionally recedes until focused; browser navigation
+   treats it as a normal menu item and uses the short "Search" label. */
+.browser-sessions-pane { flex:1 1 auto; height:auto; min-height:0; overflow:auto; }
+.browser-sessions-pane div:has(> input[placeholder="Search"]) { width:calc(100% + 1rem); max-width:none; height:1.75rem; min-height:1.75rem; display:flex; align-items:center; gap:.5rem; margin-top:0; margin-left:-.5rem; margin-right:-.5rem; padding:.5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); font-size:.8125rem; font-weight:500; line-height:1.4285714; opacity:1 !important; }
+.browser-sessions-pane div:has(> input[placeholder="Search"]):focus-within { border-color:transparent; background:var(--ui-control-hover-background,var(--browser-hover-fill)); color:var(--foreground); }
+.browser-sessions-pane div:has(> input[placeholder="Search"]) > svg { width:1rem; height:1rem; flex:0 0 1rem; color:color-mix(in srgb,currentColor 72%,transparent); }
+.browser-sessions-pane div:has(> input[placeholder="Search"]) > input { height:1.25rem; min-width:0; font:inherit; font-size:inherit; line-height:inherit; color:inherit; }
+.browser-sessions-pane div:has(> input[placeholder="Search"]) > input::placeholder { color:inherit; opacity:1; }
+.browser-sessions-pane [data-sidebar="content"] > [data-sidebar="group"]:first-child { padding-bottom:0; }
+.browser-sessions-pane [data-sidebar="content"] > div:has(> div > input[placeholder="Search"]) { padding-top:1px; }
+.browser-sessions-pane div:has(> input[placeholder="Search"]):hover { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); }
+/* Center the empty state in its chat viewport without composer-dependent
+   offsets. The browser sizes the wordmark directly from its available width,
+   so the upstream hidden measuring copy must not reserve horizontal space. */
+.browser-shell [data-slot="aui_thread-content"]:has([data-slot="aui_intro"]) { height:100%; padding:0 1rem; }
+.browser-shell [data-slot="aui_thread-content"] > div:has(> div > [data-slot="aui_intro"]) { min-height:0; grid-template-rows:minmax(0,1fr); gap:0; }
+.browser-shell div:has(> [data-slot="aui_intro"]) { min-width:0; padding-top:0; }
+.browser-shell [data-slot="aui_intro"] { box-sizing:border-box; min-width:0; width:100%; max-width:100%; padding:1rem .5rem; }
+.browser-shell [data-slot="aui_intro"] > div { min-width:0; width:100%; max-width:100%; container-type:inline-size; }
+.browser-shell [data-slot="aui_intro"] p:last-child { font-size:clamp(.625rem,3cqi,.875rem); }
+.browser-shell [data-slot="aui_intro"] .wordmark { display:block; min-width:0; max-width:100%; }
+.browser-shell [data-slot="aui_intro"] .wordmark > [aria-hidden] { display:none; }
+.browser-shell [data-slot="aui_intro"] .wordmark > :not([aria-hidden]) { display:block; min-width:0; width:100%; max-width:100%; }
+.browser-shell [data-slot="aui_intro"] .wordmark > :not([aria-hidden]) > * { inline-size:100%; max-width:100%; font-size:min(11cqi,9rem) !important; }
 /* Browser-focused sessions keep messaging groups compact: the platform name
-   and the shared section marker are enough without the brand avatar. */
-.browser-sessions-pane [class*="group/section"] > button > [aria-hidden="true"] { display:none !important; }
-/* The browser Tools tab owns these workspace destinations. Remove only their
-   upstream sidebar entries from Sessions so each destination has one control. */
+   and the shared section marker are enough without the brand avatar. The
+   avatar is the inline-grid chip passed as the section header icon. */
+.browser-sessions-pane button[class*="group/section-label"] > span[aria-hidden="true"],
+.browser-sessions-pane button[class*="group/section-label"] > [aria-hidden="true"] { display:none !important; }
+/* An empty Pinned section only contains the upstream shift-click hint. Hide
+   that placeholder in the browser rail so the group stays closed until a
+   conversation is actually pinned. */
+.browser-sessions-pane [data-sidebar="group"]:has(.codicon-pin):not(:has([data-row-actions])) { display:none !important; }
+/* Keep these destinations in the Sessions overflow menu so each has one
+   browser control while the empty Tools tab stays out of the navigation. */
 .browser-shell [data-sidebar="menu-item"]:has([data-tour="sidebar-nav-skills"]),
 .browser-shell [data-sidebar="menu-item"]:has([data-tour="sidebar-nav-messaging"]),
 .browser-shell [data-sidebar="menu-item"]:has([data-tour="sidebar-nav-artifacts"]) { display:none !important; }
 .browser-main { position:relative; flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; outline:none; overflow:hidden; }
 .browser-chat { flex:1; min-height:0; display:flex; flex-direction:column; position:relative; }
 .browser-status { flex-shrink:0; border-top:1px solid var(--browser-panel-divider); }
-.browser-statusbar { display:flex; align-items:center; gap:.5rem; padding:.45rem .8rem; background:var(--background); }
-.browser-status-controls { display:flex; flex-wrap:wrap; gap:.3rem; flex:1; min-width:0; height:auto; padding:0; background:none; }
-
-.browser-status-controls :is(button,a) { min-height:2rem; height:auto; padding:.35rem .6rem; border-radius:.5rem; border:1px solid var(--border); font-size:.75rem; gap:.4rem; }
+.browser-statusbar { display:flex; align-items:center; gap:.5rem; height:2.75rem; min-height:2.75rem; padding:.25rem .8rem; background:var(--background); }
+.browser-status-controls { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem; flex:0 0 auto; min-width:0; height:2.25rem; padding:0; background:none; }
+.browser-status-controls > :is(button,a,div) { min-height:2rem; height:2rem; display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .6rem; border:1px solid var(--border); border-radius:.5rem; color:var(--foreground); background:var(--background); font-size:.75rem; }
+.browser-status-controls > :is(button,a):hover,.browser-status-controls > :is(button,a):focus-visible { color:var(--foreground); background:var(--browser-hover-fill); outline:none; }
+.browser-status-controls > :is(button,a,div) :is(svg,.codicon) { width:1rem; height:1rem; flex:0 0 1rem; }
 .browser-status-controls .truncate { white-space:normal; overflow:visible; }
-.browser-tools { height:100%; overflow:auto; padding:.75rem .65rem 1rem; }
-.browser-tools p { color:var(--muted-foreground); text-transform:uppercase; font-size:.62rem; font-weight:600; letter-spacing:.08em; margin:1rem .6rem .4rem; }
-.browser-tools .browser-tool-row { width:100%; min-height:1.75rem; display:flex; align-items:center; justify-content:flex-start; gap:.5rem; padding:.25rem .5rem; border:1px solid transparent; border-radius:.45rem; color:var(--muted-foreground); text-align:left; font-size:.8125rem; line-height:1.4285714; font-weight:500; text-transform:none; transition:background-color 100ms ease-out,color 100ms ease-out,border-color 100ms ease-out; cursor:pointer; }
-.browser-tools .browser-tool-row:hover { background:var(--accent); color:var(--foreground); }
-.browser-tools .browser-tool-row[aria-pressed="true"],.browser-tools .browser-tool-row[aria-current="page"] { border-color:var(--border); background:var(--accent); color:var(--foreground); }
-.browser-tools .browser-tool-row:focus-visible { outline:2px solid var(--ring); outline-offset:-2px; }
 .browser-panel-toggle { order:3; margin-left:auto; width:1.7rem; height:1rem; flex:0 0 1.7rem; display:inline-flex; align-items:center; padding:.12rem; border:1px solid color-mix(in srgb,currentColor 38%,transparent); border-radius:999px; background:color-mix(in srgb,currentColor 14%,transparent); transition:background-color 100ms ease-out,border-color 100ms ease-out; }
 .browser-panel-toggle > span { width:.68rem; height:.68rem; border-radius:50%; background:currentColor; transition:transform 100ms ease-out,background-color 100ms ease-out; }
 .browser-panel-toggle[data-open="true"] { border-color:var(--primary,#4d86ff); background:var(--primary,#4d86ff); color:var(--primary-foreground,#fff); }
@@ -98,28 +147,17 @@ html[data-experience="desktop"] #root { display:flex; flex-direction:column; ove
 .browser-tool-icon .codicon { font-size:1rem !important; }
 .browser-overlay-title { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.35rem .65rem; border-bottom:1px solid var(--border); font-size:.8rem; text-transform:capitalize; }
 .browser-overlay-title button { cursor:pointer; min-width:2rem; min-height:2rem; font-size:1.3rem; border-radius:.35rem; }
-.browser-overlay-title button:hover { background:var(--accent); }
+.browser-overlay-title button:hover { background:var(--browser-hover-fill); }
 .browser-tool-surface { flex:1; min-height:0; display:flex; flex-direction:column; overflow:auto; }
 .browser-tool-title { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem; border-bottom:1px solid var(--border); }
 .browser-empty { padding:1rem; font-size:.8rem; color:var(--muted-foreground); }
-.browser-menu,.browser-scrim { display:none; }
+.browser-scrim { display:none; }
 @media (max-width:47.999rem) {
- .browser-header { height:auto; min-height:4rem; padding:.65rem .75rem; gap:.65rem; flex-wrap:wrap; }
- .browser-menu { display:inline-flex; }
- .browser-brand { font-size:.9rem; }
- .browser-brand small { display:none; }
- .browser-header-end { gap:.5rem; }
- .experience-control label > span { display:none; }
- .experience-control select { font-size:.68rem; padding:.4rem .3rem; max-width:9.5rem; }
- .experience-control { flex-wrap:wrap; justify-content:flex-end; max-width:11rem; gap:.2rem; }
- .experience-reason { font-size:.6rem; max-width:11rem; }
- .browser-actions button { font-size:.68rem; padding:.4rem; }
- .browser-navigation { position:absolute; top:0; bottom:0; left:0; z-index:61; width:min(21rem,88vw); transform:translateX(-100%); visibility:hidden; transition:transform 160ms ease,visibility 160ms; box-shadow:8px 0 30px #0002; }
+ .browser-chat-toolbar .browser-actions > button,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button { font-size:.68rem; padding:.4rem; }
+ .browser-navigation { position:absolute; top:2.75rem; bottom:0; left:0; z-index:61; width:min(21rem,88vw); transform:translateX(-100%); visibility:hidden; transition:transform 160ms ease,visibility 160ms; box-shadow:8px 0 30px #0002; }
  .browser-navigation.is-open { transform:none; visibility:visible; }
  .browser-navigation-resizer { display:none; }
- .browser-scrim { display:block; position:absolute; inset:0; background:#0006; z-index:60; }
- .desktop-comparison-bar { padding:.5rem .75rem; }
- .desktop-comparison-bar small { display:none; }
+ .browser-scrim { display:block; position:absolute; inset:2.75rem 0 0; background:#0006; z-index:60; }
  .browser-statusbar { padding:.35rem .45rem; gap:.25rem; }
  .browser-status-controls :is(button,a) { font-size:.7rem; padding:.3rem .4rem; }
 }
@@ -127,11 +165,22 @@ html[data-experience="desktop"] #root { display:flex; flex-direction:column; ove
 .browser-upstream-workspace { position:relative; display:flex; flex:1; min-height:0; min-width:0; }
 .browser-upstream-workspace [data-tree-group] :is(aside,[data-slot="sidebar"]) { border-left-width:0; border-right-width:0; box-shadow:none; }
 .browser-upstream-workspace [data-tree-group] header[class*="h-(--titlebar-height)"] { display:none; }
+/* Chat title and profile ownership are already represented by the browser
+   toolbar. Keep the upstream title header out of the chat surface even when
+   the renderer moves it outside the tree-group wrapper. */
+.browser-main header[class*="h-(--titlebar-height)"] { display:none !important; }
+/* The browser toolbar is the only chat title bar. Existing background session
+   panes stay available to the renderer, but their chips and workspace tab are
+   removed from the browser chrome. */
+.browser-upstream-workspace [data-tree-tab^="session-tile:"] { display:none !important; }
 /* Browser chrome owns profile selection; the upstream sidebar rail would duplicate it at the bottom. */
 .browser-shell div:has(> [data-slot="profile-rail"]) { display:none !important; }
 .browser-shell [data-slot="profile-rail"] { display:none !important; }
 /* Keep browser setup/loading surfaces text-led; the upstream BrandMark is an
    illustration intended for the desktop shell. */
 html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:none !important; }
-/* The browser's tab close affordance must be discoverable without hovering. */
-.browser-upstream-workspace [data-tree-tab][data-closeable] > span:last-child { opacity:1; pointer-events:auto; }
+
+.browser-settings-menu { width:13rem; min-width:0; max-width:calc(100vw - 1rem); }
+.browser-settings-menu [role="menuitem"] > .codicon { color:var(--ui-text-tertiary); }
+.browser-gateway-dialog { width:24rem; max-width:calc(100vw / var(--web-ui-scale,1) - 2rem); max-height:calc(100dvh / var(--web-ui-scale,1) - 2rem); overflow:auto; gap:0; padding:0; }
+.browser-gateway-dialog-title { padding:.85rem 2.5rem .65rem .75rem; font-size:.875rem; outline:none; }

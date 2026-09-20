@@ -3,7 +3,7 @@ import type {} from '../upstream/types'
 const WEB_ZOOM_STORAGE_KEY = 'hermes-web.ui-scale'
 const MOBILE_WEB_ZOOM_STORAGE_KEY = 'hermes-web.ui-scale.mobile'
 const ZOOM_FACTOR_BASE = 1.2
-const DESKTOP_DEFAULT_ZOOM_LEVEL = Math.log(0.9) / Math.log(ZOOM_FACTOR_BASE)
+const DESKTOP_DEFAULT_ZOOM_LEVEL = Math.log(1.25) / Math.log(ZOOM_FACTOR_BASE)
 const MOBILE_DEFAULT_ZOOM_LEVEL = Math.log(1.25) / Math.log(ZOOM_FACTOR_BASE)
 const MIN_ZOOM_LEVEL = -9
 const MAX_ZOOM_LEVEL = 9
@@ -130,4 +130,3 @@ export function createWebZoomBridge(): NonNullable<Window['hermesDesktop']['zoom
     }
   }
 }
-

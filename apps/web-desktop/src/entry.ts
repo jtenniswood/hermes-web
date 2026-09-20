@@ -1,4 +1,3 @@
-declare const __HERMES_COMPARISON__: boolean
 import { buildInfo } from './build-info'
 import { completeStartup, recoverStartupChunk } from './platform/startup-recovery'
 import { trackMediaRequests } from './platform/reload-safety'
@@ -15,10 +14,10 @@ async function start(): Promise<void> {
     runtimeConfig()
     trackMediaRequests()
     consumeConnectionToken()
-    if (__HERMES_COMPARISON__) (await import('./experience/selection')).initializeComparison()
+    ;(await import('./experience/selection')).initializeComparison()
     // Complete bridge installation before any upstream module evaluates.
     await import('./web-bridge/install')
-    if (__HERMES_COMPARISON__) (await import('./upstream/comparison-bootstrap')).prepareComparisonBridge()
+    ;(await import('./upstream/comparison-bootstrap')).prepareComparisonBridge()
     await import('./web-sidebar-collapse')
     await import('./upstream/entry')
     completeStartup()

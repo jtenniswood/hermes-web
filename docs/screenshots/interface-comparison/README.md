@@ -10,18 +10,17 @@ Chromium, light theme, desktop 1440×960 at the wrapper's default 90% zoom, and
 phone 390×844 with touch/mobile emulation at its default 125% zoom. Screenshots
 wait for the viewport to paint and disable animation for a stable capture.
 
-| Experience | Desktop | Phone |
+| Layout | Desktop | Phone |
 | --- | --- | --- |
-| Desktop familiar | [Screenshot](desktop-desktop.png) | [Screenshot](desktop-phone.png) |
 | Browser focused | [Screenshot](browser-desktop.png) | [Screenshot](browser-phone.png) |
 
 Executed checks:
 
 - `corepack pnpm typecheck`: passed, zero baseline exceptions.
 - `corepack pnpm test:foundation`: 37 passed.
-- Stable frontend build: passed; experience labels and browser-shell styles absent.
-- `HERMES_COMPARISON_IMAGE=hermes-web:comparison corepack pnpm exec playwright test tests/browser/comparison.spec.mjs`: 12 passed.
-- HTTPS preview smoke: session reopening and draft-safe switching between experiences.
+- Stable frontend build: passed; the browser shell is the only preview experience.
+- `HERMES_COMPARISON_IMAGE=hermes-web:comparison corepack pnpm exec playwright test tests/browser/comparison.spec.mjs`: browser behavior suite passed.
+- HTTPS preview smoke: session reopening and draft preservation.
 - [Stable compatibility CI](https://github.com/jtenniswood/hermes-web/actions/runs/35400381186): passed, including the locked Nix dependency closure.
 
 The browser journeys cover shared streaming/cancellation, reopening, new chat

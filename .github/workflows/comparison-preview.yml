@@ -43,7 +43,6 @@ jobs:
           load: true
           tags: ${{ steps.identity.outputs.image }}:${{ steps.identity.outputs.tag }}
           build-args: |
-            HERMES_COMPARISON=1
             HERMES_WRAPPER_REV=${{ github.event.pull_request.head.sha }}
             HERMES_RELEASE_CHANNEL=comparison
           labels: |

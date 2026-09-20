@@ -31,6 +31,13 @@ body > [data-radix-popper-content-wrapper] > * {
   zoom: var(--web-ui-scale, 1);
 }
 
+/* Fan controls also portal directly to the body. Cancel the document zoom on
+   their fixed positioning wrapper so its measured anchor coordinates remain
+   aligned with the control that opened it. */
+body > [data-slot='fan-menu'] {
+  zoom: calc(1 / var(--web-ui-scale, 1));
+}
+
 /* HUD is an Electron-only floating window. Keep the upstream renderer intact,
    but remove its titlebar entry from the browser wrapper. The icon selector is
    stable across translated labels and scoped to titlebar tool clusters. */
