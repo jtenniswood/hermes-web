@@ -2,10 +2,15 @@
 # ${HERMES_GATEWAY_URL} and ${HERMES_HOME} are substituted by
 # docker-entrypoint.sh (envsubst) at container start; every other $var is nginx's own.
 
+pid "${HERMES_STATE_DIR}/nginx.pid";
+error_log stderr;
 events {}
 
 http {
     include /etc/nginx/mime.types;
+    access_log /dev/stdout;
+    client_body_temp_path "${HERMES_STATE_DIR}/client";
+    proxy_temp_path "${HERMES_STATE_DIR}/proxy";
     default_type application/octet-stream;
 
     # Upgrade/Connection map needed for the /api/ws WebSocket proxy.
@@ -18,14 +23,18 @@ http {
     gzip_types text/plain text/css application/javascript application/json image/svg+xml;
 
     server {
-        listen 80;
+        listen ${HERMES_LISTEN};
         server_name _;
 
-        root /usr/share/nginx/html;
+        root "${HERMES_STATIC_ROOT}";
         index index.html;
 
         # Container runtime configuration must not outlive a gateway change.
         location = /gateway-config.js {
+            add_header Cache-Control "no-store";
+        }
+
+        location = /runtime-config.js {
             add_header Cache-Control "no-store";
         }
 
@@ -37,12 +46,12 @@ http {
         }
 
         # Hermes gateway — REST + WebSocket, same-origin (auth cookies/ws-tickets).
-        location ~ ^/(api|auth|login) {
+        location ~ ^(${HERMES_PROXY_ROUTES}) {
             proxy_pass ${HERMES_GATEWAY_URL};
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
-            proxy_set_header Host $host;
+            proxy_set_header Host $http_host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_read_timeout 3600s;
@@ -51,10 +60,10 @@ http {
         # Desktop / agent plugin assets, served from the mounted hermes config
         # dir: /plugins -> $HERMES_HOME/plugins, /desktop-plugins -> $HERMES_HOME/desktop-plugins
         location /desktop-plugins/ {
-            alias ${HERMES_HOME}/desktop-plugins/;
+            alias "${HERMES_HOME}/desktop-plugins/";
         }
         location /plugins/ {
-            alias ${HERMES_HOME}/plugins/;
+            alias "${HERMES_HOME}/plugins/";
         }
 
         # Live dir listing for the bridge's readDir() (fixed in v0.1.1 — this used
@@ -68,13 +77,13 @@ http {
         # could point at the wrong scheme/port when nginx sits behind a proxy.
         location = /plugins/.listing { rewrite ^ /plugins/.listing/ last; }
         location = /plugins/.listing/ {
-            alias ${HERMES_HOME}/plugins/;
+            alias "${HERMES_HOME}/plugins/";
             autoindex on;
             autoindex_format json;
         }
         location = /desktop-plugins/.listing { rewrite ^ /desktop-plugins/.listing/ last; }
         location = /desktop-plugins/.listing/ {
-            alias ${HERMES_HOME}/desktop-plugins/;
+            alias "${HERMES_HOME}/desktop-plugins/";
             autoindex on;
             autoindex_format json;
         }

@@ -1,0 +1,40 @@
+name: renderer-update
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+concurrency:
+  group: renderer-update-proposal
+  cancel-in-progress: false
+jobs:
+  propose:
+    if: vars.HERMES_RENDERER_UPDATES_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: app
+        with:
+          app-id: ${{ vars.HERMES_UPDATER_APP_ID }}
+          private-key: ${{ secrets.HERMES_UPDATER_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ steps.app.outputs.token }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: Propose one exact renderer update
+        run: node scripts/propose-renderer-update.mjs
+        env:
+          HERMES_STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          HERMES_UPDATER_LOGIN: ${{ vars.HERMES_UPDATER_LOGIN }}

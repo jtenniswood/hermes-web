@@ -36,23 +36,19 @@ pnpm typecheck
 
 ## Build and deploy
 
-Build the web files with Nix:
+Release builds and Nix dependency verification run in GitHub Actions. Download
+and extract the `web-dist-<commit>` artifact to stage a static deployment:
 
 ```bash
-nix build .#
+HERMES_WEB_DIST_DIR="$HOME/.hermes/desktop-web" \
+  apps/web-desktop/scripts/deploy.sh /absolute/path/to/extracted-artifact
 ```
 
-To build, copy, and health-check the files served by the Nix-managed Hermes
-dashboard:
-
-```bash
-cp apps/web-desktop/.env.example apps/web-desktop/.env
-# Set HERMES_WEB_URL in apps/web-desktop/.env
-apps/web-desktop/scripts/deploy.sh
-```
-
-The deploy script copies the build to `~/.hermes/desktop-web` by default. It
-does not start or restart any processes.
+The script validates build identity, preserves immutable release directories,
+and atomically changes the `current` link. It does not build or restart anything.
+Restart the configured web service separately to activate a staged release.
+The Nix home-manager module serves these artifacts with nginx; `directory` now
+means the extracted artifact directory, not a source checkout.
 
 ## Docker
 
@@ -89,27 +85,35 @@ revision, dependency-lock hash, timestamp, and release channel. CI supplies the
 wrapper identity to Docker; local image builds can supply `HERMES_WRAPPER_REV`.
 The frontend version is separate from the connected gateway version.
 
+Microphone recording requires HTTPS when opening the app from another device.
+Use an HTTPS reverse proxy (or Tailscale Serve for a private demo); an HTTP LAN
+or tailnet address cannot request microphone permission. Local development on
+`http://localhost` also supports recording. Click the microphone and allow access
+when the browser asks. If access was previously blocked, enable Microphone in
+the browser's site permissions and try again.
+
 Pull requests run strict wrapper and reachable-renderer typechecking, foundation
 tests, gateway regression tests, and a production build. Upstream diagnostics
 are not broadly ignored; the explicit diagnostic baseline is currently empty.
 
 ### Connecting to a remote gateway
 
-Set `HERMES_GATEWAY_URL` in `apps/web-desktop/.env` to the remote gateway's
-base URL, then restart the dev/preview server or recreate the Docker container
-with the updated environment. The web server must be able to reach that URL.
-In the connection settings, use that same URL or the web app's own origin.
+Set `HERMES_GATEWAY_URL` to one HTTP(S) origin, without credentials or a path.
+Restart development or recreate the container to apply a server change. The
+browser connects through the web server for HTTP, login, and WebSockets.
+Connection settings offer browser sign-in or a session token, connection testing,
+and sign-out. Changing the gateway address is an operator setting.
 
-The browser connects through the web server's proxy for HTTP, login, and
-WebSockets. Unlike the Mac desktop app, a browser cannot directly fetch an
-HTTP gateway from an HTTPS page. Entering a remote URL in settings alone does
-not configure the server's proxy. For additional dev/preview gateways, set
-`HERMES_GATEWAY_WHITELIST` to a comma-separated list in the same environment
-file.
+Additional gateway whitelists and browser routing selectors are no longer used.
+`HERMES_GATEWAY_NAME` optionally sets the connection label. Runtime configuration
+is validated before nginx starts and excluded from the PWA cache. The previous
+`gateway-config.js` endpoint remains available for older installed clients.
+Docker accepts environment variables through `--env-file`; it no longer evaluates
+an executable mounted `/app/.env` file.
 
-If an existing installed PWA still reports an unreachable gateway after an
-update, close and reopen it after the new service worker activates. Runtime
-gateway configuration is excluded from the app's offline cache.
+The nginx image includes Node only for the shared configuration generator at
+startup; nginx handles all requests. The same generator and route contract are
+used by development and the Nix service.
 
 GitHub Actions publishes multi-architecture images to GHCR after changes are
 merged to `main` and for version tags.
@@ -127,3 +131,62 @@ Change only this repository’s files:
 
 After updating the upstream renderer with `nix flake update hermes`, verify
 that any configured aliases still match its module paths.
+
+## Browser integration boundaries
+
+Browser services live in `apps/web-desktop/src/platform/`. Only the
+`src/upstream/` adapter imports renderer internals. The public browser bridge
+keeps the desktop API shape while composing transport, files, clipboard,
+notifications, and display services. Native terminal and git APIs remain absent.
+
+The renderer transforms have named, reviewed source/output fingerprints. A
+change to a targeted upstream module stops the compatibility build until the
+transform is reviewed; the updater must never regenerate these fixtures itself.
+This deliberately favors a delayed upstream update over silently changed chat
+routing. `pnpm test:foundation` checks the transforms, import boundary, and
+shared TypeScript/Vite alias mappings.
+
+### Browser state and application updates
+
+Credentials are stored under `hermes-web.connection.v2.<gateway identity>`.
+Only an explicitly matching active legacy connection can migrate a token;
+ambiguous records remain untouched and require sign-in. Theme, zoom, desktop
+layout and upstream text-draft keys remain unchanged. When storage is blocked,
+sign-in remains in memory and the connection screen explains the limitation.
+
+A waiting service worker shows **Update when safe**. It flushes upstream text
+drafts and checks all open app tabs before activation. Active responses, file
+selection/uploads, recording, unsent attachments, unsaved text, conflicting
+cross-tab drafts and unresponsive older tabs postpone the update. Finish that
+work or close older tabs, then retry. This does not add offline chat: cached
+application assets still need the configured gateway for chat and sign-in.
+Runtime configuration, authentication, API responses and plugin files are not
+part of the application precache.
+
+Run browser checks against a built image:
+
+```sh
+pnpm exec playwright install chromium
+HERMES_TEST_IMAGE=hermes-web pnpm exec playwright test
+```
+
+The tests use a local synthetic backend without model requests. They cover
+browser recovery, credential migration and the all-tab update protocol through
+nginx. CI retains screenshots and failure traces. Full chat/Bot parity and a
+real-gateway smoke test are additional rollout gates.
+
+### Renderer release automation
+
+See [release setup and rollback](docs/releases.md) for the repository-scoped
+GitHub App, required checks, separate enablement switches, image promotion and
+rollback by digest. Daily renderer proposals use the exact upstream commit and
+can change only renderer lock metadata. `release.yml` is the single publisher;
+a release publishes an image without restarting the production deployment.
+
+### Browser-focused preview
+
+The preview build uses the browser-focused shell backed by the upstream chat
+engine. See the [preview guide](docs/interface-comparison.md) for the isolated
+Compose stack and exact PR images. The browser-focused shell is the only web
+entry point in stable and preview builds; preview images add only the synthetic
+gateway and review fixtures.

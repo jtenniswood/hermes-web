@@ -25,10 +25,12 @@ function interceptSessionsMinimize(event: MouseEvent): void {
   event.preventDefault()
   event.stopPropagation()
 
-  void import('../../desktop/src/components/pane-shell/tree/store').then(({ setTreeGroupMinimized }) => {
+  void import('./upstream/layout').then(({ setTreeGroupMinimized }) => {
     setTreeGroupMinimized(group.dataset.treeGroup ?? '', true)
   })
 }
 
 // Capture before React's root listener so the upstream closer never runs.
 window.addEventListener('click', interceptSessionsMinimize, true)
+
+export {}

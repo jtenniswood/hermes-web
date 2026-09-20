@@ -1,22 +1,37 @@
-// MUST be the first import in this bundle: installs `window.hermesDesktop`
-// (the browser bridge) before any renderer module runs. Several renderer
-// stores touch the bridge at module-evaluation time (store/translucency,
-// store/power, lib/clipboard), and ES module imports execute in order.
-import './web-bridge/install'
-
-// Our Tailwind v4 entry: scans apps/desktop/src for utility class names and
-// imports the upstream stylesheet (see web.css for why this is needed).
+import { buildInfo } from './build-info'
+import { completeStartup, recoverStartupChunk } from './platform/startup-recovery'
+import { trackMediaRequests } from './platform/reload-safety'
+import { consumeConnectionToken } from './platform/connection-state'
 import './web.css'
 import './web-overrides.css'
-import './web-sidebar-collapse'
-import { installMobileExperience } from './platform/mobile'
-
-// PWA: register the service worker (no-op off HTTPS / in dev).
+import { runtimeConfig } from './platform/runtime'
 import { registerPwa } from './pwa/register'
 
 registerPwa()
-installMobileExperience()
 
-// The upstream desktop renderer, imported LIVE from apps/desktop/src — no
-// copy is made, so `git pull` from upstream never conflicts with this file.
-import '../../desktop/src/main'
+async function start(): Promise<void> {
+  try {
+    runtimeConfig()
+    trackMediaRequests()
+    consumeConnectionToken()
+    ;(await import('./experience/selection')).initializeComparison()
+    // Complete bridge installation before any upstream module evaluates.
+    await import('./web-bridge/install')
+    ;(await import('./upstream/comparison-bootstrap')).prepareComparisonBridge()
+    await import('./web-sidebar-collapse')
+    await import('./upstream/entry')
+    completeStartup()
+  } catch (error) {
+    if (recoverStartupChunk(error, buildInfo.wrapperRevision)) return
+    console.error('Hermes Web startup failed', error)
+    const root = document.getElementById('root')
+    if (!root) return
+    const message = document.createElement('p')
+    message.textContent = error instanceof Error ? error.message : 'The application could not start.'
+    const retry = document.createElement('button')
+    retry.textContent = 'Reload Hermes'
+    retry.onclick = () => window.location.reload()
+    root.replaceChildren(message, retry)
+  }
+}
+void start()

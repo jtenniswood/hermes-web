@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "../desktop/src/*"
+      ],
+      "@/store/titlebar-app-actions": [
+        "./src/overrides/titlebar-app-actions.ts"
+      ],
+      "@/debug/dev-only": [
+        "./src/debug-dev-only.ts"
+      ],
+      "@/debug/*": [
+        "./src/debug-dev-only.ts"
+      ],
+      "@hermes/plugin-sdk": [
+        "../desktop/src/sdk/index.ts"
+      ],
+      "@hermes/shared/billing": [
+        "../shared/src/billing-types.ts"
+      ],
+      "@hermes/shared/billing-policy": [
+        "../shared/src/billing-policy.ts"
+      ],
+      "@hermes/shared/charge-settlement": [
+        "../shared/src/charge-settlement.ts"
+      ],
+      "@hermes/shared/skin": [
+        "../shared/src/skin.ts"
+      ],
+      "@hermes/shared": [
+        "../shared/src/index.ts"
+      ],
+      "@hermes/shared/*": [
+        "../shared/src/*"
+      ]
+    }
+  }
+}

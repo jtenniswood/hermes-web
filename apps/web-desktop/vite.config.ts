@@ -1,9 +1,14 @@
+import { dependencyCompatibilityPlugin } from './src/upstream/dependency-compatibility'
+import { comparisonPlugin } from './src/upstream/comparison-plugin'
+import { rendererOverrides } from './src/upstream/overrides'
+import { runtimeConfiguration, runtimeScripts, matchesGatewayRoute, type HostingConfiguration } from '../../scripts/runtime-config.mjs'
+import { rendererAliases } from '../../scripts/aliases.mjs'
 import { buildInfoPlugin } from '../../scripts/build-info.mjs'
 import { defineConfig, loadEnv, type Plugin, type PreviewServer } from 'vite'
+import { rendererCompatibilityPlugin } from './src/upstream/transforms'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { createProxyServer, type ProxyServer } from 'http-proxy-3'
-import crypto from 'node:crypto'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -86,7 +91,7 @@ const emojibaseAssets = () => ({
 // The web bridge lists and loads installed desktop plugins at runtime from
 // the Hermes home dir; serve both plugin roots over HTTP (dev + preview).
 // HERMES_HOME overrides the default ~/.hermes location.
-const hermesHome = process.env.HERMES_HOME ?? path.join(os.homedir(), '.hermes')
+let hermesHome = process.env.HERMES_HOME ?? path.join(os.homedir(), '.hermes')
 
 // Shared structural type for the dev AND preview middleware servers.
 interface PluginsServerLike {
@@ -164,440 +169,8 @@ const hermesPluginsAssets = () => {
   }
 }
 
-// Bot Mode can request the same canonical chat from both the row click and its
-// roster activity refresh. The renderer intentionally supersedes an older
-// session open, so let those same-bot requests share one promise instead of
-// turning the expected cancellation into a visible error. Different bots keep
-// the renderer's normal latest-selection cancellation behavior.
-const hermesBotOpenRaceFix = (): Plugin => ({
-  name: 'hermes:bot-open-race-fix',
-  transform(code, id) {
-    const normalizedId = id.replaceAll('\\', '/').split('?')[0]
-
-    if (normalizedId.endsWith('/apps/desktop/src/sdk/index.ts') || normalizedId.endsWith('/desktop/src/sdk/index.ts')) {
-      const retryableMarker = code.indexOf('const retryable')
-      const throwError = retryableMarker < 0 ? -1 : code.indexOf('throw error', retryableMarker)
-      const patched =
-        throwError < 0
-          ? code
-          : `${code.slice(0, throwError)}if (options.workspaceMode === 'bots' && error instanceof Error && error.message === 'Session open was superseded by a newer selection.') {\n              return\n            }\n            ${code.slice(throwError)}`
-
-      const webPatched = patched.replace(
-        /if \(!openingStillCurrent\(\)\) \{/g,
-        "if (!openingStillCurrent() && !(window.__HERMES_WEB_BRIDGE__ && options.workspaceMode === 'bots')) {"
-      )
-
-      if (patched === code) {
-        throw new Error('Bot Mode cancellation override no longer matches the SDK source')
-      }
-
-      return { code: webPatched, map: null }
-    }
-
-    if (
-      normalizedId.endsWith('/apps/desktop/src/store/gateway.ts') ||
-      normalizedId.endsWith('/desktop/src/store/gateway.ts')
-    ) {
-      const agentStart = code.indexOf('export async function ensureGatewayForAgent')
-      const scopeMarker = 'const scope = registryBackendScopeKey(connectionId, profile)'
-      const scopeMarkerStart = agentStart < 0 ? -1 : code.indexOf(scopeMarker, agentStart)
-      const agentPatched =
-        scopeMarkerStart < 0
-          ? code
-          : `${code.slice(0, scopeMarkerStart + scopeMarker.length)}
-  if (window.__HERMES_WEB_BRIDGE__) {
-    return !signal?.aborted
-  }
-${code.slice(scopeMarkerStart + scopeMarker.length)}`
-
-      if (agentStart < 0 || scopeMarkerStart < 0) {
-        throw new Error('Web agent activation fast path no longer matches the renderer source')
-      }
-
-      const patched = agentPatched.replace(
-        /async function sharedPrimaryRoute[\s\S]*?\{/,
-        `$&
-  if (window.__HERMES_WEB_BRIDGE__) {
-    return true
-  }`
-      )
-
-      if (patched === agentPatched) {
-        throw new Error('Web shared-primary route no longer matches the renderer source')
-      }
-
-      return { code: patched, map: null }
-    }
-
-    if (
-      normalizedId.endsWith('/apps/desktop/src/store/profile.ts') ||
-      normalizedId.endsWith('/desktop/src/store/profile.ts')
-    ) {
-      const selectStart = code.indexOf('function selectProfile')
-      const targetMarker = 'const target = normalizeProfileKey(name)'
-      const targetStart = selectStart < 0 ? -1 : code.indexOf(targetMarker, selectStart)
-      const targetEnd = targetStart < 0 ? -1 : targetStart + targetMarker.length
-      const patched =
-        targetStart < 0
-          ? code
-          : `${code.slice(0, targetEnd)}
-  if (window.__HERMES_WEB_BRIDGE__) {
-    window.__HERMES_WEB_ACTIVE_PROFILE__ = target
-    $activeGatewayProfile.set(target)
-    return
-  }
-${code.slice(targetEnd)}`
-
-      if (selectStart < 0 || targetStart < 0) {
-        if (code.includes('__HERMES_WEB_ACTIVE_PROFILE__ = target')) {
-          return { code, map: null }
-        }
-
-        throw new Error('Web profile selection scope no longer matches the renderer source')
-      }
-
-      return { code: patched, map: null }
-    }
-
-    if (
-      normalizedId.endsWith('/apps/desktop/src/plugins/hermes-bots/roster-actions.ts') ||
-      normalizedId.endsWith('/desktop/src/plugins/hermes-bots/roster-actions.ts')
-    ) {
-      const withoutStaleFront = code.replace(/const fronted = focusExistingBotTab\(bot\)/, 'const fronted = null')
-      const notifyStart = withoutStaleFront.lastIndexOf('notifyBotOpenFailure(error, bot,')
-      const lineStart = notifyStart < 0 ? -1 : withoutStaleFront.lastIndexOf('\n', notifyStart) + 1
-      const patched =
-        lineStart < 0
-          ? withoutStaleFront
-          : `${withoutStaleFront.slice(0, lineStart)}      if (error instanceof Error && error.message === 'Session open was superseded by a newer selection.') {
-        return false
-      }
-
-${withoutStaleFront.slice(lineStart)}`
-
-      return { code: patched, map: null }
-    }
-
-    if (
-      normalizedId.endsWith('/apps/desktop/src/app/session/hooks/use-session-list-actions.ts') ||
-      normalizedId.endsWith('/desktop/src/app/session/hooks/use-session-list-actions.ts')
-    ) {
-      const patched = code
-        .replaceAll(
-          'sidebarProfileForScope(profileScopeRef.current)',
-          "sidebarProfileForScope(window.__HERMES_WEB_BRIDGE__ ? (window.__HERMES_WEB_ACTIVE_PROFILE__ ?? profileScopeRef.current) : profileScopeRef.current)"
-        )
-        .replaceAll(
-          'sidebarProfileForScope(profileScope)',
-          "sidebarProfileForScope(window.__HERMES_WEB_BRIDGE__ ? (window.__HERMES_WEB_ACTIVE_PROFILE__ ?? profileScope) : profileScope)"
-        )
-        .replaceAll(
-          'gatewayActivationEpoch() !== activationEpoch',
-          '!window.__HERMES_WEB_BRIDGE__ && gatewayActivationEpoch() !== activationEpoch'
-        )
-        .replaceAll(
-          'gatewayActivationEpoch() === activationEpoch',
-          '(window.__HERMES_WEB_BRIDGE__ || gatewayActivationEpoch() === activationEpoch)'
-        )
-      const refreshed = patched.replace(
-          /const loadMoreSessions\s*=\s*useCallback\(async\s*\(\)\s*=>\s*\{/,
-          `  useEffect(() => {
-    if (window.__HERMES_WEB_BRIDGE__) {
-      void refreshSessions().catch(() => undefined)
-    }
-  }, [profileScope, refreshSessions])
-
-  const loadMoreSessions = useCallback(async () => {`
-      )
-
-      if (refreshed === patched) {
-        throw new Error('Web profile session refresh hook no longer matches the renderer source')
-      }
-
-      return { code: refreshed, map: null }
-    }
-
-    if (
-      !normalizedId.endsWith('/apps/desktop/src/plugins/hermes-bots/canonical-chat.ts') &&
-      !normalizedId.endsWith('/desktop/src/plugins/hermes-bots/canonical-chat.ts')
-    ) {
-      return null
-    }
-
-    // The desktop shell activates a profile-scoped agent before Bot Mode RPCs.
-    // The web bridge already rides one shared gateway socket, so that extra
-    // registry activation can create a second, non-landing socket and leave
-    // the click waiting forever. Keep the web path on the shared socket.
-    const botCode = code.replace(
-      /if \(!route && typeof host\.ensureAgent === ['"]function['"]\) \{/,
-      'if (false) {'
-    )
-    const webScopedBotCode = botCode.replace(
-      /const \{ bot, name, route \} = botOwner\(owner\);?\s+const ownerKey = botWorkspaceOwnerKey\(bot\);?/,
-      `let { bot, name, route } = botOwner(owner)
-  if (window.__HERMES_WEB_BRIDGE__ && !route) {
-    route = { connectionId: 'web-single', mode: 'remote', profile: name, targetProfile: name }
-  }
-  const ownerKey = botWorkspaceOwnerKey(bot)`
-    )
-
-    if (webScopedBotCode === botCode) {
-      throw new Error('Bot Mode web owner route no longer matches the renderer source')
-    }
-    const webCanonicalLookup = webScopedBotCode
-      .replace(
-        'awaitHydration: true,',
-        'awaitHydration: window.__HERMES_WEB_BRIDGE__ ? false : true,'
-      )
-      .replace(
-        /res = await requestForBot\(bot, ['"]session\.list['"], \{\s*profile: backendTargetProfile\(route, name\),\s*title: CANONICAL_CHAT_TITLE,\s*limit: PROFILE_SESSION_LIST_LIMIT,\s*include_hidden: true\s*\}\)/,
-        `res = await (async () => {
-          const desktop = typeof window !== 'undefined' ? window.hermesDesktop : null
-          const api = desktop?.api
-
-          if (window.__HERMES_WEB_BRIDGE__ && bot?.canonical_session?.id) {
-            return {
-              sessions: [{
-                ...bot.canonical_session,
-                title: CANONICAL_CHAT_TITLE
-              }]
-            }
-          }
-
-          if (window.__HERMES_WEB_BRIDGE__ && typeof api === 'function') {
-            const response = await api({
-              path: '/api/profiles/sessions?limit=200&offset=0&min_messages=0&archived=exclude&order=created&include_hidden=true&title=Bot%20Chat',
-              profile: backendTargetProfile(route, name)
-            })
-
-            return Array.isArray(response) ? { sessions: response } : response
-          }
-
-          return requestForBot(bot, 'session.list', {
-            profile: backendTargetProfile(route, name),
-            title: CANONICAL_CHAT_TITLE,
-            limit: PROFILE_SESSION_LIST_LIMIT,
-            include_hidden: true
-          })
-        })()`
-      )
-    const startMatch = /(?:export\s+)?async function openBotCanonicalChat\s*\(/.exec(webCanonicalLookup)
-    const start = startMatch?.index ?? -1
-    const end = start < 0 ? -1 : webCanonicalLookup.slice(start).search(/(?:export\s+)?async function prepareBotSource/) + start
-    if (start < 0 || end < start) {
-      return null
-    }
-
-    const functionSource = webCanonicalLookup
-      .slice(start, end)
-      .replace(/(?:export\s+)?async function openBotCanonicalChat\s*\(/, 'async function openBotCanonicalChatImpl(')
-    const wrapper = `${functionSource}\n\nexport async function openBotCanonicalChat(owner, openingStillCurrent = null) {\n  const { key } = botOwner(owner)\n  const pending = canonicalChatOpens.get(key)\n\n  if (pending) {\n    return pending\n  }\n\n  const run = openBotCanonicalChatImpl(owner, null)\n  canonicalChatOpens.set(key, run)\n  const clear = () => {\n    if (canonicalChatOpens.get(key) === run) {\n      canonicalChatOpens.delete(key)\n    }\n  }\n  run.then(clear, clear)\n\n  return run\n}\n`
-    const transformed = `${webCanonicalLookup.slice(0, start)}const canonicalChatOpens = new Map()\n\n${wrapper}${webCanonicalLookup.slice(end)}`
-
-    const guarded = transformed.replace(
-      `  if (pending) {
-    return pending
-  }`,
-      `  if (pending) {
-    try {
-      return await pending
-    } catch (error) {
-      const current = typeof openingStillCurrent === 'function' && openingStillCurrent()
-      const superseded = /superseded by a newer selection/i.test(String(error?.message || error))
-
-      if (!current || !superseded) {
-        throw error
-      }
-    }
-  }`
-    )
-
-    const retried = guarded.replace(
-      `  const run = openBotCanonicalChatImpl(owner, null)
-  canonicalChatOpens.set(key, run)`,
-      `  const run = openBotCanonicalChatImpl(owner, null).catch(async error => {
-    const superseded = /superseded by a newer selection/i.test(String(error?.message || error))
-
-    if (!superseded) {
-      throw error
-    }
-
-    return openBotCanonicalChatImpl(owner, null)
-  })
-  canonicalChatOpens.set(key, run)`
-    )
-
-    if (retried === guarded) {
-      throw new Error('Bot Mode open-race guard no longer matches the generated wrapper')
-    }
-
-    if (retried === code) {
-      throw new Error('Bot Mode open-race override no longer matches the renderer source')
-    }
-
-    return { code: retried, map: null }
-  }
-})
-
-// --- Dynamic dev proxy (ported from hermes-ui, MIT) --------------------------
-let GATEWAY = process.env.HERMES_GATEWAY_URL ?? 'http://127.0.0.1:9119'
-
-// Optional repo-root config.json (git-ignored) whose `gateways` array whitelists
-// additional gateway URLs for the dev proxy.
-function readLocalConfig(): { gateways?: unknown } | null {
-  const file = path.resolve(__dirname, '..', '..', 'config.json')
-
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'))
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.warn(`[hermes] ignoring unreadable config.json: ${(error as Error).message}`)
-    }
-
-    return null
-  }
-}
-
-function configGatewayUrls(config: { gateways?: unknown } | null): string[] {
-  const raw = config?.gateways
-
-  if (!Array.isArray(raw)) {return []}
-
-  return raw
-    .map(entry => (typeof entry === 'string' ? entry : (entry as { url?: unknown })?.url))
-    .filter((url): url is string => typeof url === 'string' && url.trim() !== '')
-    .map(url => url.trim())
-}
-
-function envGatewayUrls(): string[] {
-  return (process.env.HERMES_GATEWAY_WHITELIST ?? '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean)
-}
-
-const LOCAL_CONFIG = readLocalConfig()
-
-let TARGETS = new Map<string, string>()
-let GATEWAY_WHITELIST: string[] = []
-let DEFAULT_TARGET = 'http://127.0.0.1:9119'
-
-function configureGateway(gateway: string | undefined, extraGateways: string[] = []): void {
-  GATEWAY = gateway ?? 'http://127.0.0.1:9119'
-  TARGETS = new Map<string, string>()
-
-  for (const url of [GATEWAY, ...configGatewayUrls(LOCAL_CONFIG), ...envGatewayUrls(), ...extraGateways]) {
-    try {
-      const origin = new URL(url).origin
-
-      if (!TARGETS.has(origin)) {TARGETS.set(origin, url)}
-    } catch {
-      // skip non-absolute / unparseable entries
-    }
-  }
-
-  GATEWAY_WHITELIST = [...TARGETS.keys()]
-
-  try {
-    new URL(GATEWAY)
-    DEFAULT_TARGET = GATEWAY
-  } catch {
-    DEFAULT_TARGET = 'http://127.0.0.1:9119'
-  }
-}
-
-configureGateway(GATEWAY)
-
-const PROXY_PREFIXES = ['/api', '/auth', '/login']
-const ROUTE_COOKIE = 'hermes_dev_gateway'
-const ROUTE_PARAM = '__hgw'
-const TARGET_ORIGIN = Symbol('hermesTargetOrigin')
-
-function matchesPrefix(url: string | undefined): boolean {
-  if (!url) {return false}
-
-  return PROXY_PREFIXES.some(p => url === p || url.startsWith(`${p}/`) || url.startsWith(`${p}?`))
-}
-
-function readCookie(header: string | undefined, name: string): string | undefined {
-  if (!header) {return undefined}
-
-  for (const part of header.split(';')) {
-    const eq = part.indexOf('=')
-
-    if (eq === -1) {continue}
-
-    if (part.slice(0, eq).trim() === name) {return decodeURIComponent(part.slice(eq + 1).trim())}
-  }
-
-  return undefined
-}
-
-function validOrigin(raw: null | string | undefined): string | undefined {
-  if (!raw) {return undefined}
-
-  try {
-    const origin = new URL(raw).origin
-
-    return TARGETS.has(origin) ? origin : undefined
-  } catch {
-    return undefined
-  }
-}
-
-function resolveOrigin(req: IncomingMessage): string {
-  const parsed = req.url ? new URL(req.url, 'http://x') : null
-
-  return (
-    validOrigin(parsed?.searchParams.get(ROUTE_PARAM)) ??
-    validOrigin(readCookie(req.headers.cookie, ROUTE_COOKIE)) ??
-    new URL(DEFAULT_TARGET).origin
-  )
-}
-
-function targetTag(origin: string): string {
-  return crypto.createHash('sha256').update(origin).digest('hex').slice(0, 8)
-}
-
-function rewriteCookieHeader(header: string | undefined, tag: string): string | undefined {
-  if (!header) {return undefined}
-
-  const suffix = `__hg_${tag}`
-  const kept: string[] = []
-
-  for (const part of header.split(';')) {
-    const eq = part.indexOf('=')
-
-    if (eq === -1) {continue}
-    const name = part.slice(0, eq).trim()
-
-    if (name === ROUTE_COOKIE) {continue}
-
-    if (name.endsWith(suffix)) {kept.push(`${name.slice(0, -suffix.length)}=${part.slice(eq + 1).trim()}`)}
-  }
-
-  return kept.length ? kept.join('; ') : undefined
-}
-
-function namespaceSetCookie(cookie: string, tag: string): string {
-  const segments = cookie.split(';')
-  const first = segments[0]
-  const eq = first.indexOf('=')
-
-  if (eq === -1) {return cookie}
-  const name = first.slice(0, eq).trim()
-  const value = first.slice(eq + 1)
-  const attrs = segments.slice(1).filter(s => !/^\s*domain=/i.test(s))
-
-  return [`${name}__hg_${tag}=${value}`, ...attrs].join(';')
-}
-
-function stripRouteParam(req: IncomingMessage): void {
-  if (!req.url || !req.url.includes(ROUTE_PARAM)) {return}
-  const u = new URL(req.url, 'http://x')
-  u.searchParams.delete(ROUTE_PARAM)
-  req.url = u.pathname + u.search
-}
+// A single configured target is shared by development, preview, and nginx.
+let hosting: HostingConfiguration = runtimeConfiguration()
 
 // Shared wiring for the dev AND preview servers (preview serves the built
 // dist — the production bundle — which still needs same-origin /api routing).
@@ -608,18 +181,7 @@ interface ProxyServerLike {
 }
 
 function attachDynamicProxy(server: ProxyServerLike): void {
-  const proxy: ProxyServer = createProxyServer({ changeOrigin: false, secure: false, ws: true })
-
-  proxy.on('proxyRes', (proxyRes, req) => {
-    const setCookie = proxyRes.headers['set-cookie']
-
-    if (!setCookie) {return}
-    const origin = (req as unknown as Record<symbol, string>)[TARGET_ORIGIN]
-
-    if (!origin) {return}
-    const tag = targetTag(origin)
-    proxyRes.headers['set-cookie'] = setCookie.map(c => namespaceSetCookie(c, tag))
-  })
+  const proxy: ProxyServer = createProxyServer({ changeOrigin: false, secure: true, ws: true })
 
   proxy.on('error', (err, _req, resOrSocket) => {
     server.config.logger.error(`[hermes-proxy] ${err.message}`, { timestamp: true })
@@ -634,40 +196,22 @@ function attachDynamicProxy(server: ProxyServerLike): void {
     }
   })
 
-  const route = (req: IncomingMessage): string => {
-    const origin = resolveOrigin(req)
-    const cookie = rewriteCookieHeader(req.headers.cookie, targetTag(origin))
-
-    if (cookie === undefined) {
-      delete req.headers.cookie
-    } else {
-      req.headers.cookie = cookie
-    }
-    stripRouteParam(req)
-    ;(req as unknown as Record<symbol, string>)[TARGET_ORIGIN] = origin
-
-    return TARGETS.get(origin) ?? DEFAULT_TARGET
-  }
-
   server.middlewares.use((req, res, next) => {
-    // Serve runtime config from the same proxy in both dev and preview.
-    // Preview does not run transformIndexHtml, and an injected head script in
-    // dev was overwritten by the public gateway-config.js loaded after it.
-    if (req.url?.split('?')[0] === '/gateway-config.js') {
+    const pathname = req.url?.split('?')[0]
+    const scripts = runtimeScripts(hosting)
+    if (pathname && Object.hasOwn(scripts, pathname.slice(1))) {
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
       res.setHeader('Cache-Control', 'no-store')
-      res.end(`window.__HERMES_GATEWAY_WHITELIST__ = ${JSON.stringify(GATEWAY_WHITELIST).replace(/</g, '\\u003c')};\n`)
-
+      res.end(scripts[pathname.slice(1)])
       return
     }
-
-    if (!matchesPrefix(req.url)) {return next()}
-    proxy.web(req, res, { target: route(req) })
+    if (!matchesGatewayRoute(req.url)) return next()
+    proxy.web(req, res, { target: hosting.target })
   })
 
   server.httpServer?.on('upgrade', (req, socket, head) => {
-    if (!req.url || !req.url.startsWith('/api')) {return}
-    proxy.ws(req, socket, head, { target: route(req) })
+    if (!matchesGatewayRoute(req.url)) return
+    proxy.ws(req, socket, head, { target: hosting.target })
   })
 }
 
@@ -687,27 +231,28 @@ export default defineConfig(({ command, mode }) => {
   // Extra hostnames allowed past Vite's Host check, from apps/web-desktop/.env
   // (WEB_ALLOWED_HOSTS, comma-separated) — e.g. Tailscale names, LAN hostnames.
   const env = loadEnv(mode, __dirname, '')
-  configureGateway(
-    process.env.HERMES_GATEWAY_URL ?? env.HERMES_GATEWAY_URL,
-    (process.env.HERMES_GATEWAY_WHITELIST ?? env.HERMES_GATEWAY_WHITELIST ?? '')
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean)
-  )
+  hosting = runtimeConfiguration({ HERMES_HOME: path.join(os.homedir(), '.hermes'), ...env, ...process.env })
+  hermesHome = hosting.home
   const envAllowedHosts = (env.WEB_ALLOWED_HOSTS ?? '')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean)
 
+  // The browser shell is the only supported web entry point. Installing the
+  // wrapper plugin unconditionally prevents a stale desktop build from being
+  // shipped when a developer or deployment omits the old comparison flag.
   return {
   base: './',
   plugins: [
+    dependencyCompatibilityPlugin(__dirname),
     buildInfoPlugin(),
+    rendererOverrides(__dirname),
+    comparisonPlugin(__dirname),
     hermesDynamicProxy(),
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       // We register the SW ourselves from src/pwa/register.ts.
       injectRegister: null,
       manifest: {
@@ -729,18 +274,20 @@ export default defineConfig(({ command, mode }) => {
       workbox: {
         // Add click/focus handling to service-worker notifications while
         // keeping the normal generated Workbox precache behavior.
-        importScripts: ['notifications-sw.js'],
+        importScripts: ['notifications-sw.js', 'update-coordinator-sw.js'],
+        skipWaiting: false,
+        clientsClaim: true,
         // Precache the whole app shell; the largest chunk (shiki) is ~19 MB,
         // so keep the per-file cap generous.
-        globPatterns: ['**/*.{js,css,html,woff,woff2,ttf,otf,eot,png,jpg,jpeg,svg,gif,webp,ico}'],
+        globPatterns: ['index.html', 'hermes.png', 'assets/**/*.{js,css,woff,woff2,ttf,otf,png,svg,webp}'],
         // Generated by the running proxy/container, not by the frontend build.
         // Precaching the empty build-time file hides the configured gateway.
-        globIgnores: ['**/gateway-config.js'],
+        globIgnores: ['**/gateway-config.js', '**/runtime-config.js', '**/build-info.json'],
         maximumFileSizeToCacheInBytes: 32 * 1024 * 1024,
         navigateFallback: 'index.html',
         // Never hijack the gateway: /api (REST + WS upgrade), /auth, /login
         // must always hit the network.
-        navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/login/]
+        navigateFallbackDenylist: [/^\/(?:api|auth|login|plugins)(?:\/|$)/, /^\/(?:runtime-config|gateway-config)\.js$/]
       },
       devOptions: {
         // Keep the SW off in dev so it can't shadow the Vite proxy.
@@ -749,7 +296,7 @@ export default defineConfig(({ command, mode }) => {
     }),
     emojibaseAssets(),
     hermesPluginsAssets(),
-    hermesBotOpenRaceFix()
+    rendererCompatibilityPlugin(path.resolve(__dirname, '../desktop/src'))
   ],
   css: {
     postcss: { plugins: [] }
@@ -790,14 +337,7 @@ export default defineConfig(({ command, mode }) => {
     preserveSymlinks: true,
     alias: [
       { find: '@/debug/dev-only', replacement: debugEntry(process.env as Record<string, string>) },
-      {
-        find: '@/store/titlebar-app-actions',
-        replacement: path.resolve(__dirname, 'src/overrides/titlebar-app-actions.ts')
-      },
-      { find: '@hermes/plugin-sdk', replacement: path.resolve(__dirname, '../desktop/src/sdk/index.ts') },
-      { find: '@hermes/shared/billing', replacement: path.resolve(__dirname, '../shared/src/billing-types.ts') },
-      { find: '@hermes/shared', replacement: path.resolve(__dirname, '../shared/src') },
-      { find: '@', replacement: path.resolve(__dirname, '../desktop/src') },
+      ...rendererAliases(),
       {
         find: 'react/jsx-dev-runtime',
         replacement: path.resolve(__dirname, '../../node_modules/react/jsx-dev-runtime.js')

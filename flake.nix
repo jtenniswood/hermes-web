@@ -89,7 +89,7 @@
             # `pnpm config set store-dir` in buildPhase.
             fetcherVersion = 4;
             inherit src;
-            hash = "sha256-nWRSEuzqkNznYp+tBSG1AJCTVsRP7ZoPq4OoLWaJb/I=";
+            hash = "sha256-5nbQ3yviIjnsir+OokTvo+rMfQwvEgTuQImN/vgBY+w=";
           };
 
           buildPhase = ''
@@ -106,33 +106,43 @@
           '';
         };
 
-        # `nix run .#` — serve the built dist through the SYSTEM hermes
-        # (backend-with-UI mode) on 4174, same-origin. The nix-managed
-        # dashboard on 9119 stays untouched.
+        # Serve the pinned static artifact with the same nginx contract as Docker.
         apps.default = {
           type = "app";
           program = "${pkgs.writeShellScript "hermes-web-serve" ''
-            export HERMES_WEB_DIST=${self.packages.${system}.default}
-            exec hermes dashboard --port 4174 --host 0.0.0.0 --skip-build --no-open
+            set -eu
+            runtime_dir=$(mktemp -d)
+            trap 'rm -rf "$runtime_dir"' EXIT
+            mkdir -p "$runtime_dir/html"
+            cp -r ${self.packages.${system}.default}/. "$runtime_dir/html/"
+            chmod -R u+w "$runtime_dir/html"
+            export HERMES_STATIC_ROOT="$runtime_dir/html"
+            export HERMES_STATE_DIR="$runtime_dir/nginx"
+            export HERMES_NGINX_CONFIG="$runtime_dir/nginx.conf"
+            export HERMES_NGINX_TEMPLATE=${pkgs.writeText "hermes-nginx-template" (builtins.replaceStrings [ "/etc/nginx/mime.types" ] [ "${pkgs.nginx}/conf/mime.types" ] (builtins.readFile ./nginx.conf.template))}
+            export HERMES_PORT="''${HERMES_PORT:-4174}"
+            export HERMES_HOME="''${HERMES_HOME:-$HOME/.hermes}"
+            ${nodejs}/bin/node ${./scripts/runtime-config.mjs}
+            ${pkgs.nginx}/bin/nginx -c "$runtime_dir/nginx.conf" -g 'daemon off;'
           ''}";
         };
 
-        # `nix develop` — node+pnpm plus the renderer sources symlinked from
-        # the pinned input, so dev works without any clone. Non-destructive:
-        # symlinks are created only when the paths don't exist yet (a local
-        # clone's apps/desktop+apps/shared keep being used if present).
+        # Development uses the same checked checkout as Docker and CI. Existing
+        # paths are verified and never replaced, including old nix-store links.
         devShells.default = pkgs.mkShell {
-          packages = [ nodejs pnpm ];
+          packages = [ nodejs pnpm pkgs.git ];
           shellHook = ''
-            [ -e apps/desktop ] || ln -s ${hermes}/apps/desktop apps/desktop
-            [ -e apps/shared ] || ln -s ${hermes}/apps/shared apps/shared
-            echo "Hermes Web dev shell — renderer sources from the pinned upstream input."
-            echo "  pnpm install && pnpm --filter web-desktop run dev"
+            if node scripts/renderer.mjs; then
+              echo "Hermes Web dev shell — verified renderer from flake.lock."
+              echo "  pnpm install --frozen-lockfile && pnpm dev"
+            else
+              echo "Renderer preparation failed. Resolve the reported source mismatch before building."
+            fi
           '';
         };
       })) // {
     # Home-manager module defining the persistent Hermes Web systemd service
-    # (production preview of the Hermes Desktop renderer on :4174). Wiring into
+    # (static hosting and the configured gateway proxy on :4174). Wiring into
     # the main nix-config:
     #   imports = [ inputs.hermes-mobile.homeManagerModules.hermes-web ];
     #   services.hermes-web.enable = true;

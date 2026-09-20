@@ -1,0 +1,76 @@
+import assert from 'node:assert/strict'
+import { readFileSync, readdirSync } from 'node:fs'
+import path from 'node:path'
+import { createRequire } from 'node:module'
+import { test } from 'node:test'
+import vm from 'node:vm'
+import ts from 'typescript'
+import { createServer } from 'vite'
+import { repositoryRoot } from './renderer.mjs'
+import { rendererAliases } from './aliases.mjs'
+
+const root = path.join(repositoryRoot, 'apps/web-desktop')
+const transformPath = path.join(root, 'src/upstream/transforms.ts')
+const context = vm.createContext({ exports: {}, require: createRequire(transformPath) })
+vm.runInContext(ts.transpileModule(readFileSync(transformPath, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, context)
+const { compatibilityTransforms, transformRenderer } = context.exports
+
+for (const fixture of compatibilityTransforms) {
+  test(`compatibility: ${fixture.name}`, () => {
+    const filename = path.join(repositoryRoot, 'apps/desktop/src', fixture.module)
+    const source = readFileSync(filename, 'utf8')
+    const result = transformRenderer(source, filename)
+    assert.notEqual(result.code, source)
+    assert.equal(transformRenderer(result.code, filename).code, result.code)
+    assert.throws(() => transformRenderer(source + '\n// upstream change', filename), /compatibility changed/)
+    assert.throws(() => transformRenderer(result.code + '\n// modified', filename), /Modified compatibility/)
+    assert.equal(ts.createSourceFile(filename, result.code, ts.ScriptTarget.Latest, true).parseDiagnostics.length, 0)
+  })
+}
+
+test('renderer aliases preserve explicit mappings before wildcards', () => {
+  const aliases = rendererAliases()
+  function resolve(specifier) {
+    for (const alias of aliases) {
+      if (typeof alias.find === 'string' && alias.find === specifier) return alias.replacement
+      if (alias.find instanceof RegExp && alias.find.test(specifier)) return specifier.replace(alias.find, alias.replacement)
+    }
+  }
+  assert.equal(resolve('@hermes/shared/billing'), path.join(root, '../shared/src/billing-types.ts'))
+  assert.equal(resolve('@hermes/shared/i18n'), path.join(root, '../shared/src/i18n'))
+  assert.equal(resolve('@/store/titlebar-app-actions'), path.join(root, 'src/overrides/titlebar-app-actions.ts'))
+})
+
+test('renderer imports stay within the upstream adapter', () => {
+  const visit = dir => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const filename = path.join(dir, entry.name)
+      if (entry.isDirectory()) { if (entry.name !== 'upstream') visit(filename); continue }
+      if (!/\.tsx?$/.test(entry.name)) continue
+      const source = ts.createSourceFile(filename, readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true)
+      const walk = node => {
+        const module = ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier
+          : ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0] : null
+        if (module && ts.isStringLiteral(module)) assert.ok(!/^(@\/|@hermes\/)|(?:^|\/)desktop\/|(?:^|\/)shared\//.test(module.text), `${filename}: ${module.text}`)
+        ts.forEachChild(node, walk)
+      }
+      walk(source)
+    }
+  }
+  visit(path.join(root, 'src'))
+})
+
+
+test('Vite resolves shared subpaths and wildcard-to-single-file aliases', async t => {
+  const server = await createServer({ configFile: false, root, logLevel: 'silent', resolve: { alias: rendererAliases(), preserveSymlinks: true }, server: { middlewareMode: true } })
+  t.after(() => server.close())
+  const resolver = server.environments.client.pluginContainer
+  for (const [specifier, expected] of [
+    ['@hermes/shared/translucency', '../shared/src/translucency.ts'],
+    ['@hermes/shared/i18n', '../shared/src/i18n.ts'],
+    ['@/debug/right-pane-events', 'src/debug-dev-only.ts']
+  ]) {
+    const resolved = await resolver.resolveId(specifier, path.join(root, 'src/entry.ts'))
+    assert.equal(resolved.id, path.resolve(root, expected))
+  }
+})

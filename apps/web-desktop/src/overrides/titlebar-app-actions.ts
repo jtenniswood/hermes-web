@@ -1,4 +1,4 @@
-import { type Codec, persistentAtom } from '@/lib/persisted'
+import { type Codec, persistentAtom } from '../upstream/persistence'
 
 // Keep this override independent of the upstream titlebar store: the pinned
 // renderer predates it, while newer renderers use this module through our alias.
