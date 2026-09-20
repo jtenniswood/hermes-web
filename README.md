@@ -167,3 +167,11 @@ The tests use a local synthetic backend without model requests. They cover
 browser recovery, credential migration and the all-tab update protocol through
 nginx. CI retains screenshots and failure traces. Full chat/Bot parity and a
 real-gateway smoke test are additional rollout gates.
+
+### Renderer release automation
+
+See [release setup and rollback](docs/releases.md) for the repository-scoped
+GitHub App, required checks, separate enablement switches, image promotion and
+rollback by digest. Daily renderer proposals use the exact upstream commit and
+can change only renderer lock metadata. `release.yml` is the single publisher;
+a release publishes an image without restarting the production deployment.

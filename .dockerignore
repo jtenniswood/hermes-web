@@ -16,3 +16,6 @@ PLAN.md
 *.md.bak
 .obsidian
 .renderer
+
+test-results
+playwright-report

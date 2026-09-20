@@ -127,22 +127,22 @@
           ''}";
         };
 
-        # `nix develop` — node+pnpm plus the renderer sources symlinked from
-        # the pinned input, so dev works without any clone. Non-destructive:
-        # symlinks are created only when the paths don't exist yet (a local
-        # clone's apps/desktop+apps/shared keep being used if present).
+        # Development uses the same checked checkout as Docker and CI. Existing
+        # paths are verified and never replaced, including old nix-store links.
         devShells.default = pkgs.mkShell {
-          packages = [ nodejs pnpm ];
+          packages = [ nodejs pnpm pkgs.git ];
           shellHook = ''
-            [ -e apps/desktop ] || ln -s ${hermes}/apps/desktop apps/desktop
-            [ -e apps/shared ] || ln -s ${hermes}/apps/shared apps/shared
-            echo "Hermes Web dev shell — renderer sources from the pinned upstream input."
-            echo "  pnpm install && pnpm --filter web-desktop run dev"
+            if node scripts/renderer.mjs; then
+              echo "Hermes Web dev shell — verified renderer from flake.lock."
+              echo "  pnpm install --frozen-lockfile && pnpm dev"
+            else
+              echo "Renderer preparation failed. Resolve the reported source mismatch before building."
+            fi
           '';
         };
       })) // {
     # Home-manager module defining the persistent Hermes Web systemd service
-    # (production preview of the Hermes Desktop renderer on :4174). Wiring into
+    # (static hosting and the configured gateway proxy on :4174). Wiring into
     # the main nix-config:
     #   imports = [ inputs.hermes-mobile.homeManagerModules.hermes-web ];
     #   services.hermes-web.enable = true;

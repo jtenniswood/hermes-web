@@ -14,7 +14,7 @@ RUN node scripts/renderer.mjs \
 COPY apps/web-desktop ./apps/web-desktop
 ARG HERMES_WRAPPER_REV=unknown
 ARG HERMES_RELEASE_CHANNEL=local
-ARG SOURCE_DATE_EPOCH=0
+ARG SOURCE_DATE_EPOCH
 ENV HERMES_WRAPPER_REV=$HERMES_WRAPPER_REV \
     HERMES_RELEASE_CHANNEL=$HERMES_RELEASE_CHANNEL \
     SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH
@@ -27,7 +27,7 @@ FROM nginx:alpine
 RUN apk add --no-cache nodejs
 
 # The gateway URL + HERMES_HOME are injected by docker-entrypoint.sh via
-# envsubst into the nginx template at container start.
+# the shared validated configuration generator at container start.
 COPY nginx.conf.template /etc/nginx/hermes.conf.template
 COPY scripts/runtime-config.mjs /opt/hermes/runtime-config.mjs
 COPY docker-entrypoint.sh /docker-entrypoint.sh

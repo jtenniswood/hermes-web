@@ -4,12 +4,25 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
-  group: compatibility-${{ github.ref }}
+  group: compatibility-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  renderer-update-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/renderer-update-policy.mjs
+        env:
+          HERMES_UPDATER_LOGIN: ${{ vars.HERMES_UPDATER_LOGIN }}
   compatibility:
     runs-on: ubuntu-latest
     steps:
