@@ -19,6 +19,25 @@ body,
   width: 100% !important;
 }
 
+/* Body-level Radix portals use viewport coordinates, already scaled by the
+   root's CSS zoom. Keep their positioning wrapper in viewport units and scale
+   only the content, so both anchoring and collision detection use its actual
+   rendered size. Dialog-owned portals have their own containing block. */
+body > [data-radix-popper-content-wrapper] {
+  zoom: calc(1 / var(--web-ui-scale, 1));
+}
+
+body > [data-radix-popper-content-wrapper] > * {
+  zoom: var(--web-ui-scale, 1);
+}
+
+/* Fan controls also portal directly to the body. Cancel the document zoom on
+   their fixed positioning wrapper so its measured anchor coordinates remain
+   aligned with the control that opened it. */
+body > [data-slot='fan-menu'] {
+  zoom: calc(1 / var(--web-ui-scale, 1));
+}
+
 /* HUD is an Electron-only floating window. Keep the upstream renderer intact,
    but remove its titlebar entry from the browser wrapper. The icon selector is
    stable across translated labels and scoped to titlebar tool clusters. */

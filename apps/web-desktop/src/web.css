@@ -8,23 +8,3 @@
 @source "../../desktop/src";
 @source "./";
 @import "../../desktop/src/styles.css";
-
-.hermes-update-banner {
-  position: fixed;
-  z-index: 10000;
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  left: 1rem;
-  right: 1rem;
-  margin-inline: auto;
-  max-width: 40rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  background: var(--background, #111);
-  color: var(--foreground, #fff);
-  box-shadow: 0 4px 24px #0004;
-}
-.hermes-update-banner button { flex-shrink: 0; text-decoration: underline; cursor: pointer; }

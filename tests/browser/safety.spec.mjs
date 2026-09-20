@@ -34,6 +34,17 @@ window.__HERMES_WEB_DRAFT_SNAPSHOT__=()=>{
  localStorage.setItem('fixture-drafts',JSON.stringify(text?{session:text}:{}));
  return {storageKey:'fixture-drafts',texts:text?{session:text}:{},attachments:window.unsentFiles||0,blocked:false};
 };
+let updatePanel, updateStatus, updateAction;
+window.addEventListener('hermes-update-available', event => {
+ const notice=event.detail;
+ if (!notice) return;
+ if (!updatePanel) {
+  updatePanel=document.createElement('div'); updatePanel.setAttribute('role','status');
+  updateStatus=document.createElement('span'); updateAction=document.createElement('button'); updateAction.textContent='Update when safe';
+  updatePanel.append(updateStatus, updateAction); document.body.append(updatePanel);
+ }
+ updateStatus.textContent=notice.message; updateAction.onclick=notice.update;
+});
 ${registration};exports.registerPwa();
 </script></body></html>`)
     } else if (req.url === '/api/status') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ auth_required: true, auth_providers: ['basic'] })) }

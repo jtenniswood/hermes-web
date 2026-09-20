@@ -1,3 +1,5 @@
+import { dependencyCompatibilityPlugin } from './src/upstream/dependency-compatibility'
+import { comparisonPlugin } from './src/upstream/comparison-plugin'
 import { rendererOverrides } from './src/upstream/overrides'
 import { runtimeConfiguration, runtimeScripts, matchesGatewayRoute, type HostingConfiguration } from '../../scripts/runtime-config.mjs'
 import { rendererAliases } from '../../scripts/aliases.mjs'
@@ -236,11 +238,16 @@ export default defineConfig(({ command, mode }) => {
     .map(s => s.trim())
     .filter(Boolean)
 
+  // The browser shell is the only supported web entry point. Installing the
+  // wrapper plugin unconditionally prevents a stale desktop build from being
+  // shipped when a developer or deployment omits the old comparison flag.
   return {
   base: './',
   plugins: [
+    dependencyCompatibilityPlugin(__dirname),
     buildInfoPlugin(),
     rendererOverrides(__dirname),
+    comparisonPlugin(__dirname),
     hermesDynamicProxy(),
     react(),
     tailwindcss(),

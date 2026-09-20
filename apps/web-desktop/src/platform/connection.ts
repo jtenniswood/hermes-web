@@ -295,7 +295,8 @@ export async function toConnectionConfig(stored: StoredConnection): Promise<Desk
   const remoteOauthConnected = stored.remoteAuthMode === 'oauth' ? await probeAuthConnected() : false
 
   return {
-    // The server owns the gateway address; authentication remains browser state.
+    // Keep the gateway target server-controlled in `normalizeBase` while
+    // preserving the upstream connection semantics for browser settings.
     envOverride: true,
     mode: stored.mode,
     profile: null,
@@ -362,4 +363,3 @@ export async function waitForRemoteRestart(): Promise<void> {
 
   throw new Error('Timed out waiting for the gateway to restart')
 }
-

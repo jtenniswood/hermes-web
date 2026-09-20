@@ -1,3 +1,5 @@
+import { buildInfo } from './build-info'
+import { completeStartup, recoverStartupChunk } from './platform/startup-recovery'
 import { trackMediaRequests } from './platform/reload-safety'
 import { consumeConnectionToken } from './platform/connection-state'
 import './web.css'
@@ -12,11 +14,15 @@ async function start(): Promise<void> {
     runtimeConfig()
     trackMediaRequests()
     consumeConnectionToken()
+    ;(await import('./experience/selection')).initializeComparison()
     // Complete bridge installation before any upstream module evaluates.
     await import('./web-bridge/install')
+    ;(await import('./upstream/comparison-bootstrap')).prepareComparisonBridge()
     await import('./web-sidebar-collapse')
     await import('./upstream/entry')
+    completeStartup()
   } catch (error) {
+    if (recoverStartupChunk(error, buildInfo.wrapperRevision)) return
     console.error('Hermes Web startup failed', error)
     const root = document.getElementById('root')
     if (!root) return

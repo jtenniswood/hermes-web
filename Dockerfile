@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # The renderer revision is read from flake.lock by every build path.
-FROM node:24-bookworm-slim AS build
+FROM node:24-bookworm-slim AS dependencies
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
@@ -11,6 +11,7 @@ COPY scripts ./scripts
 COPY apps/web-desktop/package.json apps/web-desktop/package.json
 RUN node scripts/renderer.mjs \
  && pnpm install --frozen-lockfile
+FROM dependencies AS build
 COPY apps/web-desktop ./apps/web-desktop
 ARG HERMES_WRAPPER_REV=unknown
 ARG HERMES_RELEASE_CHANNEL=local
@@ -20,6 +21,19 @@ ENV HERMES_WRAPPER_REV=$HERMES_WRAPPER_REV \
     SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH
 RUN node scripts/renderer.mjs --check \
  && pnpm --filter web-desktop run build
+
+# Optional synthetic backend, built only for the isolated review stack.
+FROM dependencies AS preview-dependencies
+RUN node -e "require('node:fs').cpSync(require('node:path').dirname(require.resolve('ws/package.json')), '/preview-ws', { recursive: true })"
+
+FROM node:24-bookworm-slim AS preview-gateway
+WORKDIR /app
+COPY --from=preview-dependencies /preview-ws ./node_modules/ws
+COPY scripts/preview/gateway.mjs ./scripts/preview/gateway.mjs
+ENV HOST=0.0.0.0 PORT=9129
+USER node
+EXPOSE 9129
+CMD ["node", "scripts/preview/gateway.mjs"]
 
 # ---- runtime stage: nginx -------------------------------------------------------
 FROM nginx:alpine
