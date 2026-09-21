@@ -8,8 +8,8 @@ Authenticated gateway behavior still requires a signed-in user session.
 ## Confirmed cause
 
 Removing the desktop layout also removed the `DesktopController` re-export from
-`apps/web-desktop/src/upstream/comparison-api.tsx` and its import/use in
-`comparison-root.tsx`. Previously, that import evaluated upstream
+`apps/web-desktop/src/upstream/browser-api.tsx` and its import/use in
+`browser-root.tsx`. Previously, that import evaluated upstream
 `app/contrib/controller.tsx` even when the browser layout was selected.
 
 The upstream module combines a desktop layout component with essential shared
@@ -69,11 +69,11 @@ upstream control remains supported.
 - The speculative cookie rewrite stripped Secure attributes/prefixes based on
   the proxy socket. It was unsupported by a captured failed authenticated login
   and has been removed.
-- `tests/browser/comparison.spec.mjs` previously required the removed Experience
+- `tests/browser/browser.spec.mjs` previously required the removed Experience
   selector and old profile dropdown. It has been replaced with browser behavior
   coverage against the built nginx image.
 - The browser entry was previously selected through the old
-  `HERMES_COMPARISON` build flag. The flag and selector are now removed, so
+  legacy build flag. The flag and selector are now removed, so
   dev, Docker, preview, and CI all ship the browser root.
 - The synthetic gateway needs fuller settings fixtures: Appearance hit
   `rankedGalleryPets` because the generic RPC fallback returned `{ ok: true }`
@@ -112,7 +112,7 @@ upstream control remains supported.
    session renewal, websocket tickets and reconnect independently from rendering;
    never use a healthy public status endpoint as proof that private APIs work.
 
-5. **Replace comparison tests with browser behavior tests.** Use the synthetic
+5. **Replace browser tests with browser behavior tests.** Use the synthetic
    gateway to assert fresh-load transcript/editor, nonempty required registrations,
    bot selection, avatar metadata, profile switching and panel open/close. Exercise
    settings sections using complete response fixtures, modal return/draft
@@ -131,7 +131,7 @@ upstream control remains supported.
 
 - `corepack pnpm --filter web-desktop run build` and the Docker runtime build
   both completed successfully.
-- `node scripts/comparison.test.mjs` passed all 12 transform and contract tests.
+- `node scripts/browser.test.mjs` passed all 12 transform and contract tests.
 - `corepack pnpm test:foundation` passed all 44 foundation, compatibility, and
   state-safety tests.
 - `HERMES_TEST_IMAGE=hermes-web:browser-repair node

@@ -1,8 +1,8 @@
 # A separate project with synthetic conversations. It never joins production.
-name: hermes-interface-comparison
+name: hermes-browser-preview
 services:
   web:
-    image: ${HERMES_COMPARISON_IMAGE:-hermes-web:comparison}
+    image: ${HERMES_BROWSER_PREVIEW_IMAGE:-hermes-web:browser-preview}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${HERMES_PREVIEW_PORT:-4186}:80"
@@ -12,5 +12,5 @@ services:
     depends_on:
       - gateway
   gateway:
-    image: ${HERMES_PREVIEW_GATEWAY_IMAGE:-hermes-web:comparison-gateway}
+    image: ${HERMES_PREVIEW_GATEWAY_IMAGE:-hermes-web:browser-preview-gateway}
     restart: unless-stopped

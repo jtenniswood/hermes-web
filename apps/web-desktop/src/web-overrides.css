@@ -31,6 +31,25 @@ body > [data-radix-popper-content-wrapper] > * {
   zoom: var(--web-ui-scale, 1);
 }
 
+/* Popper measures arrow offsets in viewport pixels. Keep the tooltip's arrow
+   containing block unzoomed, and scale its label and dimensions explicitly so
+   the arrow offset is not scaled a second time near viewport edges. */
+body > [data-radix-popper-content-wrapper] > [data-slot='tooltip-content'] {
+  zoom: 1;
+  padding: calc(0.25rem * var(--web-ui-scale, 1)) calc(0.5rem * var(--web-ui-scale, 1));
+  border-radius: calc(0.25rem * var(--web-ui-scale, 1));
+  max-width: min(calc(24rem * var(--web-ui-scale, 1)), calc(100vw - 1.5rem), var(--radix-tooltip-content-available-width, 24rem));
+}
+
+body > [data-radix-popper-content-wrapper] > [data-slot='tooltip-content'] > [data-slot='tooltip-label'] {
+  zoom: var(--web-ui-scale, 1);
+}
+
+body > [data-radix-popper-content-wrapper] > [data-slot='tooltip-content'] [data-slot='tooltip-arrow'] {
+  width: calc(10px * var(--web-ui-scale, 1));
+  height: calc(5px * var(--web-ui-scale, 1));
+}
+
 /* Fan controls also portal directly to the body. Cancel the document zoom on
    their fixed positioning wrapper so its measured anchor coordinates remain
    aligned with the control that opened it. */

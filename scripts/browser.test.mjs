@@ -13,9 +13,64 @@ function load(file, globals = {}) {
   vm.runInContext(ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, context)
   return context.exports
 }
-const { comparisonPlugin, scopeComparisonStorage } = load('src/upstream/comparison-plugin.ts')
+const { browserPlugin, scopeBrowserStorage } = load('src/upstream/browser-plugin.ts')
+test('browser omits generic activity toasts while preserving unread tracking and incoming messages', () => {
+  const { filterBrowserActivityToasts, browserActivityNotificationsPlugin } = load('src/upstream/browser-plugin.ts')
+  const filename = path.join(root, '../desktop/src/plugins/hermes-bots/roster-actions.ts')
+  const source = readFileSync(filename, 'utf8')
+  const output = filterBrowserActivityToasts(source)
+  const { transformRenderer } = load('src/upstream/transforms.ts')
+  const compatible = transformRenderer(source, filename).code
+  assert.equal(browserActivityNotificationsPlugin().transform(compatible, filename).code, filterBrowserActivityToasts(compatible))
+  assert.throws(() => filterBrowserActivityToasts(source.replace('host.notify({', 'host.changed({')), /notification target changed/)
+  const notifications = [], unread = []
+  const mocks = {
+    atom: value => ({ get: () => value, set: next => { value = next } }),
+    host: { notify: notice => notifications.push(notice) },
+    markSessionUnreadFinished: id => unread.push(id),
+    $selectedBot: { get: () => null },
+    rosterWatermarks: new Map(),
+    botSelectionKey: bot => bot.name,
+    botActivitySession: bot => bot.activity,
+    botCanonicalSessionId: bot => bot.id,
+    $botMeta: { get: () => ({}) },
+    botRosterMeta: () => undefined,
+    displayName: bot => bot.name
+  }
+  const context = vm.createContext({ exports: {}, require: () => mocks })
+  vm.runInContext(ts.transpileModule(output, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, context)
+  const { $activityToasts, trackInboundActivity } = context.exports
+  $activityToasts.set(true)
+  const poll = (last_active, preview) => trackInboundActivity([{ id: 'bot-chat', name: 'Hermes', activity: { last_active, preview } }])
+  poll(1, '') // Seed the watermark without announcing old activity.
+  poll(2, '')
+  poll(3, 'Background task completed')
+  assert.equal(notifications.length, 0)
+  assert.deepEqual(unread, ['bot-chat', 'bot-chat'])
+  poll(4, 'Message from Alice: hello')
+  assert.equal(notifications.length, 1)
+  assert.equal(notifications[0].message, 'Message from Alice: hello')
+  assert.equal(unread.length, 3)
+})
+
+test('browser relocates the activity toggle without removing other Bots toolbar controls', () => {
+  const { browserActivityNotificationsPlugin } = load('src/upstream/browser-plugin.ts')
+  const filename = path.join(root, '../desktop/src/plugins/hermes-bots/roster-pane-toolbar.tsx')
+  const source = readFileSync(filename, 'utf8')
+  const plugin = browserActivityNotificationsPlugin()
+  const output = plugin.transform(source, filename).code
+  assert.doesNotMatch(output, /Activity toasts on|onClick=\{\(\) => setActivityToasts/)
+  assert.match(output, /aria-label=\{b.roster.newBotOrGroup\}/)
+  assert.match(output, /<SearchField/)
+  assert.equal(output.split("<DropdownMenu key={'roster-filters'}>").length, 2)
+  assert.ok(output.indexOf("<DropdownMenu key={'roster-filters'}>") < output.indexOf('<Tip label="New…">'))
+  assert.doesNotMatch(output, /\{showRosterFilters \? \(|\{showRosterTools \? \(/)
+  assert.match(output, /\{showRosterSearch \? \(/)
+  assert.throws(() => plugin.transform(source.replace('Activity toasts on', 'Changed label'), filename), /button target changed/)
+})
+
 test('browser microphone capture distinguishes insecure origins and lets getUserMedia own permission', async () => {
-  const { useBrowserMicrophoneCapture } = load('src/upstream/comparison-plugin.ts')
+  const { useBrowserMicrophoneCapture } = load('src/upstream/browser-plugin.ts')
   const source = readFileSync(path.join(root, '../desktop/src/app/chat/composer/hooks/use-mic-recorder.ts'), 'utf8')
   const output = useBrowserMicrophoneCapture(source)
   assert.doesNotMatch(output, /requestMicrophoneAccess/)
@@ -38,23 +93,23 @@ test('browser microphone capture distinguishes insecure origins and lets getUser
   await assert.rejects(handle.start(), /No microphone/)
 })
 
-test('comparison shell contracts reject missing or changed upstream modules', t => {
-  comparisonPlugin(root).buildStart()
-  const fixture = mkdtempSync(path.join(tmpdir(), 'comparison-contract-'))
+test('browser shell contracts reject missing or changed upstream modules', t => {
+  browserPlugin(root).buildStart()
+  const fixture = mkdtempSync(path.join(tmpdir(), 'browser-contract-'))
   t.after(() => rmSync(fixture, { recursive: true, force: true }))
   mkdirSync(path.join(fixture, 'desktop/src/app'), { recursive: true })
-  const plugin = comparisonPlugin(path.join(fixture, 'web-desktop'))
+  const plugin = browserPlugin(path.join(fixture, 'web-desktop'))
   assert.throws(() => plugin.buildStart(), /ENOENT/)
   writeFileSync(path.join(fixture, 'desktop/src/app/index.tsx'), 'changed')
-  assert.throws(() => plugin.buildStart(), /Comparison integration changed: app\/index.tsx/)
+  assert.throws(() => plugin.buildStart(), /Browser integration changed: app\/index.tsx/)
 })
 test('browser layout storage is isolated, deterministic and checked without moving shared drafts', () => {
   const filename = '../desktop/src/lib/storage.ts'
   const source = readFileSync(path.join(root, filename), 'utf8')
-  const output = scopeComparisonStorage(source)
-  assert.equal(scopeComparisonStorage(output), output)
-  assert.throws(() => scopeComparisonStorage(source + '\n// upstream change'), /no longer matches/)
-  assert.throws(() => scopeComparisonStorage(output.replace("key = 'hermes-web.browser.' + key", "key = 'bad'")), /no longer matches/)
+  const output = scopeBrowserStorage(source)
+  assert.equal(scopeBrowserStorage(output), output)
+  assert.throws(() => scopeBrowserStorage(source + '\n// upstream change'), /no longer matches/)
+  assert.throws(() => scopeBrowserStorage(output.replace("key = 'hermes-web.browser.' + key", "key = 'bad'")), /no longer matches/)
   const store = new Map()
   const context = vm.createContext({ exports: {}, require: createRequire(path.join(root, filename)), document: { documentElement: { dataset: { experience: 'browser' } } }, localStorage: { getItem: key => store.get(key) ?? null, setItem: (key, value) => store.set(key, value), removeItem: key => store.delete(key) } })
   context.window = { localStorage: context.localStorage }
@@ -74,13 +129,13 @@ test('browser layout storage is isolated, deterministic and checked without movi
 })
 test('browser selection always initializes the browser-focused shell', () => {
   const globals = { document: { documentElement: { dataset: {} } } }
-  const selection = load('src/experience/selection.ts', globals)
-  selection.initializeComparison()
+  const experience = load('src/experience/browser-experience.ts', globals)
+  experience.initializeBrowserExperience()
   assert.equal(globals.document.documentElement.dataset.experience, 'browser')
 })
 
 test('browser shell does not register chat tab creation actions', () => {
-  const { disableBrowserSessionTabs } = load('src/upstream/comparison-plugin.ts')
+  const { disableBrowserSessionTabs } = load('src/upstream/browser-plugin.ts')
   const source = readFileSync(path.join(root, '../desktop/src/app/contrib/wiring.tsx'), 'utf8')
   const output = disableBrowserSessionTabs(source)
   assert.doesNotMatch(output, /\n    openNewSessionTab,\n/)
@@ -89,15 +144,22 @@ test('browser shell does not register chat tab creation actions', () => {
 })
 
 test('browser startup keeps shared controller registration without rendering desktop UI', () => {
-  const initializer = readFileSync(path.join(root, 'src/upstream/comparison-initialize.ts'), 'utf8')
-  const browserRoot = readFileSync(path.join(root, 'src/upstream/comparison-root.tsx'), 'utf8')
+  const initializer = readFileSync(path.join(root, 'src/upstream/browser-initialize.ts'), 'utf8')
+  const browserRoot = readFileSync(path.join(root, 'src/upstream/browser-root.tsx'), 'utf8')
   assert.match(initializer, /import ['"]\.\.\/\.\.\/\.\.\/desktop\/src\/app\/contrib\/controller['"];?/)
-  assert.match(browserRoot, /import ['"]\.\/comparison-initialize['"];?/)
+  assert.match(browserRoot, /import ['"]\.\/browser-initialize['"];?/)
   assert.doesNotMatch(browserRoot, /ContribController/)
 })
 
+test('browser build has an explicit root and no desktop-root fallback', () => {
+  const browserRoot = readFileSync(path.join(root, 'src/upstream/browser-root.tsx'), 'utf8')
+  assert.match(browserRoot, /return <BrowserShell \/>/)
+  assert.doesNotMatch(browserRoot, /ContribController/)
+  assert.doesNotMatch(readFileSync(path.join(root, 'src/upstream/browser-plugin.ts'), 'utf8'), /comparison-root|comparison-plugin/)
+})
+
 test('browser settings remove desktop-only keybind rows', () => {
-  const { filterBrowserKeybinds } = load('src/upstream/comparison-plugin.ts')
+  const { filterBrowserKeybinds } = load('src/upstream/browser-plugin.ts')
   const source = readFileSync(path.join(root, '../desktop/src/app/settings/keybind-settings.tsx'), 'utf8')
   const output = filterBrowserKeybinds(source)
   assert.match(output, /BROWSER_UNSUPPORTED_KEYBINDS/)
@@ -108,7 +170,7 @@ test('browser settings remove desktop-only keybind rows', () => {
 })
 
 test('browser session rows resume chats instead of opening tabs or windows', () => {
-  const { disableBrowserSessionRowTabs } = load('src/upstream/comparison-plugin.ts')
+  const { disableBrowserSessionRowTabs } = load('src/upstream/browser-plugin.ts')
   const source = readFileSync(path.join(root, '../desktop/src/app/chat/sidebar/session-row.tsx'), 'utf8')
   const output = disableBrowserSessionRowTabs(source)
   assert.doesNotMatch(output, /openSession\(session\.id, \(\) => undefined, '(?:tab|window)'\)/)
@@ -116,7 +178,7 @@ test('browser session rows resume chats instead of opening tabs or windows', () 
 })
 
 test('browser session menus omit tab and window actions', () => {
-  const { disableBrowserSessionOpenActions } = load('src/upstream/comparison-plugin.ts')
+  const { disableBrowserSessionOpenActions } = load('src/upstream/browser-plugin.ts')
   const source = readFileSync(path.join(root, '../desktop/src/app/chat/sidebar/session-actions-menu.tsx'), 'utf8')
   const output = disableBrowserSessionOpenActions(source)
   assert.doesNotMatch(output, /surface === 'row' && !alreadyTabbed/)
@@ -144,7 +206,7 @@ test('browser workspace removes chat tabs while retaining tool groups', () => {
   assert.equal(tree.children[2].tabStrip, undefined, 'Close handles must not rewrite the saved layout')
 })
 test('narrow tool overlays retain upstream behavior without duplicating browser navigation', () => {
-  const { filterBrowserNarrowNavigation } = load('src/upstream/comparison-plugin.ts')
+  const { filterBrowserNarrowNavigation } = load('src/upstream/browser-plugin.ts')
   const source = readFileSync(path.join(root, '../desktop/src/components/pane-shell/tree/renderer/narrow-overlays.tsx'), 'utf8')
   const output = filterBrowserNarrowNavigation(source)
   assert.equal(filterBrowserNarrowNavigation(output), output)
@@ -154,7 +216,7 @@ test('narrow tool overlays retain upstream behavior without duplicating browser 
 })
 
 test('empty workspace panels retain a working close action', () => {
-  const { closeBrowserWorkspacePanels } = load('src/upstream/comparison-plugin.ts')
+  const { closeBrowserWorkspacePanels } = load('src/upstream/browser-plugin.ts')
   const source = readFileSync(path.join(root, '../desktop/src/components/pane-shell/tree/store.ts'), 'utf8')
   const output = closeBrowserWorkspacePanels(source)
   assert.equal(closeBrowserWorkspacePanels(output), output)
@@ -164,7 +226,7 @@ test('empty workspace panels retain a working close action', () => {
 })
 
 test('browser status chrome reuses the checked upstream item renderer', () => {
-  const { exportBrowserStatusbarItem } = load('src/upstream/comparison-plugin.ts')
+  const { exportBrowserStatusbarItem } = load('src/upstream/browser-plugin.ts')
   const source = readFileSync(path.join(root, '../desktop/src/app/shell/statusbar-controls.tsx'), 'utf8')
   const output = exportBrowserStatusbarItem(source)
   assert.equal(exportBrowserStatusbarItem(output), output)

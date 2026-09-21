@@ -1,4 +1,4 @@
-# Interface comparison preview
+# Browser preview
 
 This review build uses the browser-focused shell with the pinned Hermes Desktop
  renderer, gateway connection, providers, chat, composer, session surfaces, Bot
@@ -23,13 +23,13 @@ callbacks; an available version update also marks the Details button.
 
 ## Run the isolated preview
 
-The `interface-comparison-preview` workflow builds and tests the actual nginx
+The `browser-preview` workflow builds and tests the actual nginx
 image, then publishes an immutable amd64 PR image and its synthetic gateway.
-Download the `comparison-images-<commit>` artifact for the exact image names.
+Download the `browser-preview-images-<commit>` artifact for the exact image names.
 From this branch, start a separate Docker Compose project:
 
 ```sh
-docker compose --env-file comparison-images.env -f compose.comparison.yml up -d
+docker compose --env-file browser-preview-images.env -f compose.browser-preview.yml up -d
 ```
 
 Open `http://localhost:4186/`. The preview always uses the browser-focused shell.
@@ -48,15 +48,15 @@ Build locally when CI images are not needed:
 
 ```sh
 docker build --build-arg HERMES_WRAPPER_REV="$(git rev-parse HEAD)" \
-  --build-arg HERMES_RELEASE_CHANNEL=comparison -t hermes-web:comparison .
-docker build --target preview-gateway -t hermes-web:comparison-gateway .
-docker compose -f compose.comparison.yml up -d
+  --build-arg HERMES_RELEASE_CHANNEL=browser-preview -t hermes-web:browser-preview .
+docker build --target preview-gateway -t hermes-web:browser-preview-gateway .
+docker compose -f compose.browser-preview.yml up -d
 ```
 
 Stop only this preview with:
 
 ```sh
-docker compose -f compose.comparison.yml down
+docker compose -f compose.browser-preview.yml down
 ```
 
 ## Walkthrough
@@ -71,26 +71,26 @@ docker compose -f compose.comparison.yml down
 
 Build identity is available at `/build-info.json` and through the app's build
 metadata. It identifies the wrapper commit, renderer commit, dependency lock,
-build time and comparison channel; backend version is reported separately.
+build time and browser-preview channel; backend version is reported separately.
 
 ## Verification and compatibility
 
 ```sh
 corepack pnpm typecheck
 corepack pnpm test:foundation
-HERMES_COMPARISON_IMAGE=hermes-web:comparison \
-  corepack pnpm exec playwright test tests/browser/comparison.spec.mjs
+HERMES_BROWSER_PREVIEW_IMAGE=hermes-web:browser-preview \
+  corepack pnpm exec playwright test tests/browser/browser.spec.mjs
 ```
 
 Playwright starts an isolated synthetic gateway and tests through the actual
 built nginx image. CI retains screenshots, test results and failure traces.
-An explicit `HERMES_COMPARISON_URL` can instead test an already running synthetic
+An explicit `HERMES_BROWSER_PREVIEW_URL` can instead test an already running synthetic
 preview. The ordinary compatibility workflow separately verifies the stable
 build.
 
 The adapter checks exact upstream shell entrypoint, wiring, controller,
 titlebar, and storage contracts before enabling composition overrides. A changed
-contract fails the comparison build for review. Fetched sources stay untouched.
+contract fails the browser preview build for review. Fetched sources stay untouched.
 This preview remains isolated from the stable production rollout.
 
 The build also checks a narrow compatibility fix for the locked nanostores
@@ -100,7 +100,7 @@ regression test builds the same callback both without and with the fix, proving
 that profile updates survive the production bundler. Neither the installed
 package nor the fetched renderer is modified.
 
-See [captured screenshots and verification evidence](screenshots/interface-comparison/README.md)
+See [captured screenshots and verification evidence](screenshots/browser-preview/README.md)
 for the reviewed application identity, phone/desktop views and executed checks.
 
 During a controlled reload, an aborted initial module download receives one

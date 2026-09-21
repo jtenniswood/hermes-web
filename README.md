@@ -186,7 +186,7 @@ a release publishes an image without restarting the production deployment.
 ### Browser-focused preview
 
 The preview build uses the browser-focused shell backed by the upstream chat
-engine. See the [preview guide](docs/interface-comparison.md) for the isolated
+engine. See the [preview guide](docs/browser-preview.md) for the isolated
 Compose stack and exact PR images. The browser-focused shell is the only web
 entry point in stable and preview builds; preview images add only the synthetic
 gateway and review fixtures.

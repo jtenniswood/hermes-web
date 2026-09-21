@@ -15,6 +15,10 @@ import { createWebBridge } from './bridge'
 if (typeof window !== 'undefined') {
   window.addEventListener('contextmenu', event => {
     if (document.documentElement.dataset.experience === 'browser') {
+      // Radix checks defaultPrevented before opening and suppresses the native
+      // menu itself. Let marked triggers receive an unhandled gesture.
+      const target = event.target instanceof Element ? event.target : null
+      if (target?.closest('[data-hermes-context-menu-trigger]')) return
       event.preventDefault()
     }
   }, true)

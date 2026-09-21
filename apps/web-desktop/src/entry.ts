@@ -14,10 +14,10 @@ async function start(): Promise<void> {
     runtimeConfig()
     trackMediaRequests()
     consumeConnectionToken()
-    ;(await import('./experience/selection')).initializeComparison()
+    ;(await import('./experience/browser-experience')).initializeBrowserExperience()
     // Complete bridge installation before any upstream module evaluates.
     await import('./web-bridge/install')
-    ;(await import('./upstream/comparison-bootstrap')).prepareComparisonBridge()
+    ;(await import('./upstream/browser-bootstrap')).prepareBrowserBridge()
     await import('./web-sidebar-collapse')
     await import('./upstream/entry')
     completeStartup()

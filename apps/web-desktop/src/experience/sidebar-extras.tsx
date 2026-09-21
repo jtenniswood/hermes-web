@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
-import { Codicon } from '../upstream/comparison-api'
+import { Codicon } from '../upstream/browser-api'
 
 const NavigateContext = createContext<(path: string) => void>(() => {})
 const EXTRA_ROUTES = [
