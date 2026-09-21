@@ -122,7 +122,7 @@ test('browser approval modes have distinct menu and toolbar icons', () => {
   const source = readFileSync(filename, 'utf8')
   assert.equal(browserPlugin(root).transform(source, filename), null)
   const output = readFileSync(path.join(root, 'src/experience/browser-approval-mode-menu.tsx'), 'utf8')
-  assert.match(output, /Brain.*Power.*ShieldLock.*from ..\/upstream\/browser-api/)
+  assert.match(output, /Brain.*Power.*ShieldLock.*from ''..\/upstream\/browser-api''/)
   assert.match(output, /<ApprovalModeIcon mode=\{mode\} \/>/)
   assert.match(output, /smart: 'Ask when needed'/)
   assert.doesNotMatch(output, /DropdownMenuSeparator/)
