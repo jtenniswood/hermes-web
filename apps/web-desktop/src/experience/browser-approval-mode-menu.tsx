@@ -1,11 +1,8 @@
 import { useStore } from '@nanostores/react'
 import { useEffect, useMemo } from 'react'
 
-import type { StatusbarItem } from '@/app/shell/statusbar-controls'
-import { DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu'
-import { Brain, Power, ShieldLock } from '@/lib/icons'
-import { useI18n } from '@/i18n'
-import { $approvalModes, type ApprovalMode, type ApprovalModeRequester, setApprovalModeForProfile, syncApprovalModeForProfile } from '@/store/approval-mode'
+import { $approvalModes, Brain, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, Power, setApprovalModeForProfile, ShieldLock, syncApprovalModeForProfile, useI18n, type ApprovalMode, type ApprovalModeRequester } from '../upstream/browser-api'
+import type { StatusbarItem } from '../upstream/browser-api'
 
 function ApprovalModeIcon({ mode }: { mode: ApprovalMode }) {
   if (mode === 'manual') return <ShieldLock className="size-3.5" />
