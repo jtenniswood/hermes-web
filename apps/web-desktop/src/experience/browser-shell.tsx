@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProper
 import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, APP_ROUTES, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, BrowserPanelButton, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, ActionsMenu, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, APP_ROUTES, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, BrowserPanelButton, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, botSelectionKey, displayName, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, ActionsMenu, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
 import { ApprovalToolbarTarget, BrowserActivityToastsItem } from '../upstream/browser-api'
 
@@ -101,7 +101,6 @@ function BrowserLayout() {
   const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
   const navigate = useNavigate(), location = useLocation()
   const selected = useStore($selectedStoredSessionId), sessions = useStore($sessions), bot = useStore($selectedBot)
-  const chatTitle = selectedSessionTitle(sessions, selected)
   const gatewayState = useStore($gatewayState)
   const activeConnectionId = useStore($activeConnectionId), activeGatewayProfile = useStore($activeGatewayProfile)
   const { requestGateway } = useGatewayRequest()
@@ -109,6 +108,9 @@ function BrowserLayout() {
   const pinnedSessionIds = useStore($pinnedSessionIds), pinsOpen = useStore($sidebarPinsOpen)
   const profiles = useStore($profiles), profileOrder = useStore($profileOrder), profile = useStore($activeGatewayProfile), showAllProfiles = useStore($showAllProfiles)
   const roster = useStore($lastRoster), botMeta = useStore($botMeta)
+  const sessionTitle = selectedSessionTitle(sessions, selected)
+  const selectedBotRow = sessionTitle === 'Bot Chat' ? roster.find(candidate => botSelectionKey(candidate) === bot) : undefined
+  const chatTitle = selectedBotRow ? displayName(selectedBotRow, botRosterMeta(selectedBotRow, botMeta)) : sessionTitle
   const tree = useStore($layoutTree)
   const panes = useContributions('panes')
   const main = useRef<HTMLElement>(null), menu = useRef<HTMLButtonElement>(null), drawer = useRef<HTMLElement>(null), navigationTabsMenu = useRef<HTMLDivElement>(null), profileContextMenu = useRef<HTMLDivElement>(null)

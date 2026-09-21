@@ -141,6 +141,7 @@ test('fresh startup restores chat, registrations, bots, and avatar-backed profil
 
   await page.getByRole('button', { name: /Research · @/ }).click()
   await expect(editor(page)).toBeVisible()
+  await expect(page.locator('.browser-chat-title')).toHaveText('Research')
   await expect(page).toHaveURL(/#\/preview-research$/)
   await expect(page.locator('[data-tree-tab^="session-tile:"]')).toHaveCount(0)
 
@@ -497,6 +498,20 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('menuitem', { name: 'New bot', exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
     await page.screenshot({ path: testInfo.outputPath('bots-toolbar.png') })
+  })
+
+  test(`Bot menus omit the new-chat shortcut at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 960 })
+    await open(page)
+    if (width === 390) await openNavigation(page)
+    await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+    const bot = page.getByRole('button', { name: /Research · @/ }).first()
+    await expect(bot).toBeVisible()
+    await bot.click({ button: 'right' })
+    const menu = page.locator('[role="menu"]:visible').last()
+    await expect(menu.getByRole('menuitem', { name: 'Open Bot Chat', exact: true })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'New chat with this bot', exact: true })).toHaveCount(0)
+    await page.keyboard.press('Escape')
   })
 
   test(`activity toasts move from Bots to a persistent settings toggle at ${width}px`, async ({ page }) => {

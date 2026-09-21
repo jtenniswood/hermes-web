@@ -93,6 +93,8 @@ export function removeBrowserActivityToastButton(source: string): string {
 }
 
 export function layoutBrowserRosterToolbar(source: string): string {
+  if (source.includes('$showHiddenBots.set')) return source
+
   const filterStart = '          {showRosterFilters ? (\n'
   const filterEnd = '          ) : null}\n        </div>\n      ) : null}'
   const addMenu = '          <DropdownMenu>\n            <Tip label="New…">'
@@ -103,11 +105,49 @@ export function layoutBrowserRosterToolbar(source: string): string {
   const start = source.indexOf(filterStart), end = source.indexOf(filterEnd, start)
   if (end < start) throw new Error('Browser roster filter boundary changed')
   const filter = source.slice(start + filterStart.length, end)
+  const filterContent = '              <DropdownMenuContent align="end">\n'
+  if (filter.split(filterContent).length !== 2) throw new Error('Browser roster filter content target changed')
+  const hiddenBotsOption = `              <DropdownMenuItem onSelect={() => $showHiddenBots.set(!$showHiddenBots.get())}>
+                <span className="min-w-0 flex-1">Show hidden bots</span>
+                {$showHiddenBots.get() ? <Codicon name="check" /> : null}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+`
+  const browserFilter = filter.replace(filterContent, filterContent + hiddenBotsOption)
   // Keep the original filter menu and callbacks, always available beside New.
   // Only search needs a second row; a filter-only row should reserve no space.
-  return (source.slice(0, start) + source.slice(end + '          ) : null}\n'.length))
-    .replace(addMenu, filter + addMenu)
+  const output = (source.slice(0, start) + source.slice(end + '          ) : null}\n'.length))
+    .replace(addMenu, browserFilter + addMenu)
     .replace(searchRow, '      {showRosterSearch ? (')
+  return "import { $showHiddenBots } from './hidden-bots'\n" + output
+}
+
+export function removeBrowserNewBotChatAction(source: string): string {
+  const imports = [
+    "  saveSelectedRosterBot\n",
+    "  newBotChat,\n",
+    "import { botRosterMeta, botWorkspaceOwnerKey, setBotsWorkspaceOwner } from './routing'\n"
+  ]
+  const action = `        <ContextMenuItem
+          onSelect={() => {
+            saveSelectedRosterBot(bot)
+            setBotsWorkspaceOwner(botWorkspaceOwnerKey(bot), bot)
+            newBotChat(bot)
+          }}
+        >
+          {b.bot.newChatWith}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+`
+  const hasAction = source.includes(action)
+  const hasPartialAction = source.includes('b.bot.newChatWith') || imports.some(target => source.includes(target))
+  if (!hasAction && !hasPartialAction) return source
+  if (!hasAction || source.split(action).length !== 2 || imports.some(target => source.split(target).length !== 2)) {
+    throw new Error('Browser new-bot-chat action target changed')
+  }
+  let output = source.replace(action, '')
+  for (const target of imports) output = output.replace(target, '')
+  return output
 }
 
 // Run after renderer compatibility has validated and transformed this module.
@@ -197,6 +237,22 @@ function filterBrowserSessionMenu(source: string): string {
   const target = 'function OptionCheckbox({ checked, onCheck, option }: { checked: boolean; onCheck: () => void; option: Option }) {'
   if (source.split(target).length !== 2) throw new Error('Browser session filter menu target changed')
   return source.replace(target, target + "\n  if (['card-rows', 'profile-rail', 'all-profiles'].includes(option.id)) return null\n")
+}
+
+export function showHiddenBotsInBrowserRoster(source: string): string {
+  if (source.includes('$showHiddenBots.get()')) return source
+
+  const importTarget = "import { isBotHidden } from './hidden-bots'\n"
+  const hiddenTarget = '  const hiddenBots = roster.filter(bot => isBotHidden(bot, allMeta))\n  const visibleRoster = roster.filter(bot => !isBotHidden(bot, allMeta))'
+  if (source.split(importTarget).length !== 2 || source.split(hiddenTarget).length !== 2) {
+    throw new Error('Browser hidden bot roster target changed')
+  }
+
+  return source
+    .replace(importTarget, importTarget + "import { $showHiddenBots } from './hidden-bots'\n")
+    .replace(hiddenTarget, `  const showHiddenBots = $showHiddenBots.get()
+  const hiddenBots: RosterRow[] = []
+  const visibleRoster = showHiddenBots ? roster : roster.filter(bot => !isBotHidden(bot, allMeta))`)
 }
 
 export function enableBrowserUngroupedSessions(source: string, surface: 'store' | 'menu' | 'sidebar'): string {
@@ -311,6 +367,9 @@ export function browserPlugin(root: string): Plugin {
       if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/chat/sidebar/filter-menu.tsx')) {
         return { code: enableBrowserUngroupedSessions(filterBrowserSessionMenu(code), 'menu'), map: null }
       }
+      if (id.replaceAll('\\', '/').endsWith('/desktop/src/plugins/hermes-bots/roster-pane-derivation.ts')) {
+        return { code: showHiddenBotsInBrowserRoster(code), map: null }
+      }
       if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/chat/composer/hooks/use-mic-recorder.ts')) {
         return { code: useBrowserMicrophoneCapture(code), map: null }
       }
@@ -334,6 +393,9 @@ export function browserPlugin(root: string): Plugin {
       }
       if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/chat/sidebar/session-actions-menu.tsx')) {
         return { code: disableBrowserSessionOpenActions(code), map: null }
+      }
+      if (id.replaceAll('\\', '/').endsWith('/desktop/src/plugins/hermes-bots/bot-row.tsx')) {
+        return { code: removeBrowserNewBotChatAction(code), map: null }
       }
       if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/settings/keybind-settings.tsx')) {
         return { code: filterBrowserKeybinds(code), map: null }
