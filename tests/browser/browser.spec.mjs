@@ -138,6 +138,7 @@ test('fresh startup restores chat, registrations, bots, and avatar-backed profil
   const browserErrors = installBrowserErrorCollector(page)
   await open(page)
   await expect(page.locator('.browser-chat-title')).toHaveCount(0)
+  await expect(page.locator('[data-browser-conversation-kind="session"]')).toHaveCount(1)
   await expect(page.locator('.browser-upstream-workspace [data-zone-tabstrip]')).toHaveCount(0)
   await expect(page.locator('.browser-main header[class*="h-(--titlebar-height)"]')).toBeHidden()
   await page.getByRole('tab', { name: 'Bots', exact: true }).click()
@@ -147,11 +148,14 @@ test('fresh startup restores chat, registrations, bots, and avatar-backed profil
   await page.getByRole('button', { name: /Research · @/ }).click()
   await expect(editor(page)).toBeVisible()
   await expect(page.locator('.browser-chat-title')).toHaveCount(0)
+  await expect(page.locator('[data-browser-conversation-kind="bot"]')).toHaveCount(1)
   await expect(page).toHaveURL(/#\/preview-research$/)
   await expect(page.locator('[data-tree-tab^="session-tile:"]')).toHaveCount(0)
 
   await page.getByRole('tab', { name: 'Sessions', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Research', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Plan a calmer working week', exact: true }).click()
+  await expect(editor(page)).toBeVisible()
+  await expect(page.locator('[data-browser-conversation-kind="session"]')).toHaveCount(1)
   browserErrors.assertClean()
 })
 
