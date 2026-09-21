@@ -3,8 +3,10 @@ import { createServer } from 'node:http'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import ts from 'typescript'
+import { requireBrowserImage } from './test-target.mjs'
 
 let server, container, origin, workerVersion = 1
+const browserImage = requireBrowserImage()
 const read = file => readFileSync(new URL(`../../apps/web-desktop/${file}`, import.meta.url), 'utf8')
 // This fixture embeds classic scripts, so apply the production DEV constant
 // normally supplied by Vite before transpiling the application modules.
@@ -15,7 +17,6 @@ const registration = compile('src/pwa/register.ts')
 const coordinator = read('public/update-coordinator-sw.js')
 
 test.beforeAll(async () => {
-  if (!process.env.HERMES_TEST_IMAGE) throw new Error('HERMES_TEST_IMAGE must identify the actual built nginx image')
   server = createServer((req, res) => {
     res.setHeader('Cache-Control', 'no-store')
     if (req.url.startsWith('/api/worker.js')) {
@@ -53,7 +54,7 @@ ${registration};exports.registerPwa();
     else { res.statusCode = 401; res.end('Sign in to the fixture gateway') }
   })
   await new Promise(resolve => server.listen(0, '0.0.0.0', resolve))
-  container = execFileSync('docker', ['run', '-d', '--rm', '--add-host', 'host.docker.internal:host-gateway', '-p', '127.0.0.1::80', '-e', `HERMES_GATEWAY_URL=http://host.docker.internal:${server.address().port}`, process.env.HERMES_TEST_IMAGE], { encoding: 'utf8' }).trim()
+  container = execFileSync('docker', ['run', '-d', '--rm', '--add-host', 'host.docker.internal:host-gateway', '-p', '127.0.0.1::80', '-e', `HERMES_GATEWAY_URL=http://host.docker.internal:${server.address().port}`, browserImage], { encoding: 'utf8' }).trim()
   const port = execFileSync('docker', ['port', container, '80/tcp'], { encoding: 'utf8' }).trim().split(':').at(-1)
   origin = `http://127.0.0.1:${port}`
   await expect.poll(async () => { try { return (await fetch(origin)).status } catch { return 0 } }).toBe(200)
