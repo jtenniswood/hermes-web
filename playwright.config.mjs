@@ -4,5 +4,9 @@ export default defineConfig({
   workers: 1,
   timeout: 45000,
   use: { headless: true, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
-  reporter: [['list'], ['html', { open: 'never' }]]
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+    ['json', { outputFile: 'playwright-report/results.json' }]
+  ]
 })

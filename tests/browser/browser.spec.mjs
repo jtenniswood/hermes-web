@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { createPreviewGateway } from '../../scripts/preview/gateway.mjs'
+import { getBrowserTarget } from './test-target.mjs'
+import { installBrowserErrorCollector } from './error-collector.mjs'
 
 // This suite exercises the browser shell only. The old desktop/browser
 // selector was removed, so every test must start through the same production
@@ -8,15 +10,20 @@ import { createPreviewGateway } from '../../scripts/preview/gateway.mjs'
 // Exercise real capture APIs without touching the machine's physical microphone.
 test.use({ actionTimeout: 15000, launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] } })
 test.describe.configure({ retries: 1, timeout: 90000 })
-test.skip(!process.env.HERMES_BROWSER_PREVIEW_IMAGE && !process.env.HERMES_BROWSER_PREVIEW_URL, 'Browser build only')
+const { image: browserImage, url: browserUrl } = getBrowserTarget()
+// Local runs may intentionally omit a built image; CI must fail clearly rather
+// than silently report this suite as skipped when it is part of the required
+// production-image verification.
+test.skip(!browserImage && !browserUrl && !process.env.CI, 'Set HERMES_TEST_IMAGE or HERMES_BROWSER_PREVIEW_URL to run browser image tests')
 
 let gateway, container, origin
 
 test.beforeAll(async () => {
-  if (process.env.HERMES_BROWSER_PREVIEW_URL) {
-    origin = process.env.HERMES_BROWSER_PREVIEW_URL
+  if (browserUrl) {
+    origin = browserUrl
     return
   }
+  if (!browserImage) throw new Error('HERMES_TEST_IMAGE or HERMES_BROWSER_PREVIEW_URL is required in CI')
   gateway = createPreviewGateway()
   await new Promise(resolve => gateway.server.listen(0, '0.0.0.0', resolve))
   container = execFileSync('docker', [
@@ -24,7 +31,7 @@ test.beforeAll(async () => {
     '-p', '127.0.0.1::80',
     '-e', `HERMES_GATEWAY_URL=http://host.docker.internal:${gateway.server.address().port}`,
     '-e', 'HERMES_GATEWAY_NAME=Preview workspace',
-    process.env.HERMES_BROWSER_PREVIEW_IMAGE
+    browserImage
   ], { encoding: 'utf8' }).trim()
   const port = execFileSync('docker', ['port', container, '80/tcp'], { encoding: 'utf8' }).trim().split(':').at(-1)
   origin = `http://127.0.0.1:${port}`
@@ -128,11 +135,9 @@ test.describe('browser microphone', () => {
 })
 
 test('fresh startup restores chat, registrations, bots, and avatar-backed profiles', async ({ page }) => {
-  const errors = []
-  page.on('pageerror', error => errors.push(error.message))
+  const browserErrors = installBrowserErrorCollector(page)
   await open(page)
-  await expect(page.locator('.browser-chat-title')).toHaveText('Plan a calmer working week')
-  await expect(page.locator('.browser-chat-title')).toHaveCSS('font-size', '12px')
+  await expect(page.locator('.browser-chat-title')).toHaveCount(0)
   await expect(page.locator('.browser-upstream-workspace [data-zone-tabstrip]')).toHaveCount(0)
   await expect(page.locator('.browser-main header[class*="h-(--titlebar-height)"]')).toBeHidden()
   await page.getByRole('tab', { name: 'Bots', exact: true }).click()
@@ -141,13 +146,21 @@ test('fresh startup restores chat, registrations, bots, and avatar-backed profil
 
   await page.getByRole('button', { name: /Research · @/ }).click()
   await expect(editor(page)).toBeVisible()
-  await expect(page.locator('.browser-chat-title')).toHaveText('Research')
+  await expect(page.locator('.browser-chat-title')).toHaveCount(0)
   await expect(page).toHaveURL(/#\/preview-research$/)
   await expect(page.locator('[data-tree-tab^="session-tile:"]')).toHaveCount(0)
 
   await page.getByRole('tab', { name: 'Sessions', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Research', exact: true })).toBeVisible()
-  expect(errors).toEqual([])
+  browserErrors.assertClean()
+})
+
+test('cold startup renders the production entry without a concealment reload', async ({ page }) => {
+  const browserErrors = installBrowserErrorCollector(page)
+  await page.goto(`${origin}/#/preview-week`)
+  await expect(editor(page)).toBeVisible({ timeout: 30000 })
+  await expect(page.getByText('Help me make a thoughtful plan.', { exact: true }).first()).toBeVisible({ timeout: 30000 })
+  browserErrors.assertClean()
 })
 
 test('empty chat stays centered as the available panel space changes', async ({ page }, testInfo) => {
@@ -369,7 +382,7 @@ for (const width of [390, 1440]) {
     await expect(navigation).toBeVisible()
     expect((await navigation.boundingBox()).width).toBeCloseTo(originalWidth, 0)
     await expect(editor(page)).toContainText('Keep this draft while toggling the sidebar')
-    await expect(page.locator('.browser-chat-title')).toHaveText('Plan a calmer working week')
+    await expect(page.locator('.browser-chat-title')).toHaveCount(0)
     if (width === 390) {
       await page.keyboard.press('Escape')
       await expect(navigation).toBeHidden()
@@ -487,7 +500,16 @@ for (const width of [390, 1440]) {
     }
     await checkOrder()
     await filter.click()
-    await page.getByRole('menuitem', { name: 'Group chats only', exact: true }).click()
+    await expect(page.getByRole('menuitem', { name: 'Show', exact: true })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: 'Filter by time', exact: true })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: 'Show hidden bots', exact: true })).toBeVisible()
+    const show = page.getByRole('menuitem', { name: 'Show', exact: true })
+    await show.focus()
+    await page.keyboard.press('ArrowRight')
+    const groupChats = page.getByRole('menuitem', { name: 'Group chats only', exact: true })
+    await expect(groupChats).toBeVisible()
+    await groupChats.focus()
+    await page.keyboard.press('Enter')
     await expect(filter).toHaveAccessibleName('Filter roster, 1 active')
     await expect(add).toBeVisible()
     await checkOrder()
@@ -509,7 +531,7 @@ for (const width of [390, 1440]) {
     await expect(bot).toBeVisible()
     await bot.click({ button: 'right' })
     const menu = page.locator('[role="menu"]:visible').last()
-    await expect(menu.getByRole('menuitem', { name: 'Open Bot Chat', exact: true })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Open Bot Chat', exact: true })).toHaveCount(0)
     await expect(menu.getByRole('menuitem', { name: 'New chat with this bot', exact: true })).toHaveCount(0)
     await page.keyboard.press('Escape')
   })
@@ -551,7 +573,7 @@ test('settings menu consolidates workspace and gateway controls', async ({ page 
   const menu = page.getByRole('menu', { name: 'Open settings menu', exact: true })
   await expect(menu).toBeVisible()
   await expect(menu.getByRole('menuitem', { name: 'Starmap', exact: true })).toHaveCount(0)
-  await expect(menu.locator('[data-slot="dropdown-menu-label"]')).toHaveText(['Systems', 'Panels', 'Workspace'])
+  await expect(menu.locator('[data-slot="dropdown-menu-label"]')).toHaveText(['Notifications', 'Panels', 'Systems', 'Workspace'])
   for (const label of ['Command center', 'Webhooks', 'Profiles', 'Agents', 'Settings', 'Gateway']) {
     await expect(menu.getByRole('menuitem', { name: label, exact: true })).toBeVisible()
   }
