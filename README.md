@@ -50,30 +50,134 @@ Restart the configured web service separately to activate a staged release.
 The Nix home-manager module serves these artifacts with nginx; `directory` now
 means the extracted artifact directory, not a source checkout.
 
-## Docker
+## Docker self-hosting
 
-Build and run the frontend image:
+The Docker image contains the built web UI and nginx. It does not contain a
+Hermes gateway or model runtime. At startup, nginx reads the gateway settings
+from environment variables and proxies the browser’s REST, login, and
+WebSocket requests to that gateway.
+
+### 1. Build the image
+
+From the repository root:
 
 ```bash
-docker build -t hermes-web .
-
-docker run --rm --name hermes-web \
-  -p 4174:80 \
-  --env-file apps/web-desktop/.env \
-  --add-host host.docker.internal:host-gateway \
-  -v "$HOME/.hermes:/data/hermes" \
-  hermes-web
+docker build -t hermes-web:local .
 ```
 
-The example environment file sets:
+The build fetches the renderer revision pinned in `flake.lock`. For a release
+or CI image, pass the wrapper revision and release channel explicitly:
 
-- `HERMES_GATEWAY_URL` — gateway address; in Docker, use
-  `http://host.docker.internal:9119` when the gateway runs on the host.
-- `HERMES_HOME` — container path for the mounted Hermes configuration and
-  plugins. The default is `/data/hermes`.
-- `HERMES_WEB_URL` — URL used by the Nix deploy health check.
-- `WEB_ALLOWED_HOSTS` — additional hostnames allowed by Vite during local
-  development.
+```bash
+docker build \
+  --build-arg HERMES_WRAPPER_REV="$(git rev-parse HEAD)" \
+  --build-arg HERMES_RELEASE_CHANNEL=local \
+  -t hermes-web:local .
+```
+
+### 2. Create an environment file
+
+Keep deployment settings outside the repository. Start with the supplied
+template:
+
+```bash
+cp apps/web-desktop/.env.example .env.hermes-web
+```
+
+For a gateway running on the Docker host, use:
+
+```dotenv
+HERMES_GATEWAY_URL=http://host.docker.internal:9119
+HERMES_GATEWAY_NAME=Local Hermes
+HERMES_HOME=/data/hermes
+```
+
+For a gateway reachable over Tailscale, replace the URL with its Tailscale IP
+or MagicDNS hostname:
+
+```dotenv
+HERMES_GATEWAY_URL=http://100.64.0.40:9119
+HERMES_GATEWAY_NAME=Hermes over Tailscale
+HERMES_HOME=/data/hermes
+```
+
+The gateway value must be an HTTP(S) origin only. Do not include credentials,
+a path, query string, or fragment. Examples such as
+`http://host.docker.internal:9119/api` are invalid; the container adds the
+`/api`, `/auth`, and `/login` routes itself.
+
+### 3. Start the container
+
+Mount the host Hermes directory so the web app can serve installed plugins and
+desktop plugins. On Linux, `--add-host` makes `host.docker.internal` resolve
+to the Docker host; it is harmless when the configured gateway is elsewhere.
+
+```bash
+docker run -d \
+  --name hermes-web \
+  --restart unless-stopped \
+  --env-file .env.hermes-web \
+  --add-host host.docker.internal:host-gateway \
+  -p 4174:80 \
+  -v "$HOME/.hermes:/data/hermes" \
+  hermes-web:local
+```
+
+Open <http://localhost:4174/> on the Docker host. From another device, use
+the host’s LAN or Tailscale address, for example
+`http://dev.example.ts.net:4174/`. Keep the device on the same tailnet when
+using a Tailscale address.
+
+For microphone recording and other browser features that require a secure
+context, put the container behind HTTPS or use Tailscale Serve. Plain HTTP is
+supported for normal chat but browsers generally block microphone access.
+
+### 4. Verify and manage the container
+
+Check the container and its startup configuration:
+
+```bash
+docker ps --filter name=hermes-web
+docker logs --tail 100 hermes-web
+curl http://localhost:4174/build-info.json
+curl http://localhost:4174/runtime-config.js
+```
+
+Change the gateway or any other environment setting by editing the env file,
+then recreate the container. A restart is not enough if the environment was
+changed in the `docker run` command itself.
+
+```bash
+docker rm -f hermes-web
+docker run -d \
+  --name hermes-web \
+  --restart unless-stopped \
+  --env-file .env.hermes-web \
+  --add-host host.docker.internal:host-gateway \
+  -p 4174:80 \
+  -v "$HOME/.hermes:/data/hermes" \
+  hermes-web:local
+```
+
+To stop it without removing the container:
+
+```bash
+docker stop hermes-web
+```
+
+### Docker environment settings
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `HERMES_GATEWAY_URL` | No (recommended) | HTTP(S) origin of the Hermes gateway. Defaults to `http://127.0.0.1:9119` inside the image, which usually means the container itself. |
+| `HERMES_GATEWAY_NAME` | No | Label shown for the configured gateway. Defaults to `Hermes`. |
+| `HERMES_HOME` | No | Container path for mounted Hermes configuration and plugins. Defaults to `/data/hermes`. |
+| `HERMES_BIND` | No | nginx bind address. Defaults to `0.0.0.0`. Normally leave this unchanged when using Docker port publishing. |
+| `HERMES_PORT` | No | nginx port inside the container. Defaults to `80`; the left side of `-p 4174:80` is the host port. |
+
+`HERMES_WEB_URL` and `WEB_ALLOWED_HOSTS` are development/deployment settings;
+they are not needed by the built nginx container. Docker reads environment
+files as data and does not execute shell commands from them.
 
 Docker, development, and Nix use the exact Hermes revision in `flake.lock`.
 `pnpm prepare:renderer` fetches that revision into an ignored cache and creates
@@ -96,20 +200,23 @@ Pull requests run strict wrapper and reachable-renderer typechecking, foundation
 tests, gateway regression tests, and a production build. Upstream diagnostics
 are not broadly ignored; the explicit diagnostic baseline is currently empty.
 
-### Connecting to a remote gateway
+### Gateway configuration details
 
-Set `HERMES_GATEWAY_URL` to one HTTP(S) origin, without credentials or a path.
-Restart development or recreate the container to apply a server change. The
-browser connects through the web server for HTTP, login, and WebSockets.
-Connection settings offer browser sign-in or a session token, connection testing,
-and sign-out. Changing the gateway address is an operator setting.
+The browser connects to the configured gateway through nginx, keeping API,
+authentication, and WebSocket traffic same-origin with the web UI. This avoids
+requiring browser CORS configuration on the gateway and keeps gateway cookies
+and WebSocket tickets on the web app’s origin.
 
-Additional gateway whitelists and browser routing selectors are no longer used.
-`HERMES_GATEWAY_NAME` optionally sets the connection label. Runtime configuration
-is validated before nginx starts and excluded from the PWA cache. The previous
-`gateway-config.js` endpoint remains available for older installed clients.
-Docker accepts environment variables through `--env-file`; it no longer evaluates
-an executable mounted `/app/.env` file.
+Runtime configuration is validated before nginx starts and is excluded from the
+PWA cache. The generated `/runtime-config.js` and legacy `/gateway-config.js`
+endpoints are served with `Cache-Control: no-store`, so changing the gateway
+does not require rebuilding the image. Recreate the container after changing
+the environment file.
+
+For a remote gateway, make sure the Docker host can reach the gateway address
+and that the gateway accepts the host’s forwarded HTTP/WebSocket requests. A
+gateway that is reachable from the host but blocked from Docker’s network will
+still appear unavailable in Hermes Web.
 
 The nginx image includes Node only for the shared configuration generator at
 startup; nginx handles all requests. The same generator and route contract are
