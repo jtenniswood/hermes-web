@@ -3,35 +3,16 @@ import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProper
 import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, APP_ROUTES, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $focusedBotOwner, focusedRosterOwner, $groupChatWorkspace, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, BrowserPanelButton, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, botSelectionKey, displayName, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, ActionsMenu, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
+import { SettingsMenu, toolRouteLabel } from './settings-menu'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $focusedBotOwner, focusedRosterOwner, $groupChatWorkspace, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, botSelectionKey, displayName, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
-import { ApprovalToolbarTarget, BrowserActivityToastsItem } from '../upstream/browser-api'
-
-const TOOL_ROUTE_META: Record<string, { label: string; icon: string }> = {
-  'command-center': { label: 'Command center', icon: 'symbol-misc' },
-  skills: { label: 'Capabilities', icon: 'symbol-misc' },
-  messaging: { label: 'Messaging', icon: 'comment' },
-  webhooks: { label: 'Webhooks', icon: 'globe' },
-  artifacts: { label: 'Artifacts', icon: 'files' },
-  cron: { label: 'Scheduled jobs', icon: 'watch' },
-  profiles: { label: 'Profiles', icon: 'account' },
-  agents: { label: 'Agents', icon: 'hubot' }
-}
-
-function toolRouteIcon(id: string) {
-  return TOOL_ROUTE_META[id]?.icon || 'folder'
-}
+import { ApprovalToolbarTarget } from '../upstream/browser-api'
 
 function sentenceCase(label: string) {
   const value = label.replaceAll('-', ' ').trim()
   return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value
 }
 
-function toolRouteLabel(id: string) {
-  return sentenceCase(TOOL_ROUTE_META[id]?.label || id)
-}
-
-const WORKSPACE_ROUTE_IDS = new Set(['command-center', 'webhooks', 'profiles', 'agents'])
 // Settings and Command Center are owned by the upstream ContribWiring overlay
 // router. Only the full-page workspace routes need the browser modal shell.
 const BROWSER_MODAL_ROUTES = new Set(['/skills', '/messaging', '/artifacts'])
@@ -467,30 +448,9 @@ function BrowserLayout() {
               <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" size="0.75rem" /></BrowserToolbarButton>
             </SessionActionsMenu>}
             <span className="browser-approval-control" ref={setApprovalTarget} />
-            <ActionsMenu align="end" ariaLabel="Settings and workspace" contentClassName="w-40 browser-settings-menu" onCloseAutoFocus={event => { if (gatewayDialogOpen) event.preventDefault() }} items={kit => <>
-              <kit.Label>Notifications</kit.Label>
-              <BrowserActivityToastsItem />
-              {panelPanes.length > 0 && <>
-                <kit.Separator />
-                <kit.Label>Panels</kit.Label>
-                {panelPanes.map(pane => {
-                  const title = String(pane.title || pane.id)
-                  const icon = pane.id === 'review' ? 'git-compare' : 'files'
-                  return <BrowserPanelButton key={pane.id} id={pane.id} title={sentenceCase(title)} ariaLabel={title} icon={<Codicon name={icon} size="0.875rem" />} collapsible={Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible)} onOpen={() => main.current?.focus()} />
-                })}
-              </>}
-              <kit.Separator />
-              <kit.Label>Systems</kit.Label>
-              <kit.Item onSelect={() => openRoute('/settings')}><Codicon name="settings-gear" size="0.875rem" /><span>Settings</span></kit.Item>
-              <kit.Item onSelect={() => { setDrawerOpen(false); setGatewayDialogOpen(true) }}><Codicon name="pulse" size="0.875rem" /><span>Gateway</span></kit.Item>
-              <kit.Separator />
-              <kit.Label>Workspace</kit.Label>
-              {APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => <kit.Item key={route.path} onSelect={() => openRoute(route.path)}>
-                <Codicon name={toolRouteIcon(route.id)} size="0.875rem" /><span>{toolRouteLabel(route.id)}</span>
-              </kit.Item>)}
-            </>}>
+            <SettingsMenu gatewayDialogOpen={gatewayDialogOpen} onOpenGateway={() => { setDrawerOpen(false); setGatewayDialogOpen(true) }} onOpenPanel={() => main.current?.focus()} onOpenRoute={openRoute} panelPanes={panelPanes}>
               <BrowserToolbarButton ref={settingsTrigger} tooltip="Settings" type="button" aria-label="Open settings menu"><Codicon name="settings-gear" size="0.75rem" /></BrowserToolbarButton>
-            </ActionsMenu>
+            </SettingsMenu>
           </div>
         </div>
         {!browserModalRoute && <BrowserWorkspace />}
