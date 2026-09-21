@@ -468,18 +468,23 @@ function BrowserLayout() {
             </SessionActionsMenu>}
             <span className="browser-approval-control" ref={setApprovalTarget} />
             <ActionsMenu align="end" ariaLabel="Settings and workspace" contentClassName="w-40 browser-settings-menu" onCloseAutoFocus={event => { if (gatewayDialogOpen) event.preventDefault() }} items={kit => <>
-              <kit.Label className="mt-3">Notifications</kit.Label>
+              <kit.Label>Notifications</kit.Label>
               <BrowserActivityToastsItem />
-              {panelPanes.length > 0 && <kit.Label className="mt-3">Panels</kit.Label>}
-              {panelPanes.map(pane => {
-                const title = String(pane.title || pane.id)
-                const icon = pane.id === 'review' ? 'git-compare' : 'files'
-                return <BrowserPanelButton key={pane.id} id={pane.id} title={sentenceCase(title)} ariaLabel={title} icon={<Codicon name={icon} size="0.875rem" />} collapsible={Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible)} onOpen={() => main.current?.focus()} />
-              })}
-              <kit.Label className="mt-3">Systems</kit.Label>
+              {panelPanes.length > 0 && <>
+                <kit.Separator />
+                <kit.Label>Panels</kit.Label>
+                {panelPanes.map(pane => {
+                  const title = String(pane.title || pane.id)
+                  const icon = pane.id === 'review' ? 'git-compare' : 'files'
+                  return <BrowserPanelButton key={pane.id} id={pane.id} title={sentenceCase(title)} ariaLabel={title} icon={<Codicon name={icon} size="0.875rem" />} collapsible={Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible)} onOpen={() => main.current?.focus()} />
+                })}
+              </>}
+              <kit.Separator />
+              <kit.Label>Systems</kit.Label>
               <kit.Item onSelect={() => openRoute('/settings')}><Codicon name="settings-gear" size="0.875rem" /><span>Settings</span></kit.Item>
               <kit.Item onSelect={() => { setDrawerOpen(false); setGatewayDialogOpen(true) }}><Codicon name="pulse" size="0.875rem" /><span>Gateway</span></kit.Item>
-              <kit.Label className="mt-3">Workspace</kit.Label>
+              <kit.Separator />
+              <kit.Label>Workspace</kit.Label>
               {APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => <kit.Item key={route.path} onSelect={() => openRoute(route.path)}>
                 <Codicon name={toolRouteIcon(route.id)} size="0.875rem" /><span>{toolRouteLabel(route.id)}</span>
               </kit.Item>)}
