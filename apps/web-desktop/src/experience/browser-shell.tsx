@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
 import { SettingsMenu, toolRouteLabel } from './settings-menu'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $focusedBotOwner, focusedRosterOwner, $groupChatWorkspace, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, botSelectionKey, displayName, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
+import { useBrowserConversation } from '../upstream/conversation'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
 import { ApprovalToolbarTarget } from '../upstream/browser-api'
 
@@ -63,12 +64,6 @@ function sessionTileIds(node: unknown): string[] {
   return ids
 }
 
-function selectedSessionTitle(sessions: unknown, selected: string | null) {
-  if (!selected || !Array.isArray(sessions)) return ''
-  const session = sessions.find(value => value && typeof value === 'object' && String((value as { id?: unknown }).id) === selected) as { title?: unknown } | undefined
-  return typeof session?.title === 'string' ? session.title.trim() : ''
-}
-
 function BrowserToolbarButton({ tooltip, ...props }: ComponentPropsWithRef<'button'> & { tooltip: string }) {
   return <Tip label={tooltip} placement="toolbar" boundary="viewport"><button {...props} /></Tip>
 }
@@ -82,25 +77,16 @@ function BrowserLayout() {
   const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
   const navigate = useNavigate(), location = useLocation()
   const selected = useStore($selectedStoredSessionId), sessions = useStore($sessions), bot = useStore($selectedBot)
+  const conversation = useBrowserConversation()
   const gatewayState = useStore($gatewayState)
   const activeConnectionId = useStore($activeConnectionId), activeGatewayProfile = useStore($activeGatewayProfile)
   const { requestGateway } = useGatewayRequest()
   const { inferenceStatus, statusSnapshot } = useStatusSnapshot(gatewayState, requestGateway, `${activeConnectionId ?? ''}\0${activeGatewayProfile}`)
   const pinnedSessionIds = useStore($pinnedSessionIds), pinsOpen = useStore($sidebarPinsOpen)
   const profiles = useStore($profiles), profileOrder = useStore($profileOrder), profile = useStore($activeGatewayProfile), showAllProfiles = useStore($showAllProfiles)
-  const roster = useStore($lastRoster), botMeta = useStore($botMeta), groupChat = useStore($groupChatWorkspace)
-  const focusedOwner = focusedRosterOwner(useStore($focusedBotOwner))
-  const sessionTitle = selectedSessionTitle(sessions, selected)
+  const roster = useStore($lastRoster), botMeta = useStore($botMeta)
   const selectedSession = selected ? sessions.find(session => String(session.id) === selected) : undefined
-  const sessionProfile = String(selectedSession?.profile || '').trim()
-  const selectedBotRow = sessionTitle === 'Bot Chat'
-    ? roster.find(candidate => botSelectionKey(candidate) === bot) ||
-      (focusedOwner
-        ? roster.find(candidate => candidate.name === focusedOwner.name && (!focusedOwner.connectionId || candidate.connectionId === focusedOwner.connectionId))
-        : undefined) ||
-      (sessionProfile ? roster.find(candidate => candidate.name === sessionProfile) : undefined)
-    : undefined
-  const chatTitle = groupChat?.trim() || (selectedBotRow ? displayName(selectedBotRow, botRosterMeta(selectedBotRow, botMeta)) : sessionTitle)
+  const chatTitle = conversation.displayName || ''
   const tree = useStore($layoutTree)
   const panes = useContributions('panes')
   const main = useRef<HTMLElement>(null), menu = useRef<HTMLButtonElement>(null), drawer = useRef<HTMLElement>(null), navigationTabsMenu = useRef<HTMLDivElement>(null), profileContextMenu = useRef<HTMLDivElement>(null)
@@ -134,7 +120,7 @@ function BrowserLayout() {
   const browserModalReturnPath = useRef('/')
   const browserModalRoute = BROWSER_MODAL_ROUTES.has(location.pathname)
   const bots = panes.find(pane => pane.id === 'hermes-bots:pane')
-  const selectedSessionProfile = selectedSession?.profile || activeGatewayProfile
+  const selectedSessionProfile = selectedSession?.profile || conversation.profile || activeGatewayProfile
   const selectedSessionPinId = selectedSession ? sessionPinId(selectedSession) : selected
   const selectedSessionPinned = Boolean(selectedSessionPinId && pinnedSessionIds.includes(selectedSessionPinId))
   const toggleSelectedPin = () => {
@@ -381,7 +367,7 @@ function BrowserLayout() {
       return NAVIGATION_TABS.filter(tabValue => current.includes(tabValue) || tabValue === value)
     })
   }
-  return <ApprovalToolbarTarget value={approvalTarget}><div className="browser-shell" data-browser-shell="">
+  return <ApprovalToolbarTarget value={approvalTarget}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
     <div className="browser-workspace">
       {drawerOpen && <button className="browser-scrim" aria-label="Close navigation" onClick={() => { setDrawerOpen(false); menu.current?.focus() }} />}
       <aside id="browser-navigation" ref={drawer} hidden={!compactNavigation && navigationCollapsed} className={`browser-navigation ${drawerOpen ? 'is-open' : ''}`} aria-label="Sessions, Bots and tools" style={{ '--browser-navigation-width': `${navigationWidth}px` } as CSSProperties}>
