@@ -1,11 +1,11 @@
-name: interface-comparison-preview
+name: browser-preview
 on:
   pull_request:
     branches: ['codex/tested-renderer-releases']
 permissions:
   contents: read
 concurrency:
-  group: comparison-preview-${{ github.event.pull_request.number }}
+  group: browser-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
   review-image:
@@ -36,7 +36,7 @@ jobs:
             echo "lock_hash=$(sha256sum pnpm-lock.yaml | cut -d' ' -f1)"
           } >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v3
-      - name: Build comparison nginx image
+      - name: Build browser preview nginx image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -44,23 +44,23 @@ jobs:
           tags: ${{ steps.identity.outputs.image }}:${{ steps.identity.outputs.tag }}
           build-args: |
             HERMES_WRAPPER_REV=${{ github.event.pull_request.head.sha }}
-            HERMES_RELEASE_CHANNEL=comparison
+            HERMES_RELEASE_CHANNEL=browser-preview
           labels: |
             org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
             io.hermes.renderer.revision=${{ steps.identity.outputs.renderer }}
             io.hermes.dependency-lock.sha256=${{ steps.identity.outputs.lock_hash }}
-            io.hermes.release.channel=comparison
-          cache-from: type=gha,scope=comparison
-          cache-to: type=gha,mode=max,scope=comparison
+            io.hermes.release.channel=browser-preview
+          cache-from: type=gha,scope=browser-preview
+          cache-to: type=gha,mode=max,scope=browser-preview
       - run: pnpm exec playwright install --with-deps chromium
-      - name: Compare both interfaces through the built nginx image
-        run: pnpm exec playwright test tests/browser/comparison.spec.mjs
+      - name: Test the browser experience through the built nginx image
+        run: pnpm exec playwright test tests/browser/browser.spec.mjs
         env:
-          HERMES_COMPARISON_IMAGE: ${{ steps.identity.outputs.image }}:${{ steps.identity.outputs.tag }}
+          HERMES_BROWSER_PREVIEW_IMAGE: ${{ steps.identity.outputs.image }}:${{ steps.identity.outputs.tag }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: comparison-evidence-${{ github.event.pull_request.head.sha }}
+          name: browser-preview-evidence-${{ github.event.pull_request.head.sha }}
           path: |
             test-results
             playwright-report
@@ -80,15 +80,15 @@ jobs:
           target: preview-gateway
           push: true
           tags: ${{ steps.identity.outputs.image }}:${{ steps.identity.outputs.tag }}-gateway
-          cache-from: type=gha,scope=comparison
+          cache-from: type=gha,scope=browser-preview
       - name: Record runnable images
         env:
           IMAGE: ${{ steps.identity.outputs.image }}:${{ steps.identity.outputs.tag }}
         run: |
-          echo "HERMES_COMPARISON_IMAGE=$IMAGE" > comparison-images.env
-          echo "HERMES_PREVIEW_GATEWAY_IMAGE=$IMAGE-gateway" >> comparison-images.env
-          cat comparison-images.env >> "$GITHUB_STEP_SUMMARY"
+          echo "HERMES_BROWSER_PREVIEW_IMAGE=$IMAGE" > browser-preview-images.env
+          echo "HERMES_PREVIEW_GATEWAY_IMAGE=$IMAGE-gateway" >> browser-preview-images.env
+          cat browser-preview-images.env >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
-          name: comparison-images-${{ github.event.pull_request.head.sha }}
-          path: comparison-images.env
+          name: browser-preview-images-${{ github.event.pull_request.head.sha }}
+          path: browser-preview-images.env

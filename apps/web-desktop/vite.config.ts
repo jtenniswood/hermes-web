@@ -1,5 +1,5 @@
 import { dependencyCompatibilityPlugin } from './src/upstream/dependency-compatibility'
-import { comparisonPlugin } from './src/upstream/comparison-plugin'
+import { browserPlugin, browserActivityNotificationsPlugin } from './src/upstream/browser-plugin'
 import { rendererOverrides } from './src/upstream/overrides'
 import { runtimeConfiguration, runtimeScripts, matchesGatewayRoute, type HostingConfiguration } from '../../scripts/runtime-config.mjs'
 import { rendererAliases } from '../../scripts/aliases.mjs'
@@ -240,14 +240,14 @@ export default defineConfig(({ command, mode }) => {
 
   // The browser shell is the only supported web entry point. Installing the
   // wrapper plugin unconditionally prevents a stale desktop build from being
-  // shipped when a developer or deployment omits the old comparison flag.
+  // shipped when a developer or deployment omits the legacy experience selector.
   return {
   base: './',
   plugins: [
     dependencyCompatibilityPlugin(__dirname),
     buildInfoPlugin(),
     rendererOverrides(__dirname),
-    comparisonPlugin(__dirname),
+    browserPlugin(__dirname),
     hermesDynamicProxy(),
     react(),
     tailwindcss(),
@@ -296,7 +296,8 @@ export default defineConfig(({ command, mode }) => {
     }),
     emojibaseAssets(),
     hermesPluginsAssets(),
-    rendererCompatibilityPlugin(path.resolve(__dirname, '../desktop/src'))
+    rendererCompatibilityPlugin(path.resolve(__dirname, '../desktop/src')),
+    browserActivityNotificationsPlugin()
   ],
   css: {
     postcss: { plugins: [] }

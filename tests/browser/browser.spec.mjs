@@ -8,13 +8,13 @@ import { createPreviewGateway } from '../../scripts/preview/gateway.mjs'
 // Exercise real capture APIs without touching the machine's physical microphone.
 test.use({ actionTimeout: 15000, launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] } })
 test.describe.configure({ retries: 1, timeout: 90000 })
-test.skip(!process.env.HERMES_COMPARISON_IMAGE && !process.env.HERMES_COMPARISON_URL, 'Browser build only')
+test.skip(!process.env.HERMES_BROWSER_PREVIEW_IMAGE && !process.env.HERMES_BROWSER_PREVIEW_URL, 'Browser build only')
 
 let gateway, container, origin
 
 test.beforeAll(async () => {
-  if (process.env.HERMES_COMPARISON_URL) {
-    origin = process.env.HERMES_COMPARISON_URL
+  if (process.env.HERMES_BROWSER_PREVIEW_URL) {
+    origin = process.env.HERMES_BROWSER_PREVIEW_URL
     return
   }
   gateway = createPreviewGateway()
@@ -24,7 +24,7 @@ test.beforeAll(async () => {
     '-p', '127.0.0.1::80',
     '-e', `HERMES_GATEWAY_URL=http://host.docker.internal:${gateway.server.address().port}`,
     '-e', 'HERMES_GATEWAY_NAME=Preview workspace',
-    process.env.HERMES_COMPARISON_IMAGE
+    process.env.HERMES_BROWSER_PREVIEW_IMAGE
   ], { encoding: 'utf8' }).trim()
   const port = execFileSync('docker', ['port', container, '80/tcp'], { encoding: 'utf8' }).trim().split(':').at(-1)
   origin = `http://127.0.0.1:${port}`
@@ -173,37 +173,129 @@ test('empty chat stays centered as the available panel space changes', async ({ 
 })
 
 for (const width of [390, 1440]) {
+  test(`composer stays at the bottom while idle, running, and reconnecting at ${width}px`, async ({ page }) => {
+    let disconnect = false
+    const sockets = []
+    await page.routeWebSocket(/\/ws/, socket => {
+      if (disconnect) socket.close()
+      else { socket.connectToServer(); sockets.push(socket) }
+    })
+    await page.setViewportSize({ width, height: 960 })
+    await open(page)
+    const surface = page.locator('[data-slot="composer-surface"]')
+    const checkBottom = async scale => {
+      await expect.poll(async () => {
+        const box = await surface.boundingBox()
+        return Math.abs(960 - box.y - box.height - 8 * scale / 100)
+      }).toBeLessThan(2)
+      await expect(page.locator('.browser-status')).toBeHidden()
+    }
+    for (const scale of [100, 125, 150]) {
+      await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), scale)
+      await checkBottom(scale)
+    }
+    await editor(page).fill('Check composer bottom spacing')
+    await editor(page).press('Enter')
+    await expect(surface.getByRole('button', { name: 'Stop', exact: true })).toBeVisible()
+    await expect(page.locator('.browser-chat-toolbar [role="status"]')).toHaveCount(0)
+    await expect(page.locator('.browser-running-status')).toHaveCount(0)
+    await checkBottom(150)
+    disconnect = true
+    for (const socket of sockets) socket.close()
+    await expect(editor(page)).toHaveAttribute('data-placeholder', 'Reconnecting to Hermes…')
+    await checkBottom(150)
+  })
+}
+
+for (const width of [390, 1440]) {
   for (const scale of [100, 125, 150]) {
     test(`composer tooltips fit beside their controls at ${width}px and ${scale}%`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 960 })
       await page.emulateMedia({ colorScheme: 'dark' })
       await open(page)
       await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), scale)
-      const model = page.getByRole('button', { name: /^Model ·/ })
-      await model.hover()
-      const tooltip = page.locator('[data-slot="tooltip-content"]', { hasText: 'Model ·' })
-      await expect(tooltip).toBeVisible()
-      await expect.poll(async () => tooltip.evaluate(el => {
-        const rect = el.getBoundingClientRect(), css = getComputedStyle(el)
-        const scale = Number(getComputedStyle(document.documentElement).getPropertyValue('--web-ui-scale')) || 1
-        return rect.height / (parseFloat(css.lineHeight) * scale)
-      })).toBeLessThan(4)
-      const tipBox = await tooltip.boundingBox(), modelBox = await model.boundingBox()
-      expect(tipBox.x).toBeGreaterThanOrEqual(0)
-      expect(tipBox.x + tipBox.width).toBeLessThanOrEqual(width)
-      expect(tipBox.y).toBeGreaterThanOrEqual(0)
-      expect(Math.abs(tipBox.y + tipBox.height - modelBox.y)).toBeLessThan(24)
-      await page.screenshot({ path: testInfo.outputPath('model-tooltip.png') })
-      await page.mouse.move(0, 0)
-      await expect(tooltip).toBeHidden()
+      for (const [label, name] of [['model', /^Model ·/], ['voice', /Start voice conversation/]]) {
+        const control = page.getByRole('button', { name })
+        await control.hover()
+        const tooltip = page.locator('[data-slot="tooltip-content"]', { hasText: name })
+        await expect(tooltip).toBeVisible()
+        await expect.poll(async () => tooltip.evaluate(el => {
+          const rect = el.getBoundingClientRect(), css = getComputedStyle(el)
+          const scale = Number(getComputedStyle(document.documentElement).getPropertyValue('--web-ui-scale')) || 1
+          return rect.height / (parseFloat(css.lineHeight) * scale)
+        })).toBeLessThan(4)
+        const tipBox = await tooltip.boundingBox(), controlBox = await control.boundingBox()
+        expect(tipBox.x).toBeGreaterThanOrEqual(0)
+        expect(tipBox.x + tipBox.width).toBeLessThanOrEqual(width)
+        expect(tipBox.y).toBeGreaterThanOrEqual(0)
+        expect(Math.abs(tipBox.y + tipBox.height - controlBox.y)).toBeLessThan(24)
+        await expect.poll(async () => {
+          const arrow = await tooltip.locator('[data-slot="tooltip-arrow"]').boundingBox()
+          return Math.abs(arrow.x + arrow.width / 2 - controlBox.x - controlBox.width / 2)
+        }).toBeLessThan(2)
+        const arrowBox = await tooltip.locator('[data-slot="tooltip-arrow"]').boundingBox()
+        expect(arrowBox.x).toBeGreaterThanOrEqual(tipBox.x)
+        expect(arrowBox.x + arrowBox.width).toBeLessThanOrEqual(tipBox.x + tipBox.width)
+        await page.screenshot({ path: testInfo.outputPath(`${label}-tooltip.png`) })
+        await page.mouse.move(0, 0)
+        await expect(tooltip).toBeHidden()
+      }
     })
   }
+}
+
+for (const width of [390, 1440]) {
+  test(`pinned section can be hidden and restored without unpinning at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 960 })
+    await open(page)
+    await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+    const unpin = page.getByRole('menuitem', { name: 'Unpin', exact: true })
+    if (await unpin.count()) {
+      await unpin.click()
+      await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+    }
+    await expect(page.locator('.browser-pinned-section')).toHaveCount(0)
+    await page.getByRole('menuitem', { name: 'Pin', exact: true }).click()
+    if (width === 390) await openNavigation(page)
+    const section = page.locator('.browser-pinned-section')
+    const heading = section.getByRole('button', { name: /Pinned/ }).first()
+    await expect(section).toBeVisible()
+    await heading.click({ button: 'right' })
+    await expect(page.getByRole('menuitem', { name: 'Hide pinned section', exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+    if (width === 390) await expect(page.locator('.browser-navigation')).toHaveClass(/is-open/)
+    await expect(section).toBeVisible()
+    await heading.click({ button: 'right' })
+    await page.getByRole('menuitem', { name: 'Hide pinned section', exact: true }).click()
+    await expect(section).toBeHidden()
+    await page.reload()
+    await expect(editor(page)).toBeVisible()
+    if (width === 390) await openNavigation(page)
+    await expect(section).toBeHidden()
+    // The remaining section header is a restore target while Pinned is hidden.
+    await page.locator('.browser-sessions-pane').getByRole('button', { name: 'Sessions', exact: true }).click({ button: 'right' })
+    await page.getByRole('menuitem', { name: 'Show pinned section', exact: true }).click()
+    await expect(section).toBeVisible()
+    if (!await section.locator('[data-row-actions]').count()) await heading.click()
+    const row = section.locator('[data-row-actions]').first()
+    await expect(row).toBeVisible()
+    await row.click({ button: 'right' })
+    await expect(page.getByRole('menuitem', { name: 'Unpin', exact: true })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: 'Hide pinned section', exact: true })).toHaveCount(0)
+    // Restore the shared preview fixture after checking the nested row menu.
+    await page.getByRole('menuitem', { name: 'Unpin', exact: true }).click()
+    await expect(section).toHaveCount(0)
+    await page.reload()
+    await expect(editor(page)).toBeVisible()
+    await expect(section).toHaveCount(0)
+  })
 }
 
 test('chat actions open from the title toolbar', async ({ page }) => {
   await open(page)
   const trigger = page.getByRole('button', { name: 'Chat actions', exact: true })
   await expect(trigger).toBeVisible()
+  await expect(page.locator('.browser-chat-toolbar .browser-actions').getByRole('button').first()).toHaveAccessibleName('Chat actions')
   await trigger.click()
   const menu = page.locator('[role="menu"]:visible').last()
   await expect(menu.getByText(/Rename/)).toBeVisible()
@@ -242,8 +334,9 @@ test('browser workspace panels open and close without losing a draft', async ({ 
   await page.setViewportSize({ width: 390, height: 844 })
   await open(page)
   await editor(page).fill('Keep my draft while using panels')
-  await page.getByRole('button', { name: 'Open panels', exact: true }).click()
-  await page.getByRole('menu', { name: 'Panels', exact: true }).getByRole('button', { name: 'files', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Open panels', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Open settings menu', exact: true }).click()
+  await page.locator('.browser-settings-menu').getByRole('menuitem', { name: 'files', exact: true }).click()
   const close = page.getByRole('button', { name: 'Close files panel', exact: true })
   await expect(close).toBeVisible()
   await close.click()
@@ -374,6 +467,67 @@ test('None grouping shows all sessions without subheaders and survives reload', 
   }
 })
 
+for (const width of [390, 1440]) {
+  test(`Bots keeps filters beside the rightmost add button at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 960 })
+    await open(page)
+    await page.waitForLoadState('networkidle')
+    if (width === 390) await openNavigation(page)
+    await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+    const filter = page.getByRole('button', { name: /^Filter roster/ })
+    const add = page.getByRole('button', { name: 'New bot or group chat', exact: true })
+    await expect(filter).toBeVisible()
+    await expect(add).toBeVisible()
+    const checkOrder = async () => {
+      const f = await filter.boundingBox(), a = await add.boundingBox()
+      expect(Math.abs(f.y + f.height / 2 - a.y - a.height / 2)).toBeLessThan(2)
+      expect(f.x + f.width).toBeLessThanOrEqual(a.x)
+      expect(await add.evaluate(el => el.parentElement.lastElementChild === el)).toBe(true)
+    }
+    await checkOrder()
+    await filter.click()
+    await page.getByRole('menuitem', { name: 'Group chats only', exact: true }).click()
+    await expect(filter).toHaveAccessibleName('Filter roster, 1 active')
+    await expect(add).toBeVisible()
+    await checkOrder()
+    await filter.click()
+    await page.getByRole('menuitem', { name: 'Clear filters', exact: true }).click()
+    await expect(filter).toHaveAccessibleName('Filter roster')
+    await add.click()
+    await expect(page.getByRole('menuitem', { name: 'New bot', exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await page.screenshot({ path: testInfo.outputPath('bots-toolbar.png') })
+  })
+
+  test(`activity toasts move from Bots to a persistent settings toggle at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 960 })
+    await open(page)
+    if (width === 390) await openNavigation(page)
+    await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+    await expect(page.getByRole('button', { name: /Research · @/ })).toBeVisible()
+    await expect(page.locator('.browser-pane button:has(.codicon-bell), .browser-pane button:has(.codicon-bell-slash)')).toHaveCount(0)
+    if (width === 390) await page.getByRole('button', { name: 'Hide navigation', exact: true }).click()
+    const settings = page.getByRole('button', { name: 'Open settings menu', exact: true })
+    await settings.click()
+    await expect(page.getByText('Notifications', { exact: true })).toBeVisible()
+    const toggle = page.getByRole('menuitemcheckbox', { name: 'Activity toasts', exact: true })
+    await expect(toggle).toBeVisible()
+    const initial = await toggle.getAttribute('aria-checked')
+    await toggle.click()
+    await settings.click()
+    await expect(toggle).toHaveAttribute('aria-checked', initial === 'true' ? 'false' : 'true')
+    await page.keyboard.press('Escape')
+    await page.reload()
+    await expect(editor(page)).toBeVisible()
+    await settings.click()
+    await expect(toggle).toHaveAttribute('aria-checked', initial === 'true' ? 'false' : 'true')
+    await toggle.focus()
+    await page.keyboard.press('Enter')
+    await settings.click()
+    await expect(toggle).toHaveAttribute('aria-checked', initial)
+  })
+}
+
 test('settings menu consolidates workspace and gateway controls', async ({ page }) => {
   await open(page)
   await expect(page.getByRole('button', { name: 'Open workspace', exact: true })).toHaveCount(0)
@@ -381,7 +535,9 @@ test('settings menu consolidates workspace and gateway controls', async ({ page 
   await page.getByRole('button', { name: 'Open settings menu', exact: true }).click()
   const menu = page.getByRole('menu', { name: 'Open settings menu', exact: true })
   await expect(menu).toBeVisible()
-  for (const label of ['Command center', 'Webhooks', 'Profiles', 'Agents', 'Starmap', 'Settings', 'Gateway']) {
+  await expect(menu.getByRole('menuitem', { name: 'Starmap', exact: true })).toHaveCount(0)
+  await expect(menu.locator('[data-slot="dropdown-menu-label"]')).toHaveText(['Systems', 'Panels', 'Workspace'])
+  for (const label of ['Command center', 'Webhooks', 'Profiles', 'Agents', 'Settings', 'Gateway']) {
     await expect(menu.getByRole('menuitem', { name: label, exact: true })).toBeVisible()
   }
   await expect(page.getByRole('tab', { name: 'Tools', exact: true })).toHaveCount(0)

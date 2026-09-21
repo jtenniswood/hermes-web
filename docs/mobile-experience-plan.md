@@ -92,7 +92,7 @@ Bottom sheets use a dimmed backdrop, a clear title and close control, safe-area 
 
 ## Implementation boundaries
 
-Work in `apps/web-desktop/src/experience/` for layout and navigation, `web-overrides.css` and `platform/display.ts` for viewport/scaling integration, `platform/` for browser input and lifecycle behavior, and `pwa/` for installation/update behavior. Use guarded adapters in `upstream/comparison-plugin.ts` where shared renderer behavior must change.
+Work in `apps/web-desktop/src/experience/` for layout and navigation, `web-overrides.css` and `platform/display.ts` for viewport/scaling integration, `platform/` for browser input and lifecycle behavior, and `pwa/` for installation/update behavior. Use guarded adapters in `upstream/browser-plugin.ts` where shared renderer behavior must change.
 
 Do not edit fetched `apps/desktop/` or `apps/shared/` sources. Keep desktop behavior behind the existing wide-layout path and apply touch affordances based on input capability as well as width. Notifications requiring server-side delivery should be a separately scoped integration.
 

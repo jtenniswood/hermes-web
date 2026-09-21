@@ -2,8 +2,10 @@ import { useStore } from '@nanostores/react'
 import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProperties, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, APP_ROUTES, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, BrowserPanelButton, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, ActionsMenu, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/comparison-api'
+import { BrowserSessionsPane } from './sidebar-sections'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, APP_ROUTES, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, BrowserPanelButton, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, ActionsMenu, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
+import { ApprovalToolbarTarget, BrowserActivityToastsItem } from '../upstream/browser-api'
 
 const TOOL_ROUTE_META: Record<string, { label: string; icon: string }> = {
   'command-center': { label: 'Command center', icon: 'symbol-misc' },
@@ -13,8 +15,7 @@ const TOOL_ROUTE_META: Record<string, { label: string; icon: string }> = {
   artifacts: { label: 'Artifacts', icon: 'files' },
   cron: { label: 'Scheduled jobs', icon: 'watch' },
   profiles: { label: 'Profiles', icon: 'account' },
-  agents: { label: 'Agents', icon: 'hubot' },
-  starmap: { label: 'Starmap', icon: 'pulse' }
+  agents: { label: 'Agents', icon: 'hubot' }
 }
 
 function toolRouteIcon(id: string) {
@@ -30,7 +31,7 @@ function toolRouteLabel(id: string) {
   return sentenceCase(TOOL_ROUTE_META[id]?.label || id)
 }
 
-const WORKSPACE_ROUTE_IDS = new Set(['command-center', 'webhooks', 'profiles', 'agents', 'starmap'])
+const WORKSPACE_ROUTE_IDS = new Set(['command-center', 'webhooks', 'profiles', 'agents'])
 // Settings and Command Center are owned by the upstream ContribWiring overlay
 // router. Only the full-page workspace routes need the browser modal shell.
 const BROWSER_MODAL_ROUTES = new Set(['/skills', '/messaging', '/artifacts'])
@@ -97,6 +98,7 @@ export function BrowserShell() {
   </SidebarProvider>
 }
 function BrowserLayout() {
+  const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
   const navigate = useNavigate(), location = useLocation()
   const selected = useStore($selectedStoredSessionId), sessions = useStore($sessions), bot = useStore($selectedBot)
   const chatTitle = selectedSessionTitle(sessions, selected)
@@ -109,7 +111,7 @@ function BrowserLayout() {
   const roster = useStore($lastRoster), botMeta = useStore($botMeta)
   const tree = useStore($layoutTree)
   const panes = useContributions('panes')
-  const main = useRef<HTMLElement>(null), menu = useRef<HTMLButtonElement>(null), drawer = useRef<HTMLElement>(null), navigationTabsMenu = useRef<HTMLDivElement>(null), panelsMenu = useRef<HTMLDivElement>(null), profileContextMenu = useRef<HTMLDivElement>(null)
+  const main = useRef<HTMLElement>(null), menu = useRef<HTMLButtonElement>(null), drawer = useRef<HTMLElement>(null), navigationTabsMenu = useRef<HTMLDivElement>(null), profileContextMenu = useRef<HTMLDivElement>(null)
   const requestedProfile = useRef<string | null>(null)
   const draggedProfile = useRef<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -117,7 +119,6 @@ function BrowserLayout() {
   const [navigationCollapsed, setNavigationCollapsed] = useState(false)
   const navigationOpen = compactNavigation ? drawerOpen : !navigationCollapsed
   const [navigationTabsMenuPosition, setNavigationTabsMenuPosition] = useState<{ x: number; y: number } | null>(null)
-  const [panelsMenuOpen, setPanelsMenuOpen] = useState(false)
   const [gatewayDialogOpen, setGatewayDialogOpen] = useState(false)
   const settingsTrigger = useRef<HTMLButtonElement>(null)
   const gatewayHeading = useRef<HTMLHeadingElement>(null)
@@ -214,6 +215,9 @@ function BrowserLayout() {
     if (!drawerOpen) return
     drawer.current?.querySelector<HTMLButtonElement>('button')?.focus()
     const keydown = (event: KeyboardEvent) => {
+      // Portaled menus own Escape and focus until dismissed; closing one must
+      // not also close its mobile navigation drawer.
+      if (event.defaultPrevented || (event.target instanceof Element && event.target.closest('[role="menu"]'))) return
       if (event.key === 'Escape') { setDrawerOpen(false); menu.current?.focus() }
       if (event.key !== 'Tab') return
       const items = [menu.current, ...Array.from(drawer.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input,select,[tabindex="0"]') || [])].filter((el): el is HTMLElement => Boolean(el?.getClientRects().length))
@@ -240,21 +244,6 @@ function BrowserLayout() {
       document.removeEventListener('keydown', closeOnEscape)
     }
   }, [navigationTabsMenuPosition])
-  useEffect(() => {
-    if (!panelsMenuOpen) return
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (!panelsMenu.current?.contains(event.target as Node)) setPanelsMenuOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setPanelsMenuOpen(false)
-    }
-    document.addEventListener('pointerdown', closeOnOutsidePointer)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutsidePointer)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [panelsMenuOpen])
   useEffect(() => {
     if (!profileContextMenuPosition) return
     const closeOnOutsidePointer = (event: PointerEvent) => {
@@ -401,7 +390,7 @@ function BrowserLayout() {
       return NAVIGATION_TABS.filter(tabValue => current.includes(tabValue) || tabValue === value)
     })
   }
-  return <div className="browser-shell" data-browser-shell="">
+  return <ApprovalToolbarTarget value={approvalTarget}><div className="browser-shell" data-browser-shell="">
     <div className="browser-workspace">
       {drawerOpen && <button className="browser-scrim" aria-label="Close navigation" onClick={() => { setDrawerOpen(false); menu.current?.focus() }} />}
       <aside id="browser-navigation" ref={drawer} hidden={!compactNavigation && navigationCollapsed} className={`browser-navigation ${drawerOpen ? 'is-open' : ''}`} aria-label="Sessions, Bots and tools" style={{ '--browser-navigation-width': `${navigationWidth}px` } as CSSProperties}>
@@ -416,7 +405,7 @@ function BrowserLayout() {
           }} onClick={() => { setNavigationTabsMenuPosition(null); setTab(value) }}>{NAVIGATION_TAB_LABELS[value]}</button>)}
         </div>
         <div className="browser-navigation-body" role="tabpanel" aria-label={tab}>
-          <div hidden={tab !== 'sessions'} className="browser-pane browser-sessions-pane"><BrowserSidebarNavigation onNavigate={openRoute}><WiredPane part="sidebar" /></BrowserSidebarNavigation></div>
+          <BrowserSessionsPane hidden={tab !== 'sessions'}><BrowserSidebarNavigation onNavigate={openRoute}><WiredPane part="sidebar" /></BrowserSidebarNavigation></BrowserSessionsPane>
           <div hidden={tab !== 'bots'} className="browser-pane">{surface(bots) || <p className="browser-empty">Loading Bots…</p>}</div>
         </div>
         {updateNotice && !updateDismissed && <div className="browser-update-panel" role="status" aria-label="Application update">
@@ -468,10 +457,18 @@ function BrowserLayout() {
             {selected && <SessionActionsMenu align="end" onArchive={archiveSelectedSession} onDelete={deleteSelectedSession} onPin={toggleSelectedPin} onToggleUnread={toggleSelectedUnread} pinned={selectedSessionPinned} profile={selectedSessionProfile} sessionId={selected} title={chatTitle}>
               <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" size="0.75rem" /></BrowserToolbarButton>
             </SessionActionsMenu>}
+            <span className="browser-approval-control" ref={setApprovalTarget} />
             <ActionsMenu align="end" ariaLabel="Settings and workspace" contentClassName="browser-settings-menu" onCloseAutoFocus={event => { if (gatewayDialogOpen) event.preventDefault() }} items={kit => <>
               <kit.Label>Systems</kit.Label>
               <kit.Item onSelect={() => openRoute('/settings')}><Codicon name="settings-gear" size="1rem" /><span>Settings</span></kit.Item>
               <kit.Item onSelect={() => { setDrawerOpen(false); setGatewayDialogOpen(true) }}><Codicon name="pulse" size="1rem" /><span>Gateway</span></kit.Item>
+              <kit.Label className="mt-3">Notifications</kit.Label>
+              <BrowserActivityToastsItem />
+              {panelPanes.length > 0 && <kit.Label className="mt-3">Panels</kit.Label>}
+              {panelPanes.map(pane => {
+                const title = String(pane.title || pane.id)
+                return <BrowserPanelButton key={pane.id} id={pane.id} title={sentenceCase(title)} ariaLabel={title} icon={<Codicon name="files" size="1rem" />} collapsible={Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible)} onOpen={() => main.current?.focus()} />
+              })}
               <kit.Label className="mt-3">Workspace</kit.Label>
               {APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => <kit.Item key={route.path} onSelect={() => openRoute(route.path)}>
                 <Codicon name={toolRouteIcon(route.id)} size="1rem" /><span>{toolRouteLabel(route.id)}</span>
@@ -479,13 +476,6 @@ function BrowserLayout() {
             </>}>
               <BrowserToolbarButton ref={settingsTrigger} tooltip="Settings" type="button" aria-label="Open settings menu"><Codicon name="settings-gear" size="0.75rem" /></BrowserToolbarButton>
             </ActionsMenu>
-            <div className="browser-panels-menu-wrap" ref={panelsMenu}>
-              <BrowserToolbarButton tooltip="Panels" type="button" className="browser-panels-trigger" aria-label="Open panels" aria-haspopup="menu" aria-expanded={panelsMenuOpen} onClick={() => setPanelsMenuOpen(open => !open)}><Codicon name="layout-sidebar-right" size="0.75rem" /></BrowserToolbarButton>
-              {panelsMenuOpen && <div className="browser-panels-menu" role="menu" aria-label="Panels">{panelPanes.map(pane => {
-                const title = String(pane.title || pane.id)
-                return <BrowserPanelButton key={pane.id} id={pane.id} title={sentenceCase(title)} ariaLabel={title} icon={<Codicon name="files" size="1rem" />} collapsible={Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible)} onOpen={() => { setPanelsMenuOpen(false); main.current?.focus() }} />
-              })}</div>}
-            </div>
           </div>
         </div>
         {!browserModalRoute && <BrowserWorkspace />}
@@ -501,5 +491,5 @@ function BrowserLayout() {
         <WiredPane part="chatRoutes" />
       </OverlayView>}
     </div>
-  </div>
+  </div></ApprovalToolbarTarget>
 }
