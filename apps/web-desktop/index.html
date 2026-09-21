@@ -30,7 +30,19 @@
     </script>
   </head>
   <body>
-    <div id="root" class="scrollbar-dt"></div>
+    <div id="root" class="scrollbar-dt"><div class="hermes-startup-loading" role="status">Loading Hermes…</div></div>
+    <script>
+      // Keep a useful fallback if the entry module itself cannot be evaluated.
+      // This intentionally has no renderer or gateway dependency.
+      if (typeof window.addEventListener === 'function') {
+        window.addEventListener('error', event => {
+          if (!(event.target instanceof HTMLScriptElement) || event.target.type !== 'module') return
+          const root = document.getElementById('root')
+          if (!root || root.querySelector('.hermes-startup-recovery')) return
+          root.innerHTML = '<main class="hermes-startup-recovery" role="alert"><h1>Hermes could not load the browser interface.</h1><p>Reload once to retry the current build.</p><div class="hermes-startup-recovery-actions"><button type="button" onclick="location.reload()">Retry</button></div></main>'
+        })
+      }
+    </script>
     <script type="module" src="/src/entry.ts"></script>
   </body>
 </html>
