@@ -29,8 +29,10 @@
 /* The shell owns the divider so it continues alongside the profile footer. */
 .browser-navigation [data-slot="sidebar"] { border-right-width:0; }
 .browser-navigation[hidden],.browser-navigation-resizer[hidden] { display:none; }
-.browser-navigation-resizer { width:.35rem; flex:0 0 .35rem; z-index:2; margin-left:-.175rem; cursor:col-resize; background:transparent; touch-action:none; }
-.browser-navigation-resizer:hover,.browser-navigation-resizer:focus-visible { background:var(--primary,#4d86ff); outline:none; }
+.browser-navigation-resizer { position:relative; width:.35rem; flex:0 0 .35rem; z-index:2; margin-left:-.175rem; cursor:col-resize; background:transparent; touch-action:none; }
+.browser-navigation-resizer::after { position:absolute; inset:0 auto 0 50%; width:1px; transform:translateX(-50%); background:var(--sidebar-edge-border,var(--ui-stroke-secondary)); content:""; }
+.browser-navigation-resizer:hover::after,.browser-navigation-resizer:focus-visible::after,.browser-navigation-resizer:active::after { width:.2rem; border-radius:999px; background:var(--primary,#4d86ff); box-shadow:0 0 .45rem color-mix(in srgb,var(--primary,#4d86ff) 70%,transparent); }
+.browser-navigation-resizer:focus-visible { outline:none; }
 .browser-navigation-tabs { display:flex; gap:0; min-width:0; overflow-x:auto; border-bottom:1px solid var(--browser-panel-divider); background:var(--sidebar,var(--background)); scrollbar-width:none; }
 .browser-navigation-tabs::-webkit-scrollbar { display:none; }
 .browser-navigation-tabs button { position:relative; flex:0 0 auto; min-width:0; max-width:12rem; min-height:2.75rem; border:0; border-radius:0; padding:0 .75rem; color:var(--muted-foreground); background:var(--sidebar,var(--background)); font-size:.625rem; font-weight:500; letter-spacing:.025em; text-transform:uppercase; cursor:pointer; }
