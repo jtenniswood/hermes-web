@@ -83,15 +83,6 @@ export function filterBrowserActivityToasts(source: string): string {
   return source.replace(target, '      if (inbound) host.notify({')
 }
 
-export function removeBrowserActivityToastButton(source: string): string {
-  const start = "          <Tip\n            label={activityToasts ? 'Activity toasts on — click to silence' : 'Activity toasts off — click to enable'}"
-  if (source.split(start).length !== 2) throw new Error('Browser activity toast button target changed')
-  const offset = source.indexOf(start)
-  const end = source.indexOf('          </Tip>', offset)
-  if (end < 0) throw new Error('Browser activity toast button closing target changed')
-  return source.slice(0, offset) + source.slice(end + '          </Tip>\n'.length)
-}
-
 export function removeBrowserNewSessionShortcut(source: string): string {
   const importTarget = "import { KbdGroup } from '@/components/ui/kbd'\n"
   const shortcut = [
@@ -108,77 +99,6 @@ export function removeBrowserNewSessionShortcut(source: string): string {
     throw new Error('Browser new-session shortcut target changed')
   }
   return source.replace(importTarget, '').replace(shortcut, '')
-}
-
-export function layoutBrowserRosterToolbar(source: string): string {
-  if (source.includes('$showHiddenBots.set')) return source
-
-  const filterStart = '          {showRosterFilters ? (\n'
-  const filterEnd = '          ) : null}\n        </div>\n      ) : null}'
-  const addMenu = '          <DropdownMenu>\n            <Tip label="New…">'
-  const searchRow = '      {showRosterTools ? ('
-  for (const target of [filterStart, filterEnd, addMenu, searchRow]) {
-    if (source.split(target).length !== 2) throw new Error('Browser roster toolbar layout target changed')
-  }
-  const start = source.indexOf(filterStart), end = source.indexOf(filterEnd, start)
-  if (end < start) throw new Error('Browser roster filter boundary changed')
-  const filter = source.slice(start + filterStart.length, end)
-  const filterContent = '              <DropdownMenuContent align="end">\n'
-  if (filter.split(filterContent).length !== 2) throw new Error('Browser roster filter content target changed')
-  const filterContentEnd = '              </DropdownMenuContent>\n'
-  if (filter.split(filterContentEnd).length !== 2) throw new Error('Browser roster filter content end target changed')
-  const kindStartMarker = "                {(\n                  [\n                    ['all', b.roster.botsAndGroups],"
-  const kindEndMarker = '                <DropdownMenuSeparator />\n'
-  const activityStartMarker = "                {(\n                  [\n                    ['all', b.roster.anyActivity],"
-  const activityEndMarker = '                {gatewayOptions.length > 1 ? <DropdownMenuSeparator /> : null}\n'
-  const kindStart = filter.indexOf(kindStartMarker)
-  const kindEnd = filter.indexOf(kindEndMarker, kindStart)
-  const activityStart = filter.indexOf(activityStartMarker)
-  const activityEnd = filter.indexOf(activityEndMarker, activityStart)
-  if (kindStart < 0 || kindEnd < 0 || activityStart < 0 || activityEnd < 0) throw new Error('Browser roster filter grouping target changed')
-  const kindBlock = filter.slice(kindStart, kindEnd)
-  const activityBlock = filter.slice(activityStart, activityEnd)
-  const addIconTarget = '<Codicon name="add" />'
-  const filterIconTarget = '<Codicon name="list-filter" />'
-  const filterSizeTarget = "'size-7 shrink-0 rounded-md text-(--ui-text-tertiary) hover:text-foreground'"
-  for (const target of [addIconTarget, filterIconTarget, filterSizeTarget]) {
-    if (source.split(target).length !== 2) throw new Error('Browser roster toolbar icon target changed')
-  }
-  const hiddenBotsOption = `              <DropdownMenuItem onSelect={() => $showHiddenBots.set(!$showHiddenBots.get())}>
-                <span className="min-w-0 flex-1">Show hidden bots</span>
-                {$showHiddenBots.get() ? <Codicon name="check" /> : null}
-              </DropdownMenuItem>
-`
-  const showSubmenu = [
-    '              <DropdownMenuSub>',
-    '                <DropdownMenuSubTrigger>Show</DropdownMenuSubTrigger>',
-    '                <DropdownMenuSubContent>',
-    kindBlock,
-    '                </DropdownMenuSubContent>',
-    '              </DropdownMenuSub>',
-    '              <DropdownMenuSeparator />'
-  ].join('\n')
-  const timeSubmenu = [
-    '              <DropdownMenuSub>',
-    '                <DropdownMenuSubTrigger>Filter by time</DropdownMenuSubTrigger>',
-    '                <DropdownMenuSubContent>',
-    activityBlock,
-    '                </DropdownMenuSubContent>',
-    '              </DropdownMenuSub>'
-  ].join('\n')
-  const browserFilter = filter
-    .replace(kindBlock + kindEndMarker, showSubmenu + '\n')
-    .replace(activityBlock + activityEndMarker, timeSubmenu + '\n' + activityEndMarker)
-    .replace(filterContentEnd, `              <DropdownMenuSeparator />\n${hiddenBotsOption}${filterContentEnd}`)
-  // Keep the original filter menu and callbacks, always available beside New.
-  // Only search needs a second row; a filter-only row should reserve no space.
-  const output = (source.slice(0, start) + source.slice(end + '          ) : null}\n'.length))
-    .replace(addMenu, browserFilter + addMenu)
-    .replace(searchRow, '      {showRosterSearch ? (')
-    .replace(addIconTarget, '<Codicon name="add" size="0.75rem" />')
-    .replace(filterIconTarget, '<Codicon name="list-filter" size="0.75rem" />')
-    .replace(filterSizeTarget, "'size-6 shrink-0 rounded-md text-(--ui-text-tertiary) hover:text-foreground'")
-  return "import { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu'\nimport { $showHiddenBots } from './hidden-bots'\n" + output
 }
 
 export function removeBrowserNewBotChatAction(source: string): string {
@@ -216,38 +136,6 @@ export function removeBrowserOpenBotChatAction(source: string): string {
   if (!source.includes('b.bot.openBotChat')) return source
   if (source.split(action).length !== 2) throw new Error('Browser open-bot-chat action target changed')
   return source.replace(action, '')
-}
-
-export function addBrowserApprovalModeIcons(source: string): string {
-  if (source.includes('ApprovalModeIcon')) return source
-
-  const importTarget = "import { Zap, ZapFilled } from '@/lib/icons'\n"
-  const separatorImportTarget = '  DropdownMenuSeparator\n'
-  const toolbarIconTarget = "    icon: mode === 'off' ? <ZapFilled className=\"size-3.5\" /> : <Zap className=\"size-3.5 opacity-70\" />,"
-  const menuLabelTarget = '              <span className="flex min-w-0 flex-col gap-0.5">\n'
-  const smartDescriptionTarget = '      smart: copy.smartDescription,\n'
-  const menuSeparatorTarget = '        <DropdownMenuSeparator />\n'
-  for (const target of [importTarget, separatorImportTarget, toolbarIconTarget, menuLabelTarget, smartDescriptionTarget, menuSeparatorTarget]) {
-    if (source.split(target).length !== 2) throw new Error('Browser approval mode icon target changed')
-  }
-
-  const iconImport = "import { Brain, Power, ShieldLock } from '@/lib/icons'\n"
-  const iconComponent = `
-function ApprovalModeIcon({ mode }: { mode: ApprovalMode }) {
-  if (mode === 'manual') return <ShieldLock className="size-3.5" />
-  if (mode === 'smart') return <Brain className="size-3.5" />
-  return <Power className="size-3.5" />
-}
-`
-  const menuIcon = `              {value === 'manual' ? <ShieldLock className="mt-0.5 size-3.5 shrink-0 text-(--ui-text-tertiary)" /> : value === 'smart' ? <Brain className="mt-0.5 size-3.5 shrink-0 text-(--ui-text-tertiary)" /> : <Power className="mt-0.5 size-3.5 shrink-0 text-(--ui-text-tertiary)" />}\n`
-  return source
-    .replace(importTarget, iconImport)
-    .replace(separatorImportTarget, '')
-    .replace('import { useI18n } from \'@/i18n\'\n', 'import { useI18n } from \'@/i18n\'\n' + iconComponent)
-    .replace(smartDescriptionTarget, "      smart: 'Ask when needed',\n")
-    .replace(menuSeparatorTarget, '')
-    .replace(toolbarIconTarget, '    icon: <ApprovalModeIcon mode={mode} />,')
-    .replace(menuLabelTarget, menuIcon + menuLabelTarget)
 }
 
 // Run after renderer compatibility has validated and transformed this module.

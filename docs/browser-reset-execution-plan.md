@@ -1,6 +1,8 @@
 # Browser architecture reset: execution plan
 
-Status: execution in progress; PR 1 browser verification work is underway.
+Status: implementation delivered through the reviewable PR chain; merge, trusted
+preview publication, real-gateway verification, and rollout remain explicit
+release gates.
 
 Baseline: wrapper commit `2ccc9c5`, following merged PR #27. Recheck the branch,
 renderer pin, and relevant contracts before starting each delivery. This plan
@@ -109,7 +111,7 @@ menu exports until their extraction boundaries are established.
 
 ### Starting evidence
 
-`tests/browser/browser.spec.mjs` skips without `HERMES_BROWSER_PREVIEW_IMAGE` or
+`tests/browser/browser.spec.mjs` skips without `HERMES_TEST_IMAGE` or
 `HERMES_BROWSER_PREVIEW_URL`. Ordinary compatibility and release workflows supply
 `HERMES_TEST_IMAGE`. The preview workflow targets historical branch names. Browser
 assertions still select Group chats only without entering Show, and expect the

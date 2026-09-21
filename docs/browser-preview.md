@@ -6,20 +6,22 @@ This review build uses the browser-focused shell with the pinned Hermes Desktop
  now the only web entry point in dev, Docker, preview, and CI.
 
 The browser shell supplies Sessions/Bots/Tools navigation, a profile selector,
-and a drawer below 48rem. Its main area reuses the upstream workspace tree so
-new-chat tabs, split sessions, route tabs and preview tools retain their normal
-lifetimes and behavior. Settings and contributed tools still use upstream
-bodies and actions. Browser navigation and upstream layout preferences are
-stored separately; theme, zoom and draft storage remain shared.
+and a drawer below 48rem. Its main area reuses the upstream workspace tree for
+the chat, composer, streaming, and contributed panel bodies while keeping the
+browser experience to one visible conversation. Desktop chat tabs, split
+sessions, duplicate title bars, and browser-owned menu rewrites are not exposed.
+Settings and contributed tools still use upstream bodies and actions. Browser
+navigation and layout preferences are stored separately; theme, zoom and draft
+storage remain shared.
 
 Contributed panels have a close button even when opened alone. On desktop,
 their Tools entries also toggle them open or closed and highlight the active
 panel. On phones, Tools opens the panel as an overlay with its own close button.
 
-The browser footer keeps gateway health and approval mode visible. Its Details
-menu holds workspace actions, contributed status controls, and full client and
-backend version information. These controls retain the upstream menus and
-callbacks; an available version update also marks the Details button.
+The browser toolbar keeps gateway health and approval mode visible. Browser-owned
+settings, Bots filters, and approval controls use the shared menu treatment while
+the remaining upstream actions retain their callbacks. An available version
+update still marks the relevant update control.
 
 ## Run the isolated preview
 
@@ -78,8 +80,11 @@ build time and browser-preview channel; backend version is reported separately.
 ```sh
 corepack pnpm typecheck
 corepack pnpm test:foundation
-HERMES_BROWSER_PREVIEW_IMAGE=hermes-web:browser-preview \
-  corepack pnpm exec playwright test tests/browser/browser.spec.mjs
+corepack pnpm exec playwright install chromium webkit
+HERMES_TEST_IMAGE=hermes-web:browser-preview \
+  corepack pnpm exec playwright test
+HERMES_TEST_IMAGE=hermes-web:browser-preview \
+  corepack pnpm exec playwright test --project=webkit tests/browser/webkit.spec.mjs
 ```
 
 Playwright starts an isolated synthetic gateway and tests through the actual

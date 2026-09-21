@@ -166,7 +166,7 @@ part of the application precache.
 Run browser checks against a built image:
 
 ```sh
-pnpm exec playwright install chromium
+pnpm exec playwright install chromium webkit
 HERMES_TEST_IMAGE=hermes-web pnpm exec playwright test
 ```
 

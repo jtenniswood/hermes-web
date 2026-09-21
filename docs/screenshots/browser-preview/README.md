@@ -19,7 +19,8 @@ Executed checks:
 - `corepack pnpm typecheck`: passed, zero baseline exceptions.
 - `corepack pnpm test:foundation`: 37 passed.
 - Stable frontend build: passed; the browser shell is the only preview experience.
-- `HERMES_BROWSER_PREVIEW_IMAGE=hermes-web:browser-preview corepack pnpm exec playwright test tests/browser/browser.spec.mjs`: browser behavior suite passed.
+- `HERMES_TEST_IMAGE=hermes-web:browser-preview corepack pnpm exec playwright test`: Chromium browser behavior suite passed; the focused WebKit journey is an additional gate.
+- `HERMES_TEST_IMAGE=hermes-web:browser-preview corepack pnpm exec playwright test --project=webkit tests/browser/webkit.spec.mjs`: focused WebKit journey passed.
 - HTTPS preview smoke: session reopening and draft preservation.
 - [Stable compatibility CI](https://github.com/jtenniswood/hermes-web/actions/runs/35400381186): passed, including the locked Nix dependency closure.
 

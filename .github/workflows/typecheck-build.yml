@@ -49,8 +49,8 @@ jobs:
         run: pnpm --filter web-desktop test:gateway
         env:
           HERMES_TEST_IMAGE: hermes-web:verification
-      - name: Install browser for production-image tests
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install browsers for production-image tests
+        run: pnpm exec playwright install --with-deps chromium webkit
       - name: Verify browser state and update safety through nginx
         run: pnpm exec playwright test
         env:
