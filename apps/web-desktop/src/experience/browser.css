@@ -1,6 +1,6 @@
 /* Browser-focused shell chrome. The chat, composer, themes and surfaces are upstream. */
 .browser-provider { height:100%; min-height:0; display:block; }
-.browser-shell { --browser-panel-divider:var(--border); --browser-hover-fill:color-mix(in srgb,var(--primary,#4d86ff) 20%,var(--background)); height:100%; display:flex; flex-direction:column; color:var(--foreground); background:var(--background); overflow:hidden; }
+.browser-shell { --browser-panel-divider:var(--border); --browser-navigation-background:color-mix(in srgb,var(--background) 92%,black 8%); --browser-hover-fill:color-mix(in srgb,var(--primary,#4d86ff) 20%,var(--background)); height:100%; display:flex; flex-direction:column; color:var(--foreground); background:var(--background); overflow:hidden; }
 .browser-menu { display:inline-flex; flex-shrink:0; width:2.25rem; height:2.25rem; align-items:center; justify-content:center; border:0; border-radius:.35rem; color:var(--ui-text-secondary); background:transparent; cursor:pointer; }
 .browser-menu:hover,.browser-menu:focus-visible { color:var(--ui-text-secondary); background:var(--browser-hover-fill); outline:none; }
 .browser-chat-toolbar { height:2.75rem; flex-shrink:0; display:grid; grid-template-columns:minmax(2.25rem,1fr) minmax(2.25rem,1fr); align-items:center; gap:.25rem; padding:0 .75rem 0 .25rem; border-bottom:1px solid var(--border); background:var(--background); }
@@ -25,27 +25,27 @@
 .browser-chat-toolbar .browser-actions > button,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button { position:relative; }
 .browser-action-badge { position:absolute; top:-.4rem; right:-.35rem; padding:.1rem .25rem; border-radius:.5rem; background:var(--primary); color:var(--primary-foreground); font-size:.55rem; }
 .browser-workspace { flex:1; min-height:0; display:flex; position:relative; }
-.browser-navigation { position:relative; width:var(--browser-navigation-width,19rem); flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--sidebar-edge-border,var(--ui-stroke-secondary)); background:var(--sidebar,var(--background)); overflow:hidden; }
+.browser-navigation { --sidebar:var(--browser-navigation-background); position:relative; width:var(--browser-navigation-width,19rem); flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid transparent; background:var(--browser-navigation-background); overflow:hidden; }
 /* The shell owns the divider so it continues alongside the profile footer. */
-.browser-navigation [data-slot="sidebar"] { border-right-width:0; }
+.browser-navigation [data-slot="sidebar"] { border-right-width:0; background:var(--browser-navigation-background); }
 .browser-navigation[hidden],.browser-navigation-resizer[hidden] { display:none; }
 .browser-navigation-resizer { position:relative; width:.35rem; flex:0 0 .35rem; z-index:2; margin-left:-.175rem; cursor:col-resize; background:transparent; touch-action:none; }
-.browser-navigation-resizer::after { position:absolute; inset:0 auto 0 50%; width:1px; transform:translateX(-50%); background:var(--sidebar-edge-border,var(--ui-stroke-secondary)); content:""; }
+.browser-navigation-resizer::after { position:absolute; inset:0 auto 0 50%; width:1px; transform:translateX(-50%); background:transparent; content:""; }
 .browser-navigation-resizer:hover::after,.browser-navigation-resizer:focus-visible::after,.browser-navigation-resizer:active::after { width:.2rem; border-radius:999px; background:var(--primary,#4d86ff); box-shadow:0 0 .45rem color-mix(in srgb,var(--primary,#4d86ff) 70%,transparent); }
 .browser-navigation-resizer:focus-visible { outline:none; }
-.browser-navigation-tabs { display:flex; gap:0; min-width:0; overflow-x:auto; border-bottom:1px solid var(--browser-panel-divider); background:var(--sidebar,var(--background)); scrollbar-width:none; }
+.browser-navigation-tabs { display:flex; gap:0; min-width:0; overflow-x:auto; border-bottom:1px solid var(--browser-panel-divider); background:var(--browser-navigation-background); scrollbar-width:none; }
 .browser-navigation-tabs::-webkit-scrollbar { display:none; }
-.browser-navigation-tabs button { position:relative; flex:0 0 auto; min-width:0; max-width:12rem; min-height:2.75rem; border:0; border-radius:0; padding:0 .75rem; color:var(--muted-foreground); background:var(--sidebar,var(--background)); font-size:.625rem; font-weight:500; letter-spacing:.025em; text-transform:uppercase; cursor:pointer; }
+.browser-navigation-tabs button { position:relative; flex:0 0 auto; min-width:0; max-width:12rem; min-height:2.75rem; border:0; border-radius:0; padding:0 .75rem; color:var(--muted-foreground); background:var(--browser-navigation-background); font-size:.625rem; font-weight:500; letter-spacing:.025em; text-transform:uppercase; cursor:pointer; }
 .browser-navigation-tabs button + button::before { position:absolute; top:.35rem; bottom:.35rem; left:0; width:1px; background:color-mix(in srgb,var(--foreground) 14%,transparent); content:""; }
 .browser-navigation-tabs button:hover { color:var(--foreground); background:var(--browser-hover-fill); }
-.browser-navigation-tabs button[aria-selected="true"] { color:var(--foreground); background:var(--background); box-shadow:inset 0 -2px 0 var(--primary,#4d86ff); }
+.browser-navigation-tabs button[aria-selected="true"] { color:var(--foreground); background:var(--browser-navigation-background); box-shadow:inset 0 -2px 0 var(--primary,#4d86ff); }
 .browser-navigation-tabs button:focus-visible { color:var(--foreground); background:var(--browser-hover-fill); outline:none; }
 .browser-navigation-tabs-menu { position:fixed; z-index:100; min-width:9rem; padding:.3rem; border:1px solid var(--border); border-radius:.45rem; background:var(--popover,var(--background)); box-shadow:0 .5rem 1.5rem #0005; }
 .browser-navigation-tabs-menu button { width:100%; display:flex; align-items:center; gap:.45rem; padding:.4rem .55rem; border:0; border-radius:.3rem; color:var(--foreground); background:transparent; font:inherit; font-size:.75rem; line-height:1.35; text-align:left; white-space:nowrap; cursor:pointer; }
 .browser-navigation-tabs-menu button:hover,.browser-navigation-tabs-menu button:focus-visible { background:var(--browser-hover-fill); outline:none; }
 .browser-navigation-tabs-menu button:disabled { color:var(--muted-foreground); cursor:not-allowed; opacity:.65; }
 .browser-navigation-tabs-menu button > span { width:.8rem; color:var(--primary,#4d86ff); font-weight:700; text-align:center; }
-.browser-navigation-body { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+.browser-navigation-body { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; background:var(--browser-navigation-background); }
 /* Keep the disclosure in the search/navigation flow so expansion reserves space. */
 .browser-more-wrap { width:calc(100% + 1rem); margin:1px -.5rem 0; }
 .browser-more-trigger { width:100%; height:1.5rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.6875rem; font-weight:500; text-align:left; cursor:pointer; }
@@ -56,7 +56,7 @@
 .browser-more-list button { width:100%; height:1.75rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.8125rem; font-weight:500; text-align:left; cursor:pointer; }
 .browser-more-list button > .codicon { color:color-mix(in srgb,currentColor 72%,transparent); }
 .browser-more-list button:hover,.browser-more-list button:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
-.browser-profile-footer { position:relative; display:flex; align-items:center; gap:.45rem; flex-shrink:0; padding:.6rem .75rem .7rem; background:var(--sidebar,var(--background)); }
+.browser-profile-footer { position:relative; display:flex; align-items:center; gap:.45rem; flex-shrink:0; padding:.6rem .75rem .7rem; background:var(--browser-navigation-background); }
 .browser-profile-rail { min-width:0; width:100%; display:flex; align-items:center; gap:.4rem; overflow-x:auto; scrollbar-width:none; }
 .browser-profile-slot { position:relative; display:flex; align-items:center; flex:0 0 2.5rem; }
 .browser-profile-slot > .browser-profile-drop-indicator { position:absolute; top:50%; left:-.3rem; transform:translateY(-50%); }
@@ -85,7 +85,7 @@
 .browser-update-panel p { margin:.35rem 0 .55rem; color:var(--muted-foreground); font-size:.7rem; line-height:1.35; }
 .browser-update-panel-action { width:100%; padding:.35rem .5rem; border:1px solid var(--border); border-radius:.35rem; color:var(--foreground); background:var(--accent); font:inherit; font-size:.7rem; cursor:pointer; }
 .browser-update-panel-action:hover,.browser-update-panel-action:focus-visible { border-color:transparent; background:var(--browser-hover-fill); outline:none; }
-.browser-pane { height:100%; min-height:0; }
+.browser-pane { height:100%; min-height:0; background:var(--browser-navigation-background); }
 .browser-sessions-pane { padding-top:.5rem; }
 .browser-sessions-pane[data-pinned-hidden="true"] .browser-pinned-section { display:none !important; }
 /* Use one stack gap for Pinned, Sessions, messaging services, and Cron. The
