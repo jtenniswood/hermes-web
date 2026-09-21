@@ -1,5 +1,5 @@
 import { buildInfo } from './build-info'
-import { completeStartup, recoverStartupChunk } from './platform/startup-recovery'
+import { completeStartup, recoverStartupChunk, showStartupRecovery } from './platform/startup-recovery'
 import { trackMediaRequests } from './platform/reload-safety'
 import { consumeConnectionToken } from './platform/connection-state'
 import './web.css'
@@ -24,14 +24,7 @@ async function start(): Promise<void> {
   } catch (error) {
     if (recoverStartupChunk(error, buildInfo.wrapperRevision)) return
     console.error('Hermes Web startup failed', error)
-    const root = document.getElementById('root')
-    if (!root) return
-    const message = document.createElement('p')
-    message.textContent = error instanceof Error ? error.message : 'The application could not start.'
-    const retry = document.createElement('button')
-    retry.textContent = 'Reload Hermes'
-    retry.onclick = () => window.location.reload()
-    root.replaceChildren(message, retry)
+    showStartupRecovery(error, buildInfo.wrapperRevision)
   }
 }
 void start()

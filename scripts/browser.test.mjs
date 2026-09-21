@@ -308,3 +308,13 @@ test('startup recovery retries a module-load failure once and never loops with b
   assert.equal(recovery.recoverStartupChunk(interrupted, 'other-build'), false)
   assert.equal(reloads, 2)
 })
+
+test('entry recovery has an independent static fallback', () => {
+  const index = readFileSync(path.join(root, 'index.html'), 'utf8')
+  assert.match(index, /hermes-startup-loading/)
+  assert.match(index, /hermes-startup-recovery/)
+  assert.match(index, /location\.reload\(\)/)
+  const source = readFileSync(path.join(root, 'src/platform/startup-recovery.ts'), 'utf8')
+  assert.match(source, /showStartupRecovery/)
+  assert.match(source, /Copy diagnostics/)
+})

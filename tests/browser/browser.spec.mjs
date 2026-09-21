@@ -796,3 +796,11 @@ test('startup chunk recovery retries once and keeps the selected route', async (
   await expect(page).toHaveURL(/#\/preview-idea$/)
   await expect(page.getByText('A useful starting point', { exact: false })).toBeVisible()
 })
+
+test('entry failure leaves the independent recovery surface visible', async ({ page }) => {
+  await page.route('**/assets/entry-*.js', route => route.abort('failed'))
+  await page.goto(`${origin}/#/preview-week`, { waitUntil: 'domcontentloaded' })
+  await expect(page.locator('.hermes-startup-recovery')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByRole('heading', { name: 'Hermes could not load the browser interface.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible()
+})

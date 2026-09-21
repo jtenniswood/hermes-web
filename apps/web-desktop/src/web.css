@@ -8,3 +8,21 @@
 @source "../../desktop/src";
 @source "./";
 @import "../../desktop/src/styles.css";
+.hermes-startup-loading,
+.hermes-startup-recovery {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: #d7dbe5;
+  background: #0a0b0e;
+  font: 1rem/1.5 system-ui, sans-serif;
+}
+.hermes-startup-recovery { align-content: center; }
+.hermes-startup-recovery h1 { margin: 0; max-width: 36rem; font-size: 1.35rem; }
+.hermes-startup-recovery p { margin: 0; max-width: 36rem; color: #a9afbb; }
+.hermes-startup-recovery-meta { font-size: 0.8rem; }
+.hermes-startup-recovery-actions { display: flex; gap: 0.6rem; }
+.hermes-startup-recovery-actions button { border: 1px solid #52617c; border-radius: 0.45rem; padding: 0.45rem 0.8rem; color: inherit; background: #171b24; cursor: pointer; }
