@@ -6,7 +6,7 @@ import { $activityToasts, setActivityToasts } from '@/plugins/hermes-bots/roster
 export function BrowserActivityToastsItem() {
   const enabled = useStore($activityToasts)
   return <DropdownMenuCheckboxItem checked={enabled} onCheckedChange={setActivityToasts}>
-    <Codicon name={enabled ? 'bell' : 'bell-slash'} size="1rem" />
+    <Codicon name={enabled ? 'bell' : 'bell-slash'} size="0.875rem" />
     <span>Activity toasts</span>
   </DropdownMenuCheckboxItem>
 }

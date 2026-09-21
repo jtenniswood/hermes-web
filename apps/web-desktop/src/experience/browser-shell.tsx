@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProper
 import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, APP_ROUTES, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, BrowserPanelButton, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, botSelectionKey, displayName, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, ActionsMenu, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, APP_ROUTES, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $focusedBotOwner, focusedRosterOwner, $groupChatWorkspace, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, BrowserPanelButton, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, botSelectionKey, displayName, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, ActionsMenu, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
 import { ApprovalToolbarTarget, BrowserActivityToastsItem } from '../upstream/browser-api'
 
@@ -107,10 +107,19 @@ function BrowserLayout() {
   const { inferenceStatus, statusSnapshot } = useStatusSnapshot(gatewayState, requestGateway, `${activeConnectionId ?? ''}\0${activeGatewayProfile}`)
   const pinnedSessionIds = useStore($pinnedSessionIds), pinsOpen = useStore($sidebarPinsOpen)
   const profiles = useStore($profiles), profileOrder = useStore($profileOrder), profile = useStore($activeGatewayProfile), showAllProfiles = useStore($showAllProfiles)
-  const roster = useStore($lastRoster), botMeta = useStore($botMeta)
+  const roster = useStore($lastRoster), botMeta = useStore($botMeta), groupChat = useStore($groupChatWorkspace)
+  const focusedOwner = focusedRosterOwner(useStore($focusedBotOwner))
   const sessionTitle = selectedSessionTitle(sessions, selected)
-  const selectedBotRow = sessionTitle === 'Bot Chat' ? roster.find(candidate => botSelectionKey(candidate) === bot) : undefined
-  const chatTitle = selectedBotRow ? displayName(selectedBotRow, botRosterMeta(selectedBotRow, botMeta)) : sessionTitle
+  const selectedSession = selected ? sessions.find(session => String(session.id) === selected) : undefined
+  const sessionProfile = String(selectedSession?.profile || '').trim()
+  const selectedBotRow = sessionTitle === 'Bot Chat'
+    ? roster.find(candidate => botSelectionKey(candidate) === bot) ||
+      (focusedOwner
+        ? roster.find(candidate => candidate.name === focusedOwner.name && (!focusedOwner.connectionId || candidate.connectionId === focusedOwner.connectionId))
+        : undefined) ||
+      (sessionProfile ? roster.find(candidate => candidate.name === sessionProfile) : undefined)
+    : undefined
+  const chatTitle = groupChat?.trim() || (selectedBotRow ? displayName(selectedBotRow, botRosterMeta(selectedBotRow, botMeta)) : sessionTitle)
   const tree = useStore($layoutTree)
   const panes = useContributions('panes')
   const main = useRef<HTMLElement>(null), menu = useRef<HTMLButtonElement>(null), drawer = useRef<HTMLElement>(null), navigationTabsMenu = useRef<HTMLDivElement>(null), profileContextMenu = useRef<HTMLDivElement>(null)
@@ -144,7 +153,6 @@ function BrowserLayout() {
   const browserModalReturnPath = useRef('/')
   const browserModalRoute = BROWSER_MODAL_ROUTES.has(location.pathname)
   const bots = panes.find(pane => pane.id === 'hermes-bots:pane')
-  const selectedSession = selected ? sessions.find(session => String(session.id) === selected) : undefined
   const selectedSessionProfile = selectedSession?.profile || activeGatewayProfile
   const selectedSessionPinId = selectedSession ? sessionPinId(selectedSession) : selected
   const selectedSessionPinned = Boolean(selectedSessionPinId && pinnedSessionIds.includes(selectedSessionPinId))
@@ -450,30 +458,35 @@ function BrowserLayout() {
         if (event.key === 'End') { event.preventDefault(); setNavigationWidth(MAX_NAVIGATION_WIDTH) }
       }} />
       <main className="browser-main" ref={main} tabIndex={-1} aria-label="Conversation and workspace">
-        <div className="browser-chat-toolbar" aria-label="Chat title bar">
+        <div className="browser-chat-toolbar" aria-label="Chat toolbar">
           <BrowserToolbarButton tooltip={navigationOpen ? 'Hide sidebar' : 'Show sidebar'} className="browser-menu" ref={menu} aria-label={navigationOpen ? 'Hide navigation' : 'Open navigation'} aria-expanded={navigationOpen} aria-controls="browser-navigation" onClick={() => compactNavigation ? setDrawerOpen(open => !open) : setNavigationCollapsed(collapsed => !collapsed)}>
             <Codicon name="layout-sidebar-left" size="0.75rem" />
           </BrowserToolbarButton>
-          <div className="browser-chat-title" title={chatTitle}>{chatTitle}</div>
           <div className="browser-actions">
             {selected && <SessionActionsMenu align="end" onArchive={archiveSelectedSession} onDelete={deleteSelectedSession} onPin={toggleSelectedPin} onToggleUnread={toggleSelectedUnread} pinned={selectedSessionPinned} profile={selectedSessionProfile} sessionId={selected} title={chatTitle}>
               <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" size="0.75rem" /></BrowserToolbarButton>
             </SessionActionsMenu>}
             <span className="browser-approval-control" ref={setApprovalTarget} />
-            <ActionsMenu align="end" ariaLabel="Settings and workspace" contentClassName="browser-settings-menu" onCloseAutoFocus={event => { if (gatewayDialogOpen) event.preventDefault() }} items={kit => <>
-              <kit.Label>Systems</kit.Label>
-              <kit.Item onSelect={() => openRoute('/settings')}><Codicon name="settings-gear" size="1rem" /><span>Settings</span></kit.Item>
-              <kit.Item onSelect={() => { setDrawerOpen(false); setGatewayDialogOpen(true) }}><Codicon name="pulse" size="1rem" /><span>Gateway</span></kit.Item>
-              <kit.Label className="mt-3">Notifications</kit.Label>
+            <ActionsMenu align="end" ariaLabel="Settings and workspace" contentClassName="w-40 browser-settings-menu" onCloseAutoFocus={event => { if (gatewayDialogOpen) event.preventDefault() }} items={kit => <>
+              <kit.Label>Notifications</kit.Label>
               <BrowserActivityToastsItem />
-              {panelPanes.length > 0 && <kit.Label className="mt-3">Panels</kit.Label>}
-              {panelPanes.map(pane => {
-                const title = String(pane.title || pane.id)
-                return <BrowserPanelButton key={pane.id} id={pane.id} title={sentenceCase(title)} ariaLabel={title} icon={<Codicon name="files" size="1rem" />} collapsible={Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible)} onOpen={() => main.current?.focus()} />
-              })}
-              <kit.Label className="mt-3">Workspace</kit.Label>
+              {panelPanes.length > 0 && <>
+                <kit.Separator />
+                <kit.Label>Panels</kit.Label>
+                {panelPanes.map(pane => {
+                  const title = String(pane.title || pane.id)
+                  const icon = pane.id === 'review' ? 'git-compare' : 'files'
+                  return <BrowserPanelButton key={pane.id} id={pane.id} title={sentenceCase(title)} ariaLabel={title} icon={<Codicon name={icon} size="0.875rem" />} collapsible={Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible)} onOpen={() => main.current?.focus()} />
+                })}
+              </>}
+              <kit.Separator />
+              <kit.Label>Systems</kit.Label>
+              <kit.Item onSelect={() => openRoute('/settings')}><Codicon name="settings-gear" size="0.875rem" /><span>Settings</span></kit.Item>
+              <kit.Item onSelect={() => { setDrawerOpen(false); setGatewayDialogOpen(true) }}><Codicon name="pulse" size="0.875rem" /><span>Gateway</span></kit.Item>
+              <kit.Separator />
+              <kit.Label>Workspace</kit.Label>
               {APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => <kit.Item key={route.path} onSelect={() => openRoute(route.path)}>
-                <Codicon name={toolRouteIcon(route.id)} size="1rem" /><span>{toolRouteLabel(route.id)}</span>
+                <Codicon name={toolRouteIcon(route.id)} size="0.875rem" /><span>{toolRouteLabel(route.id)}</span>
               </kit.Item>)}
             </>}>
               <BrowserToolbarButton ref={settingsTrigger} tooltip="Settings" type="button" aria-label="Open settings menu"><Codicon name="settings-gear" size="0.75rem" /></BrowserToolbarButton>
