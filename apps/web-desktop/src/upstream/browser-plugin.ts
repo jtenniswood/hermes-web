@@ -255,9 +255,6 @@ export function browserActivityNotificationsPlugin(): Plugin {
   return {
     name: 'hermes:browser-activity-notifications', enforce: 'pre',
     transform(code, id) {
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/plugins/hermes-bots/roster-pane-toolbar.tsx')) {
-        return { code: layoutBrowserRosterToolbar(removeBrowserActivityToastButton(code)), map: null }
-      }
       if (id.replaceAll('\\', '/').endsWith('/desktop/src/plugins/hermes-bots/roster-actions.ts')) {
         return { code: filterBrowserActivityToasts(code), map: null }
       }
