@@ -3,9 +3,9 @@
 .browser-shell { --browser-panel-divider:var(--border); --browser-hover-fill:color-mix(in srgb,var(--primary,#4d86ff) 20%,var(--background)); height:100%; display:flex; flex-direction:column; color:var(--foreground); background:var(--background); overflow:hidden; }
 .browser-menu { display:inline-flex; flex-shrink:0; width:2.25rem; height:2.25rem; align-items:center; justify-content:center; border:0; border-radius:.35rem; color:var(--ui-text-secondary); background:transparent; cursor:pointer; }
 .browser-menu:hover,.browser-menu:focus-visible { color:var(--ui-text-secondary); background:var(--browser-hover-fill); outline:none; }
-.browser-chat-toolbar { height:2.75rem; flex-shrink:0; display:flex; align-items:center; gap:.25rem; padding:0 .75rem 0 .25rem; border-bottom:1px solid var(--border); background:var(--background); }
-.browser-chat-title { min-width:0; flex:1 1 auto; overflow:hidden; color:var(--ui-text-secondary); font-size:.75rem; font-weight:400; line-height:1.25; text-overflow:ellipsis; white-space:nowrap; }
-.browser-chat-toolbar .browser-actions { margin-left:auto; }
+.browser-chat-toolbar { height:2.75rem; flex-shrink:0; display:grid; grid-template-columns:minmax(2.25rem,1fr) minmax(2.25rem,1fr); align-items:center; gap:.25rem; padding:0 .75rem 0 .25rem; border-bottom:1px solid var(--border); background:var(--background); }
+.browser-chat-toolbar > .browser-menu { grid-column:1; grid-row:1; }
+.browser-chat-toolbar .browser-actions { grid-column:2; grid-row:1; justify-self:end; margin-left:0; }
 .browser-chat-toolbar .browser-actions > button,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button { width:2rem; height:2rem; display:inline-flex; align-items:center; justify-content:center; padding:.35rem; border:0; border-radius:.35rem; color:var(--ui-text-secondary); background:transparent; }
 .browser-chat-toolbar .browser-actions > button:hover,.browser-chat-toolbar .browser-actions > button:focus-visible,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button:hover,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button:focus-visible { color:var(--ui-text-secondary); background:var(--browser-hover-fill); outline:none; }
 .browser-actions { display:flex; align-items:center; gap:.4rem; }
@@ -124,11 +124,10 @@
 .browser-shell [data-slot="aui_intro"] .wordmark > [aria-hidden] { display:none; }
 .browser-shell [data-slot="aui_intro"] .wordmark > :not([aria-hidden]) { display:block; min-width:0; width:100%; max-width:100%; }
 .browser-shell [data-slot="aui_intro"] .wordmark > :not([aria-hidden]) > * { inline-size:100%; max-width:100%; font-size:min(11cqi,9rem) !important; }
-/* Browser-focused sessions keep messaging groups compact: the platform name
-   and the shared section marker are enough without the brand avatar. The
-   avatar is the inline-grid chip passed as the section header icon. */
-.browser-sessions-pane button[class*="group/section-label"] > span[aria-hidden="true"],
-.browser-sessions-pane button[class*="group/section-label"] > [aria-hidden="true"] { display:none !important; }
+/* Browser-focused sessions keep messaging groups compact: hide any extra
+   header marker while keeping the disclosure caret visible. */
+.browser-sessions-pane button[class*="group/section-label"] > span[aria-hidden="true"] { display:none !important; }
+.browser-sessions-pane button[class*="group/section-label"] > .codicon[aria-hidden="true"] { display:inline-block !important; opacity:.72 !important; }
 /* Keep the section-level New session control visible and match the muted
    color used by the adjacent filter control. */
 .browser-sessions-pane div:has(> .codicon-root-folder) > button:has(.codicon-add) { color:var(--ui-text-secondary,var(--muted-foreground)); }
@@ -191,7 +190,7 @@
    illustration intended for the desktop shell. */
 html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:none !important; }
 
-.browser-settings-menu { width:13rem; min-width:0; max-width:calc(100vw - 1rem); }
+.browser-settings-menu { max-width:calc(100vw - 1rem); }
 .browser-settings-menu :is([role="menuitem"],[role="menuitemcheckbox"]) > .codicon { color:var(--ui-text-tertiary); }
 .browser-gateway-dialog { width:24rem; max-width:calc(100vw / var(--web-ui-scale,1) - 2rem); max-height:calc(100dvh / var(--web-ui-scale,1) - 2rem); overflow:auto; gap:0; padding:0; }
 .browser-gateway-dialog-title { padding:.85rem 2.5rem .65rem .75rem; font-size:.875rem; outline:none; }
