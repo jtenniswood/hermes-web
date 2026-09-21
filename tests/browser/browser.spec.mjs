@@ -333,6 +333,26 @@ test('settings and command center use one upstream overlay and preserve the chat
   await expect(page.getByRole('dialog', { name: 'Gateway', exact: true })).toBeVisible()
 })
 
+test('approval mode keeps the selected profile mode and toolbar icon synchronized', async ({ page }) => {
+  await open(page)
+  const control = page.locator('.browser-approval-control button')
+  await expect(control).toBeVisible()
+  const initialIcon = await control.locator('svg').getAttribute('class')
+  expect(initialIcon).toContain('brain')
+  await control.click()
+  const menu = page.locator('[role="menu"]:visible').last()
+  await expect(menu.getByText('Approval mode', { exact: true })).toBeVisible()
+  await expect(menu.getByText('Ask when needed', { exact: true })).toBeVisible()
+  await expect(menu.getByRole('menuitemradio', { name: /Smart/ })).toHaveAttribute('aria-checked', 'true')
+  const heading = menu.locator('[data-slot="dropdown-menu-label"]')
+  await expect(heading).toHaveCount(1)
+  await expect(heading.locator('xpath=following-sibling::*[1]')).not.toHaveAttribute('data-slot', 'dropdown-menu-separator')
+  await menu.getByRole('menuitemradio', { name: /Manual/ }).click()
+  await expect.poll(() => control.locator('svg').getAttribute('class')).toContain('shield-lock')
+  await control.click()
+  await expect(page.locator('[role="menu"]:visible').last().getByRole('menuitemradio', { name: /Manual/ })).toHaveAttribute('aria-checked', 'true')
+})
+
 test('browser settings omit desktop-only keybinds', async ({ page }) => {
   await open(page)
   await page.getByRole('button', { name: 'Open settings menu', exact: true }).click()

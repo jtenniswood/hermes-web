@@ -494,9 +494,6 @@ export function browserPlugin(root: string): Plugin {
       if (id.replaceAll('\\', '/').endsWith('/desktop/src/plugins/hermes-bots/bot-row.tsx')) {
         return { code: removeBrowserNewBotChatAction(removeBrowserOpenBotChatAction(code)), map: null }
       }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/shell/approval-mode-menu.tsx')) {
-        return { code: addBrowserApprovalModeIcons(code), map: null }
-      }
       if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/settings/keybind-settings.tsx')) {
         return { code: filterBrowserKeybinds(code), map: null }
       }
