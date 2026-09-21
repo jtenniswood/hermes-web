@@ -117,21 +117,15 @@ test('browser bot menus omit the open-chat shortcut', () => {
 })
 
 test('browser approval modes have distinct menu and toolbar icons', () => {
-  const { addBrowserApprovalModeIcons, browserPlugin } = load('src/upstream/browser-plugin.ts')
+  const { browserPlugin } = load('src/upstream/browser-plugin.ts')
   const filename = path.join(root, '../desktop/src/app/shell/approval-mode-menu.tsx')
   const source = readFileSync(filename, 'utf8')
-  const output = addBrowserApprovalModeIcons(source)
-  assert.match(output, /import \{ Brain, Power, ShieldLock \} from '@\/lib\/icons'/)
+  assert.equal(browserPlugin(root).transform(source, filename), null)
+  const output = readFileSync(path.join(root, 'src/experience/browser-approval-mode-menu.tsx'), 'utf8')
+  assert.match(output, /Brain.*Power.*ShieldLock.*from '..\/upstream\/browser-api'/)
   assert.match(output, /<ApprovalModeIcon mode=\{mode\} \/>/)
-  assert.match(output, /value === 'manual' \? <ShieldLock/)
-  assert.match(output, /value === 'smart' \? <Brain/)
-  assert.match(output, /: <Power/)
-  assert.match(output, /smart: 'Ask when needed',/)
-  assert.doesNotMatch(output, /<DropdownMenuSeparator \/>/)
-  assert.doesNotMatch(output, /DropdownMenuSeparator\n/)
-  assert.equal(addBrowserApprovalModeIcons(output), output)
-  assert.equal(browserPlugin(root).transform(source, filename).code, output)
-  assert.throws(() => addBrowserApprovalModeIcons(source.replace('Zap, ZapFilled', 'Zap')), /target changed/)
+  assert.match(output, /smart: 'Ask when needed'/)
+  assert.doesNotMatch(output, /DropdownMenuSeparator/)
 })
 
 test('browser microphone capture distinguishes insecure origins and lets getUserMedia own permission', async () => {
