@@ -98,7 +98,7 @@ test('browser bot menus omit the new-chat shortcut', () => {
   const output = removeBrowserNewBotChatAction(source)
   assert.doesNotMatch(output, /newBotChat\(bot\)|b\.bot\.newChatWith/)
   assert.doesNotMatch(output, /saveSelectedRosterBot|setBotsWorkspaceOwner|botWorkspaceOwnerKey/)
-  assert.match(output, /Brain.*Power.*ShieldLock.*from ..\/upstream\/browser-api/)
+  assert.match(output, /import \{ botRosterMeta \} from '\.\/routing'/)
   assert.equal(removeBrowserNewBotChatAction(output), output)
   assert.equal(browserPlugin(root).transform(source, filename).code, removeBrowserNewBotChatAction(removeBrowserOpenBotChatAction(source)))
   assert.throws(() => removeBrowserNewBotChatAction(source.replace('newBotChat(bot)', 'newChat(bot)')), /target changed/)
