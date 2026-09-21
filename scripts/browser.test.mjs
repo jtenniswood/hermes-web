@@ -64,9 +64,36 @@ test('browser relocates the activity toggle without removing other Bots toolbar 
   assert.match(output, /<SearchField/)
   assert.equal(output.split("<DropdownMenu key={'roster-filters'}>").length, 2)
   assert.ok(output.indexOf("<DropdownMenu key={'roster-filters'}>") < output.indexOf('<Tip label="New…">'))
+  assert.match(output, /Show hidden bots/)
+  assert.match(output, /\$showHiddenBots\.set\(!\$showHiddenBots\.get\(\)\)/)
   assert.doesNotMatch(output, /\{showRosterFilters \? \(|\{showRosterTools \? \(/)
   assert.match(output, /\{showRosterSearch \? \(/)
   assert.throws(() => plugin.transform(source.replace('Activity toasts on', 'Changed label'), filename), /button target changed/)
+})
+
+test('browser moves hidden Bots into the normal roster when the filter option is enabled', () => {
+  const { browserPlugin, showHiddenBotsInBrowserRoster } = load('src/upstream/browser-plugin.ts')
+  const filename = path.join(root, '../desktop/src/plugins/hermes-bots/roster-pane-derivation.ts')
+  const source = readFileSync(filename, 'utf8')
+  const output = showHiddenBotsInBrowserRoster(source)
+  assert.match(output, /const showHiddenBots = \$showHiddenBots\.get\(\)/)
+  assert.match(output, /const hiddenBots: RosterRow\[\] = \[\]/)
+  assert.match(output, /const visibleRoster = showHiddenBots \? roster : roster\.filter/)
+  assert.equal(showHiddenBotsInBrowserRoster(output), output)
+  assert.equal(browserPlugin(root).transform(source, filename).code, output)
+  assert.throws(() => showHiddenBotsInBrowserRoster(source.replace('const visibleRoster', 'const visibleBots')), /target changed/)
+})
+
+test('browser bot menus omit the new-chat shortcut', () => {
+  const { browserPlugin, removeBrowserNewBotChatAction } = load('src/upstream/browser-plugin.ts')
+  const filename = path.join(root, '../desktop/src/plugins/hermes-bots/bot-row.tsx')
+  const source = readFileSync(filename, 'utf8')
+  const output = removeBrowserNewBotChatAction(source)
+  assert.doesNotMatch(output, /newBotChat\(bot\)|b\.bot\.newChatWith/)
+  assert.doesNotMatch(output, /saveSelectedRosterBot|setBotsWorkspaceOwner|botWorkspaceOwnerKey/)
+  assert.equal(removeBrowserNewBotChatAction(output), output)
+  assert.equal(browserPlugin(root).transform(source, filename).code, output)
+  assert.throws(() => removeBrowserNewBotChatAction(source.replace('newBotChat(bot)', 'newChat(bot)')), /target changed/)
 })
 
 test('browser microphone capture distinguishes insecure origins and lets getUserMedia own permission', async () => {
