@@ -79,7 +79,7 @@ jobs:
         run: pnpm --filter web-desktop test:gateway
         env:
           HERMES_TEST_IMAGE: ${{ steps.identity.outputs.image }}@${{ steps.build.outputs.digest }}
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium webkit
       - name: Verify browser behavior on this architecture
         run: pnpm exec playwright test
         env:

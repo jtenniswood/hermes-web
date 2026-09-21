@@ -1,7 +1,6 @@
 name: browser-preview
 on:
   pull_request:
-    branches: ['codex/tested-renderer-releases']
 permissions:
   contents: read
 concurrency:
@@ -9,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   review-image:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/interface-comparison'
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -52,11 +51,11 @@ jobs:
             io.hermes.release.channel=browser-preview
           cache-from: type=gha,scope=browser-preview
           cache-to: type=gha,mode=max,scope=browser-preview
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium webkit
       - name: Test the browser experience through the built nginx image
         run: pnpm exec playwright test tests/browser/browser.spec.mjs
         env:
-          HERMES_BROWSER_PREVIEW_IMAGE: ${{ steps.identity.outputs.image }}:${{ steps.identity.outputs.tag }}
+          HERMES_TEST_IMAGE: ${{ steps.identity.outputs.image }}:${{ steps.identity.outputs.tag }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

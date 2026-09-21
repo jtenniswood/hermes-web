@@ -14,6 +14,72 @@ const transformPath = path.join(root, 'src/upstream/transforms.ts')
 const context = vm.createContext({ exports: {}, require: createRequire(transformPath) })
 vm.runInContext(ts.transpileModule(readFileSync(transformPath, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, context)
 const { compatibilityTransforms, transformRenderer } = context.exports
+const aliasOptions = JSON.parse(readFileSync(path.join(root, 'tsconfig.aliases.json'), 'utf8')).compilerOptions
+
+const transformValidationOptions = {
+  target: ts.ScriptTarget.ES2023,
+  module: ts.ModuleKind.ESNext,
+  moduleResolution: ts.ModuleResolutionKind.Bundler,
+  jsx: ts.JsxEmit.ReactJSX,
+  strict: true,
+  skipLibCheck: true,
+  noEmit: true,
+  ignoreDeprecations: '6.0',
+  baseUrl: root,
+  paths: aliasOptions.paths,
+  lib: ['lib.dom.d.ts', 'lib.es2023.d.ts']
+}
+const transformValidationAmbientFile = path.join(root, 'src/.browser-transform-validation.d.ts')
+const transformValidationAmbient = `
+declare interface ImportMeta { env: Record<string, string | undefined>; hot?: unknown }
+declare interface Window {
+  __HERMES_WEB_BRIDGE__?: unknown
+  __HERMES_WEB_ACTIVE_PROFILE__?: string
+  __HERMES_WEB_DRAFT_SNAPSHOT__?: unknown
+  __HERMES_WEB_DRAFT_BLOCKED__?: boolean
+}
+declare module '*.css' { const value: string; export default value }
+`
+const transformDiagnostic = diagnostic => `${diagnostic.code}:${ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')}`
+const transformedRendererSources = new Map()
+for (const fixture of compatibilityTransforms) {
+  const filename = path.join(repositoryRoot, 'apps/desktop/src', fixture.module)
+  const source = readFileSync(filename, 'utf8')
+  transformedRendererSources.set(path.resolve(filename), transformRenderer(source, filename).code)
+}
+const transformedRendererDiagnostics = new Map([...transformedRendererSources.keys()].map(filename => [filename, []]))
+{
+  const virtualSources = new Map([
+    ...transformedRendererSources,
+    [transformValidationAmbientFile, transformValidationAmbient]
+  ])
+  const host = ts.createCompilerHost(transformValidationOptions)
+  const read = host.readFile.bind(host)
+  const exists = host.fileExists.bind(host)
+  host.readFile = name => virtualSources.get(path.resolve(name)) ?? read(name)
+  host.fileExists = name => virtualSources.has(path.resolve(name)) || exists(name)
+  host.resolveModuleNames = (names, containing) => names.map(name => ts.resolveModuleName(name, containing, transformValidationOptions, host).resolvedModule)
+  const program = ts.createProgram([...transformedRendererSources.keys(), transformValidationAmbientFile], transformValidationOptions, host)
+  for (const diagnostic of ts.getPreEmitDiagnostics(program)) {
+    const filename = diagnostic.file && path.resolve(diagnostic.file.fileName)
+    if (filename && transformedRendererDiagnostics.has(filename)) transformedRendererDiagnostics.get(filename).push(transformDiagnostic(diagnostic))
+  }
+}
+const transformDiagnostics = (filename, code) => {
+  const virtualSources = new Map([
+    ...transformedRendererSources,
+    [transformValidationAmbientFile, transformValidationAmbient]
+  ])
+  virtualSources.set(path.resolve(filename), code)
+  const host = ts.createCompilerHost(transformValidationOptions)
+  const read = host.readFile.bind(host)
+  const exists = host.fileExists.bind(host)
+  host.readFile = name => virtualSources.get(path.resolve(name)) ?? read(name)
+  host.fileExists = name => virtualSources.has(path.resolve(name)) || exists(name)
+  host.resolveModuleNames = (names, containing) => names.map(name => ts.resolveModuleName(name, containing, transformValidationOptions, host).resolvedModule)
+  return ts.getPreEmitDiagnostics(ts.createProgram([filename, transformValidationAmbientFile], transformValidationOptions, host)).map(transformDiagnostic)
+}
+const transformBindingDiagnostics = new Set([2304, 2305, 2307, 2308, 2309, 2314, 2552, 2688])
 
 for (const fixture of compatibilityTransforms) {
   test(`compatibility: ${fixture.name}`, () => {
@@ -25,8 +91,21 @@ for (const fixture of compatibilityTransforms) {
     assert.throws(() => transformRenderer(source + '\n// upstream change', filename), /compatibility changed/)
     assert.throws(() => transformRenderer(result.code + '\n// modified', filename), /Modified compatibility/)
     assert.equal(ts.createSourceFile(filename, result.code, ts.ScriptTarget.Latest, true).parseDiagnostics.length, 0)
+
+    const bindingDiagnostics = transformedRendererDiagnostics.get(path.resolve(filename)).filter(diagnostic => {
+      const code = Number(diagnostic.slice(0, diagnostic.indexOf(':')))
+      return transformBindingDiagnostics.has(code)
+    })
+    assert.deepEqual(bindingDiagnostics, [], `${fixture.name} introduced a missing import or binding`)
   })
 }
+
+test('composed transform validation detects missing imports and undefined bindings', () => {
+  const filename = path.join(root, 'src/.browser-transform-validation-probe.ts')
+  const diagnostics = transformDiagnostics(filename, "import { missing } from './missing-module'\nconst value = undefinedBinding\n")
+  assert.ok(diagnostics.some(diagnostic => diagnostic.startsWith('2307:')), 'missing imports must fail validation')
+  assert.ok(diagnostics.some(diagnostic => diagnostic.startsWith('2304:')), 'undefined bindings must fail validation')
+})
 
 test('renderer aliases preserve explicit mappings before wildcards', () => {
   const aliases = rendererAliases()
