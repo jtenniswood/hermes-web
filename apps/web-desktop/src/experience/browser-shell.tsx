@@ -8,6 +8,7 @@ import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, Cont
 import { useBrowserConversation } from '../upstream/conversation'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
 import { ApprovalToolbarTarget } from '../upstream/browser-api'
+import { clampNavigationWidth, DEFAULT_NAVIGATION_WIDTH, MAX_NAVIGATION_WIDTH, MIN_NAVIGATION_WIDTH, NAVIGATION_TAB_LABELS, NAVIGATION_TABS, readHiddenProfiles, readNavigationTab, readNavigationWidth, readVisibleNavigationTabs, type NavigationTab, writeBrowserPreference } from './browser-preferences'
 
 function sentenceCase(label: string) {
   const value = label.replaceAll('-', ' ').trim()
@@ -17,39 +18,6 @@ function sentenceCase(label: string) {
 // Settings and Command Center are owned by the upstream ContribWiring overlay
 // router. Only the full-page workspace routes need the browser modal shell.
 const BROWSER_MODAL_ROUTES = new Set(['/skills', '/messaging', '/artifacts'])
-const NAVIGATION_TABS = ['sessions', 'bots'] as const
-type NavigationTab = typeof NAVIGATION_TABS[number]
-const NAVIGATION_TAB_LABELS: Record<NavigationTab, string> = {
-  sessions: 'Sessions',
-  bots: 'Bots'
-}
-const DEFAULT_NAVIGATION_WIDTH = 304
-const MIN_NAVIGATION_WIDTH = 224
-const MAX_NAVIGATION_WIDTH = 560
-const HIDDEN_PROFILES_STORAGE_KEY = 'hermes-web.browser.hidden-profiles'
-
-function clampNavigationWidth(width: number) {
-  return Math.min(MAX_NAVIGATION_WIDTH, Math.max(MIN_NAVIGATION_WIDTH, width))
-}
-
-function readVisibleNavigationTabs(): NavigationTab[] {
-  try {
-    const saved = JSON.parse(localStorage.getItem('hermes-web.browser.navigation-tabs') || 'null')
-    if (Array.isArray(saved)) {
-      const visible = NAVIGATION_TABS.filter(value => saved.includes(value))
-      if (visible.length) return visible
-    }
-  } catch { /* Optional preference. */ }
-  return [...NAVIGATION_TABS]
-}
-
-function readHiddenProfiles(): string[] {
-  try {
-    const saved = JSON.parse(localStorage.getItem(HIDDEN_PROFILES_STORAGE_KEY) || 'null')
-    return Array.isArray(saved) ? saved.filter((value): value is string => typeof value === 'string') : []
-  } catch { return [] }
-}
-
 function sessionTileIds(node: unknown): string[] {
   const ids: string[] = []
   const visit = (value: unknown) => {
@@ -106,16 +74,9 @@ function BrowserLayout() {
   const [profileContextMenuPosition, setProfileContextMenuPosition] = useState<{ x: number; y: number; profile: string | null } | null>(null)
   const [updateNotice, setUpdateNotice] = useState<PwaUpdateNotice | null>(() => currentPwaUpdate())
   const [updateDismissed, setUpdateDismissed] = useState(false)
-  const [navigationWidth, setNavigationWidth] = useState(() => {
-    try {
-      const saved = Number(localStorage.getItem('hermes-web.browser.navigation-width'))
-      return Number.isFinite(saved) ? clampNavigationWidth(saved) : DEFAULT_NAVIGATION_WIDTH
-    } catch { return DEFAULT_NAVIGATION_WIDTH }
-  })
+  const [navigationWidth, setNavigationWidth] = useState(readNavigationWidth)
   const navigationResize = useRef<{ startX: number; startWidth: number } | null>(null)
-  const [tab, setTab] = useState<'sessions' | 'bots'>(() => {
-    try { return localStorage.getItem('hermes-web.browser.navigation') === 'bots' ? 'bots' : 'sessions' } catch { return 'sessions' }
-  })
+  const [tab, setTab] = useState<NavigationTab>(readNavigationTab)
   const [visibleNavigationTabs, setVisibleNavigationTabs] = useState<NavigationTab[]>(readVisibleNavigationTabs)
   const browserModalReturnPath = useRef('/')
   const browserModalRoute = BROWSER_MODAL_ROUTES.has(location.pathname)
@@ -169,13 +130,13 @@ function BrowserLayout() {
     // navigation is single-view, so these stale panes must not become tabs.
     for (const paneId of sessionTileIds(tree)) removeTreePane(paneId)
   }, [tree])
-  useEffect(() => { try { localStorage.setItem('hermes-web.browser.navigation', tab) } catch { /* Optional preference. */ } }, [tab])
-  useEffect(() => { try { localStorage.setItem('hermes-web.browser.navigation-tabs', JSON.stringify(visibleNavigationTabs)) } catch { /* Optional preference. */ } }, [visibleNavigationTabs])
+  useEffect(() => { writeBrowserPreference('activeTab', tab) }, [tab])
+  useEffect(() => { writeBrowserPreference('navigationTabs', JSON.stringify(visibleNavigationTabs)) }, [visibleNavigationTabs])
   useEffect(() => {
     if (!visibleNavigationTabs.includes(tab)) setTab(visibleNavigationTabs[0])
   }, [tab, visibleNavigationTabs])
-  useEffect(() => { try { localStorage.setItem('hermes-web.browser.navigation-width', String(navigationWidth)) } catch { /* Optional preference. */ } }, [navigationWidth])
-  useEffect(() => { try { localStorage.setItem(HIDDEN_PROFILES_STORAGE_KEY, JSON.stringify(hiddenProfiles)) } catch { /* Optional preference. */ } }, [hiddenProfiles])
+  useEffect(() => { writeBrowserPreference('navigationWidth', String(navigationWidth)) }, [navigationWidth])
+  useEffect(() => { writeBrowserPreference('hiddenProfiles', JSON.stringify(hiddenProfiles)) }, [hiddenProfiles])
   useEffect(() => {
     if (pinnedSessionIds.length === 0 && pinsOpen) setSidebarPinsOpen(false)
   }, [pinnedSessionIds, pinsOpen])
