@@ -26,8 +26,8 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 1. Update foundation | PR #36 merged; activation prerequisites inventoried | Required compatibility and preview checks passed on `57b6854`; merge `c282dc0`. Read-only audit identifies outstanding App and repository setup. |
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
-| 3. Compatibility registry | Implemented; verification in progress | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
-| 4. Behavioral contracts | Outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
+| 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
+| 4. Behavioral contracts | First action slice in draft PR #40; selection and remaining models outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
@@ -136,5 +136,27 @@ the build requires every dependency fingerprint after installation.
 
 Local verification: 100 foundation tests, typechecking with no upstream baseline,
 a production Vite build, all 52 input contracts, seven interruption journeys,
-and both previous-image real-composer upgrades passed. Broader browser surface
-checks and exact-commit CI remain pending. The renderer pin remains unchanged.
+and both previous-image real-composer upgrades passed. Required compatibility and preview CI passed on `015025d`; merge `d5c05ac`.
+The committed production image passed the full browser suite. A redundant local
+surface run was stopped after startup/reload timeouts under concurrent host load;
+that partial run is not passing evidence. The renderer pin remains unchanged.
+
+## Browser command migration
+
+The first command slice moves selected-session archive, delete, pin, unread, and
+approval-mode reads/writes out of feature components into adapters with browser
+contracts. The adapters continue to use authoritative upstream stores, preserve
+newer navigation when a mutation finishes, and display failed or unconfirmed
+operations. The chat action menu now receives the persisted unread state.
+
+This slice does not complete stage 4: selection commands, profile/navigation
+models, remaining raw store consumers, and removal of corrective effects still
+need their own migration and interruption evidence. Additional journeys cover
+unread rejection, delayed deletion, and negative mutation acknowledgments.
+
+Command-slice validation: production build and typechecking pass. All new action
+journeys passed, including negative acknowledgments, unread labels/rejection,
+delayed deletion, and approval startup. Local full interruption runs encountered
+startup network failures before some existing scenarios began; those runs are
+not a complete passing suite. The fixture now starts an isolated browser after
+Docker networking is ready. Required exact-commit CI remains the merge gate.

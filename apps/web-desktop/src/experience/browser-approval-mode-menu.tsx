@@ -1,8 +1,8 @@
-import { reportActionFailure } from './action-errors'
-import { useStore } from '@nanostores/react'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 
-import { $approvalModes, Brain, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, Power, setApprovalModeForProfile, ShieldLock, syncApprovalModeForProfile, useI18n, type ApprovalMode, type ApprovalModeRequester } from '../upstream/browser-api'
+import { Brain, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, Power, ShieldLock, useI18n } from '../upstream/browser-api'
+import { useBrowserApproval } from '../upstream/approval'
+import type { BrowserApprovalMode as ApprovalMode, BrowserApprovalRequester as ApprovalModeRequester } from './contracts/actions'
 import type { StatusbarItem } from '../upstream/browser-api'
 
 function ApprovalModeIcon({ mode }: { mode: ApprovalMode }) {
@@ -14,14 +14,9 @@ function ApprovalModeIcon({ mode }: { mode: ApprovalMode }) {
 export function useApprovalModeStatusbarItem(profile: string, requestGateway: ApprovalModeRequester): StatusbarItem {
   const { t } = useI18n()
   const copy = t.shell.approvalMode
-  const modes = useStore($approvalModes)
-  const mode = modes[profile.trim() || 'default'] ?? 'smart'
+  const { mode, setMode } = useBrowserApproval(profile, requestGateway)
   const labels = useMemo<Record<ApprovalMode, string>>(() => ({ manual: copy.manual, smart: copy.smart, off: copy.off }), [copy.manual, copy.off, copy.smart])
   const descriptions = useMemo<Record<ApprovalMode, string>>(() => ({ manual: copy.manualDescription, smart: 'Ask when needed', off: copy.offDescription }), [copy.manualDescription, copy.offDescription])
-
-  useEffect(() => {
-    void syncApprovalModeForProfile(requestGateway, profile).catch(() => undefined)
-  }, [profile, requestGateway])
 
   return {
     className: mode === 'off' ? 'bg-(--chrome-action-hover) text-foreground' : undefined,
@@ -32,7 +27,7 @@ export function useApprovalModeStatusbarItem(profile: string, requestGateway: Ap
     menuClassName: 'w-72 p-1',
     menuContent: <>
       <DropdownMenuLabel>{copy.title}</DropdownMenuLabel>
-      <DropdownMenuRadioGroup onValueChange={value => { void setApprovalModeForProfile(requestGateway, profile, value as ApprovalMode).catch(() => reportActionFailure('Could not change approval mode.')) }} value={mode}>
+      <DropdownMenuRadioGroup onValueChange={value => { void setMode(value as ApprovalMode) }} value={mode}>
         {(['manual', 'smart', 'off'] as const).map(value => <DropdownMenuRadioItem className="items-start gap-2" key={value} value={value}>
           <ApprovalModeIcon mode={value} />
           <span className="flex min-w-0 flex-col gap-0.5">

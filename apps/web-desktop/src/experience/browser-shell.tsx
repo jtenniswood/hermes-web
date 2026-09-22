@@ -1,12 +1,13 @@
-import { BrowserActionError, reportActionFailure } from './action-errors'
+import { BrowserActionError } from './action-errors'
 import { useStore } from '@nanostores/react'
 import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProperties, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
 import { SettingsMenu, toolRouteLabel } from './settings-menu'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, $selectedStoredSessionId, $sessions, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu, pinSession, unpinSession, deleteSession, setSessionArchived, markSessionUnread, sessionPinId, setSessions } from '../upstream/browser-api'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu } from '../upstream/browser-api'
 import { useBrowserConversation } from '../upstream/conversation'
+import { useBrowserSessionActions } from '../upstream/conversation-actions'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
 import { ApprovalToolbarTarget } from '../upstream/browser-api'
 import { clampNavigationWidth, DEFAULT_NAVIGATION_WIDTH, MAX_NAVIGATION_WIDTH, MIN_NAVIGATION_WIDTH, NAVIGATION_TAB_LABELS, NAVIGATION_TABS, readHiddenProfiles, readNavigationTab, readNavigationWidth, readVisibleNavigationTabs, type NavigationTab, writeBrowserPreference } from './browser-preferences'
@@ -45,8 +46,10 @@ export function BrowserShell() {
 function BrowserLayout() {
   const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
   const navigate = useNavigate(), location = useLocation()
-  const selected = useStore($selectedStoredSessionId), sessions = useStore($sessions), bot = useStore($selectedBot)
+  const bot = useStore($selectedBot)
   const conversation = useBrowserConversation()
+  const selected = conversation.sessionId
+  const sessionActions = useBrowserSessionActions()
   const gatewayState = useStore($gatewayState)
   const activeConnectionId = useStore($activeConnectionId), activeGatewayProfile = useStore($activeGatewayProfile)
   const { requestGateway } = useGatewayRequest()
@@ -54,7 +57,6 @@ function BrowserLayout() {
   const pinnedSessionIds = useStore($pinnedSessionIds), pinsOpen = useStore($sidebarPinsOpen)
   const profiles = useStore($profiles), profileOrder = useStore($profileOrder), profile = useStore($activeGatewayProfile), showAllProfiles = useStore($showAllProfiles)
   const roster = useStore($lastRoster), botMeta = useStore($botMeta)
-  const selectedSession = selected ? sessions.find(session => String(session.id) === selected) : undefined
   const chatTitle = conversation.displayName || ''
   const tree = useStore($layoutTree)
   const panes = useContributions('panes')
@@ -82,32 +84,6 @@ function BrowserLayout() {
   const browserModalReturnPath = useRef('/')
   const browserModalRoute = BROWSER_MODAL_ROUTES.has(location.pathname)
   const bots = panes.find(pane => pane.id === 'hermes-bots:pane')
-  const selectedSessionProfile = selectedSession?.profile || conversation.profile || activeGatewayProfile
-  const selectedSessionPinId = selectedSession ? sessionPinId(selectedSession) : selected
-  const selectedSessionPinned = Boolean(selectedSessionPinId && pinnedSessionIds.includes(selectedSessionPinId))
-  const toggleSelectedPin = () => {
-    if (!selectedSessionPinId) return
-    if (selectedSessionPinned) unpinSession(selectedSessionPinId)
-    else pinSession(selectedSessionPinId)
-  }
-  const toggleSelectedUnread = () => {
-    if (!selected || !selectedSession) return
-    void markSessionUnread(selected, selectedSession.unread !== true).catch(() => reportActionFailure('Could not change unread status.'))
-  }
-  const archiveSelectedSession = () => {
-    if (!selected) return
-    void setSessionArchived(selected, true, selectedSessionProfile).then(() => {
-      setSessions(rows => rows.filter(row => row.id !== selected))
-      if ($selectedStoredSessionId.get() === selected) navigate('/')
-    }).catch(() => reportActionFailure('Could not archive conversation.'))
-  }
-  const deleteSelectedSession = () => {
-    if (!selected) return
-    void deleteSession(selected, selectedSessionProfile).then(() => {
-      setSessions(rows => rows.filter(row => row.id !== selected))
-      if ($selectedStoredSessionId.get() === selected) navigate('/')
-    }).catch(() => reportActionFailure('Could not delete conversation.'))
-  }
   const previous = useRef({ selected, bot, path: location.pathname })
   useEffect(() => {
     const media = window.matchMedia('(max-width:47.999rem)')
@@ -393,7 +369,7 @@ function BrowserLayout() {
             <Codicon name="layout-sidebar-left" size="0.75rem" />
           </BrowserToolbarButton>
           <div className="browser-actions">
-            {selected && <SessionActionsMenu align="end" onArchive={archiveSelectedSession} onDelete={deleteSelectedSession} onPin={toggleSelectedPin} onToggleUnread={toggleSelectedUnread} pinned={selectedSessionPinned} profile={selectedSessionProfile} sessionId={selected} title={chatTitle}>
+            {selected && <SessionActionsMenu align="end" onArchive={sessionActions.archive} onDelete={sessionActions.delete} onPin={sessionActions.togglePin} onToggleUnread={sessionActions.toggleUnread} pinned={sessionActions.pinned} unread={sessionActions.unread} profile={sessionActions.profile} sessionId={selected} title={chatTitle}>
               <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" size="0.75rem" /></BrowserToolbarButton>
             </SessionActionsMenu>}
             <span className="browser-approval-control" ref={setApprovalTarget} />
