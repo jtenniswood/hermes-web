@@ -62,6 +62,36 @@ test('approval RPC has authoritative state and errors retain the confirmed value
   assert.equal((await gateway.request('config.get', params)).result.value, 'manual')
 })
 
+test('group projection writes are validated and returned by roster reads', async t => {
+  const gateway = await fixture(t)
+  const snapshot = { version: 3, rooms: { 'id:team': { name: 'Team', roomId: 'team', members: [{ name: 'research' }], log: [] } }, deleted: {} }
+  const write = ui_meta => gateway.request('profiles.configure', { name: 'default', ui_meta })
+  assert.equal((await write({ 'hermes-bots-groups': snapshot })).result.applied.ui_meta, true)
+  const invalid = await write({ 'hermes-bots-groups': { version: 3, rooms: [] } })
+  assert.match(invalid.error.message, /Invalid group room projection/)
+  const profile = (await gateway.request('profiles.list')).result.profiles.find(row => row.name === 'default')
+  assert.deepEqual(profile.ui_meta['hermes-bots-groups'], snapshot)
+  gateway.controls.assertExpected()
+})
+
+test('Bot group membership writes retain the selected profile and reject invalid groups', async t => {
+  const gateway = await fixture(t)
+  const metadata = { groups: ['Team'], group: 'Team' }
+  const write = groups => gateway.request('profiles.configure', { name: 'research', ui_meta: { 'hermes-bots': groups } })
+  assert.equal((await write(metadata)).result.applied.ui_meta, true)
+  assert.match((await write({ groups: [false] })).error.message, /Invalid Bot group membership/)
+  const profiles = (await gateway.request('profiles.list')).result.profiles
+  assert.deepEqual(profiles.find(row => row.name === 'research').ui_meta['hermes-bots'], metadata)
+  assert.equal(profiles.find(row => row.name === 'writer').ui_meta, undefined)
+  gateway.controls.assertExpected()
+})
+
+test('optional group image generation fails explicitly without invoking a provider', async t => {
+  const gateway = await fixture(t)
+  assert.match((await gateway.request('image.generate', { prompt: 'Group avatar' })).error.message, /unavailable in the synthetic gateway/)
+  gateway.controls.assertExpected()
+})
+
 test('strict mode reports unknown RPC and REST instead of inventing success', async t => {
   const gateway = await fixture(t)
   assert.equal((await gateway.request('unknown.list')).error.code, -32601)

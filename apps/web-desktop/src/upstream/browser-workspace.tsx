@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react'
 import { useEffect } from 'react'
 import { $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen } from '@/store/layout'
-import { $layoutTree, trackActiveTreeGroup, removeTreePane, revealTreePane } from '@/components/pane-shell/tree/store'
+import { $layoutTree, trackActiveTreeGroup, removeTreePane } from '@/components/pane-shell/tree/store'
 import { TreeNode } from '@/components/pane-shell/tree/renderer/tree-node'
 import { FloatingPanes } from '@/components/pane-shell/tree/renderer/floating-panes'
 import { NarrowOverlays } from '@/components/pane-shell/tree/renderer/narrow-overlays'
@@ -20,10 +20,6 @@ function sessionTileIds(node: unknown): string[] {
   }
   visit(node)
   return ids
-}
-
-export function revealBrowserWorkspace(): void {
-  revealTreePane('workspace')
 }
 
 export function BrowserWorkspace() {

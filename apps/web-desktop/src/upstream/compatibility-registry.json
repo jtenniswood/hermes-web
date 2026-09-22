@@ -478,17 +478,22 @@
       {
         "file": "tests/browser/browser.spec.mjs",
         "scenario": "Bots keeps filters beside the rightmost add button"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "a rejected Bot activation reports a visible failure and preserves the session draft"
       }
     ],
     "removal": "Browser Bot actions use public canonical conversation commands.",
     "handlers": [
       "removeBrowserOpenBotChatAction",
-      "removeBrowserNewBotChatAction"
+      "removeBrowserNewBotChatAction",
+      "useBrowserBotSelection"
     ],
     "sourceHash": "bbaeee02df79a723084b3e8f09090ba2ab14c8c5ec4532c9ccdefc4aac898308",
     "sourceRoot": "renderer",
     "inputHash": "bbaeee02df79a723084b3e8f09090ba2ab14c8c5ec4532c9ccdefc4aac898308",
-    "outputHash": "07906d45f8eb20e6168ebe367afdba709ebff6fb1332b186e72845c8722d4cff"
+    "outputHash": "fd9eed41221c40e0069108e0b74c78b3bae70124c862159c1aad472f17c44b44"
   },
   {
     "name": "browser-keybinds",
@@ -1374,5 +1379,49 @@
       }
     ],
     "removal": "Remove when upstream plugins expose a public browser transport independent of local filesystem paths."
+  },
+  {
+    "name": "browser-group-selection",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "plugins/hermes-bots/roster-pane.tsx",
+    "reason": "Route group selection through the browser command while retaining engine room ownership.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "group selection survives delayed Bot activation and preserves both composers"
+      }
+    ],
+    "removal": "Remove when upstream roster surfaces accept browser-owned selection callbacks.",
+    "handlers": [
+      "useBrowserGroupSelection"
+    ],
+    "sourceHash": "3b869c964b4ae83d69363c0e978d8a6ad405df2e7290f6fe82d98b7abdb52734",
+    "sourceRoot": "renderer",
+    "inputHash": "3b869c964b4ae83d69363c0e978d8a6ad405df2e7290f6fe82d98b7abdb52734",
+    "outputHash": "dcf3d5550cc597db85ba2c7abade2a341c5843a473ec387cc109fb23b4be8aa8"
+  },
+  {
+    "name": "browser-created-group-selection",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "plugins/hermes-bots/roster-pane-dialogs.tsx",
+    "reason": "Route group selection through the browser command while retaining engine room ownership.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "creating a group selects the new room through the browser command"
+      }
+    ],
+    "removal": "Remove when upstream roster surfaces accept browser-owned selection callbacks.",
+    "handlers": [
+      "useBrowserCreatedGroupSelection"
+    ],
+    "sourceHash": "d1d364b0a5c0bff8ce15af4812ce821298918e207cd53a0e8759571df6783150",
+    "sourceRoot": "renderer",
+    "inputHash": "d1d364b0a5c0bff8ce15af4812ce821298918e207cd53a0e8759571df6783150",
+    "outputHash": "7d3725f485e3e716f4a0982d116c861bbad392e902d0d34022dd7cff0ac0138e"
   }
 ]

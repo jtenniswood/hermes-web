@@ -301,6 +301,30 @@ export function useBrowserSessionSelection(source: string, root: string): string
     }, navigate),`)
 }
 
+export function useBrowserRosterSelection(source: string, root: string, surface: 'bot' | 'group' | 'created-group'): string {
+  const replacements: Record<typeof surface, [string, string][]> = {
+    bot: [
+      ["import { openRosterBot } from './roster-actions'", ''],
+      ['const open = () => void openRosterBot(bot)', 'const open = () => void selectBrowserBot(botSelectionKey(bot))']
+    ],
+    group: [
+      ["import { GroupChatWorkspace, openGroupChat } from './group-chat-view'", "import { GroupChatWorkspace } from './group-chat-view'"],
+      ['onOpen={openGroupChat}', 'onOpen={selectBrowserGroup}']
+    ],
+    'created-group': [
+      ["import { disbandGroupChat, openGroupChat } from './group-chat-view'", "import { disbandGroupChat } from './group-chat-view'"],
+      ['onCreated={groupName => openGroupChat(groupName)}', 'onCreated={selectBrowserGroup}']
+    ]
+  }
+  let output = source
+  for (const [target, replacement] of replacements[surface]) {
+    if (output.split(target).length !== 2) throw new Error(`Browser ${surface} selection target changed`)
+    output = output.replace(target, replacement)
+  }
+  const command = surface === 'bot' ? 'selectBrowserBot' : 'selectBrowserGroup'
+  return `import { ${command} } from ${JSON.stringify(path.join(root, 'src/upstream/roster-selection.ts'))}\n` + output
+}
+
 export function disableBrowserSessionRowTabs(source: string): string {
   const tabAction = "openSession(session.id, () => undefined, 'tab')"
   const windowAction = "openSession(session.id, () => undefined, 'window')"
@@ -390,6 +414,9 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
     showHiddenBotsInBrowserRoster, disableBrowserSessionTabs, disableBrowserSessionTileMirrors,
     disableBrowserSessionRowTabs, disableBrowserSessionOpenActions, filterBrowserKeybinds,
     useBrowserSessionSelection: source => useBrowserSessionSelection(source, root),
+    useBrowserBotSelection: source => useBrowserRosterSelection(source, root, 'bot'),
+    useBrowserGroupSelection: source => useBrowserRosterSelection(source, root, 'group'),
+    useBrowserCreatedGroupSelection: source => useBrowserRosterSelection(source, root, 'created-group'),
     useBrowserSearchLabel: source => useBrowserSearchLabel(source, root),
     ungroupedStore: source => enableBrowserUngroupedSessions(source, 'store'),
     ungroupedMenu: source => enableBrowserUngroupedSessions(source, 'menu'),

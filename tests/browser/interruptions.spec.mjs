@@ -79,6 +79,73 @@ test('returning to a Bot while its previous activation is pending honors the lat
   await expect(editor(page)).toHaveText('Keep Writer draft when returning to Research')
 })
 
+test('group selection survives delayed Bot activation and preserves both composers', async ({ page, gatewayApp }) => {
+  const finishHeldResponse = observeResponses(page)
+  gatewayApp.profiles.find(profile => profile.name === 'default').ui_meta = {
+    'hermes-bots-groups': {
+      version: 3, deleted: {}, updatedAt: Date.now(),
+      rooms: { 'id:preview-team': {
+        name: 'Planning team', roomId: 'preview-team', revision: 1,
+        members: [{ name: 'research' }, { name: 'writer' }],
+        log: [{ from: { kind: 'user', name: 'user' }, text: 'Room history stays visible', at: Date.now(), thread: 'preview-thread' }]
+      } }
+    }
+  }
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep the ordinary session draft beside the group')
+  await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+  const opening = gatewayApp.controls.hold(call => call.transport === 'rpc' && call.method === 'session.list' && call.params.profile === 'research')
+  await page.getByRole('button', { name: /Research · @/ }).click()
+  await opening.entered
+  await page.getByRole('button', { name: /^Planning team, 2 bots/ }).click()
+  await expect(page.getByText('Room history stays visible', { exact: true })).toBeVisible()
+  const groupComposer = page.locator('textarea:visible').last()
+  await groupComposer.fill('Keep this group draft')
+  await finishHeldResponse(opening)
+  await expect(page.locator('[data-browser-conversation-id]')).toHaveAttribute('data-browser-conversation-id', 'Planning team')
+  await expect(groupComposer).toHaveValue('Keep this group draft')
+  await page.getByRole('tab', { name: 'Sessions', exact: true }).click()
+  await page.getByRole('button', { name: 'All profiles', exact: true }).click()
+  await page.getByRole('button', { name: 'Plan a calmer working week', exact: true }).click()
+  await expect(editor(page)).toHaveText('Keep the ordinary session draft beside the group')
+  await expect(page.locator('[data-browser-conversation-id]')).toHaveAttribute('data-browser-conversation-id', 'preview-week')
+  await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+  await page.getByRole('button', { name: /^Planning team, 2 bots/ }).click()
+  await expect(groupComposer).toHaveValue('Keep this group draft')
+})
+
+test('a rejected Bot activation reports a visible failure and preserves the session draft', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep this draft after Bot activation fails')
+  await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+  gatewayApp.controls.reject(call => call.transport === 'rpc' && call.method === 'session.list' && call.params.profile === 'research', 'Bot activation rejected')
+  await page.getByRole('button', { name: /Research · @/ }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Could not open Bot conversation.' })).toBeVisible()
+  await expect(page).toHaveURL(/#\/preview-week$/)
+  await expect(editor(page)).toHaveText('Keep this draft after Bot activation fails')
+})
+
+test('creating a group selects the new room through the browser command', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep the draft while creating a group')
+  await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+  await page.getByRole('button', { name: 'New bot or group chat', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'New group chat', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  for (const name of ['Research', 'Writer']) await dialog.locator('label').filter({ hasText: name }).getByRole('checkbox').check()
+  await dialog.getByRole('textbox', { name: 'Group name', exact: true }).fill('New planning team')
+  await dialog.getByRole('button', { name: 'Create Group (2)', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.locator('[data-browser-conversation-id]')).toHaveAttribute('data-browser-conversation-id', 'New planning team')
+  await expect(page.getByPlaceholder('New thread in New planning team… (@name to direct, @everyone for all)')).toBeVisible()
+  await expect.poll(() => gatewayApp.profiles.find(profile => profile.name === 'research').ui_meta?.['hermes-bots']?.groups).toContain('New planning team')
+  await page.getByRole('tab', { name: 'Sessions', exact: true }).click()
+  await page.getByRole('button', { name: 'All profiles', exact: true }).click()
+  await page.getByRole('button', { name: 'Plan a calmer working week', exact: true }).click()
+  await expect(editor(page)).toHaveText('Keep the draft while creating a group')
+  await expect(page.locator('[data-browser-conversation-id]')).toHaveAttribute('data-browser-conversation-id', 'preview-week')
+})
+
 test('reconnect preserves the selected conversation and its draft', async ({ page, gatewayApp }) => {
   await openConversation(page, gatewayApp.origin)
   await editor(page).fill('Keep this draft across reconnect')

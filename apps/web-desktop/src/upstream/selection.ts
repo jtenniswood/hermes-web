@@ -1,6 +1,7 @@
 import { openSession } from '@/app/open-session'
 import { forgetSessionOwnerHintsForSession, requestSessionResume, sessionOwnerRouteFromRow } from '@/store/session'
 import { bumpBotOpenGeneration } from '@/plugins/hermes-bots/shared'
+import { $groupChatWorkspace } from '@/plugins/hermes-bots/group-chat'
 import { reportActionFailure } from '../experience/action-errors'
 import type { BrowserNavigate, BrowserSessionSelection } from '../experience/contracts/selection'
 
@@ -16,6 +17,9 @@ export function selectBrowserSession(selection: BrowserSessionSelection, navigat
       requestSessionResume(selection.sessionId)
     }
     openSession(selection.sessionId, navigate)
+    // The room stays mounted with its draft, but no longer owns the browser's
+    // conversation identity after an ordinary session was explicitly selected.
+    $groupChatWorkspace.set(null)
   } catch {
     reportActionFailure('Could not open conversation.')
   }
