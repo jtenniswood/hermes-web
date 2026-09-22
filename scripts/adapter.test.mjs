@@ -179,7 +179,7 @@ test('Vite resolves compatibility aliases to one React runtime and the raw tour 
 const browserBoundaryAliases = rendererAliases()
 const withinDirectory = (filename, directory) => {
   const relative = path.relative(directory, filename)
-  return relative === '' || (!relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
 }
 function assertBrowserModelBoundary(source, filename) {
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true)
@@ -236,6 +236,7 @@ test('browser features cannot acquire raw upstream stores through aliases or nam
     "import { useBrowserConversation as useConversation } from '../upstream/conversation'",
     "import type { ConversationIdentity } from './contracts/conversation'",
     "import { ToolbarButton } from './ui/toolbar-button'",
+    "import * as local from '..'",
     "import React from 'react'"
   ]) assertBrowserModelBoundary(source, filename)
   const visit = directory => {
