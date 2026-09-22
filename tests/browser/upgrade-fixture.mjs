@@ -1,3 +1,4 @@
+import { waitForBrowserNetwork } from './network-readiness.mjs'
 import { test as base, expect } from '@playwright/test'
 import { createServer, request } from 'node:http'
 import { execFileSync } from 'node:child_process'
@@ -11,10 +12,11 @@ const docker = args => execFileSync('docker', args, { encoding: 'utf8' }).trim()
 export const test = base.extend({
   // Docker adds/removes host network interfaces. Launch after both images are
   // ready, so a reused Chromium network service cannot abort the first load.
-  context: async ({ upgradeApp, playwright, browserName, contextOptions, viewport }, use) => {
-    void upgradeApp
+  context: async ({ upgradeApp, playwright, browserName, contextOptions, viewport }, use, testInfo) => {
     const browser = await playwright[browserName].launch({ headless: true })
     try {
+      const readiness = await waitForBrowserNetwork(browser, upgradeApp.origin)
+      await testInfo.attach('fixture-network-readiness', { body: JSON.stringify(readiness), contentType: 'application/json' })
       const context = await browser.newContext({ ...contextOptions, viewport })
       await use(context)
       await context.close()

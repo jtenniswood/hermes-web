@@ -1,3 +1,4 @@
+import { waitForBrowserNetwork } from './network-readiness.mjs'
 import { test as base, expect } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { createPreviewGateway } from '../../scripts/preview/gateway.mjs'
@@ -6,10 +7,11 @@ import { requireBrowserImage } from './test-target.mjs'
 export const test = base.extend({
   // Docker changes network interfaces between tests. Launch a fresh browser
   // after the container is ready so cached network state cannot abort assets.
-  context: async ({ gatewayApp, playwright, browserName, contextOptions, viewport }, use) => {
-    void gatewayApp
+  context: async ({ gatewayApp, playwright, browserName, contextOptions, viewport }, use, testInfo) => {
     const browser = await playwright[browserName].launch()
     try {
+      const readiness = await waitForBrowserNetwork(browser, gatewayApp.origin)
+      await testInfo.attach('fixture-network-readiness', { body: JSON.stringify(readiness), contentType: 'application/json' })
       const context = await browser.newContext({ ...contextOptions, viewport })
       await use(context)
       await context.close()
