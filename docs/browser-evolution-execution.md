@@ -23,12 +23,12 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 
 | Stage | State | Required evidence |
 | --- | --- | --- |
-| 1. Update foundation | PR #36 merged; activation prerequisites inventoried | Required compatibility and preview checks passed on `57b6854`; merge `c282dc0`. Read-only audit identifies outstanding App and repository setup. |
+| 1. Update foundation | PR #36 merged; activation prerequisites inventoried | Required compatibility and preview checks passed on `57b6854`; merge `c282dc0`. Read-only audit confirms strict compatibility and renderer-update-policy checks; App credentials and activation remain outstanding. |
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
-| 5. Shared interaction surfaces | Profile, navigation, settings, mounted tool workspaces, and Bots toolbar merged; roster row actions under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
+| 5. Shared interaction surfaces | Profile, navigation, settings, mounted tool workspaces, Bots toolbar and roster actions merged; sidebar styling/touch refinement under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
 The user explicitly deferred updater App setup. Continue independent code and
@@ -108,7 +108,7 @@ for baseline maintenance and the initial arm64 emulation distinction.
 ## Activation checklist
 
 - [ ] Install the repository-scoped updater App; set App ID, bot login, and key secret in GitHub (deferred by user).
-- [ ] Require the strict `renderer-update-policy` Actions check alongside `compatibility`.
+- [x] Require the strict `renderer-update-policy` Actions check alongside `compatibility` (read-only setup audit reconfirmed September 22).
 - [ ] Verify a compatible update through proposal, tests, merge, and exact-digest image publication.
 - [ ] Verify a deliberately incompatible candidate cannot move stable image tags.
 - [ ] Exercise branch refresh and retries; demonstrate rollback to the previous tested digest without clearing user state.
@@ -583,7 +583,8 @@ must not prevent trying the explicit button fallback. Restoration now checks
 that the browser actually moved focus before returning. Existing navigation
 viewport tests retain their focus assertions. All eight navigation/roster
 viewport journeys, typechecking, and the production build passed after the fix;
-fresh CI must verify the corrected head.
+required compatibility, policy, and preview checks passed on `fcb2b84`; PR #53
+merged as `fefb723`.
 
 
 ## Release configuration and rollback evidence
@@ -612,9 +613,8 @@ architecture evidence. These changes improve the release evidence but do not
 complete live renderer proposal/merge demonstrations, real-gateway smoke, or
 physical-device verification. All three real-image upgrade/rollback journeys
 passed against the published amd64 digest, and 14 release-policy/updater/evidence
-checks passed. Required committed-image CI remains pending. No running deployment
-was changed.
-
+checks passed. Required compatibility, policy, and preview CI passed on
+`e477ecc`; PR #54 merged as `a811d26`. No running deployment was changed.
 
 ## One-off updater validation
 
@@ -660,3 +660,57 @@ verification remains required after this fixture change.
 Local verification: three readiness checks and four Chromium image journeys
 passed, including both affected scenarios, delayed Bot selection, and two-tab
 rollback. These development-image results do not replace native arm64 evidence.
+
+## Touch access to sidebar visibility and explicit styling hooks
+
+Pinned-section visibility now uses one browser command model shared by the
+Navigation tabs menu/phone sheet and the Sessions pane context menu. Touch users
+can hide and restore the section through the explicit toolbar control. The
+existing storage key and actual session pins are preserved. Closing the surface
+returns focus to its opening control, or to the toolbar when the hidden heading
+is no longer focusable. Nested session-row menus keep their own commands.
+
+Session search and the recents/search-results sections now carry explicit browser
+styling classes. The browser stylesheet no longer identifies these elements by
+placeholder text or upstream flex/min-height utility classes. The existing
+sidebar-composition registry entry keeps its reviewed source/input fingerprints;
+only the reviewed output fingerprint changes. Fetched renderer sources and the
+renderer revision are unchanged.
+
+The first browser run exposed upstream interception of the new pane context
+menu. Restoring the coordinator marker preserves the browser surface's right-click
+ownership; the regression test retains desktop right-click and nested Unpin checks.
+Physical-device validation and live updater/gateway rollout evidence remain
+outstanding. App setup is deferred; scheduling and stable promotion stay disabled.
+
+Validation: 83 adapter/registry/composition checks, typechecking, and the production
+build passed. All eight final-image Chromium journeys passed at 390/1440px:
+pinned visibility and nested row actions, search/disclosure alignment at
+100/125/150%, and navigation selection/draft/focus at 100/150%. Required
+committed-image CI remains pending.
+
+The final navigation styling audit adds two reviewed registry entries for the
+Sessions/messaging and Cron section headers. They expose browser-owned header
+and label attributes; upstream disclosure callbacks and content remain intact.
+The browser stylesheet now uses those attributes instead of upstream group
+utility classes. A redundant icon-based rule targeted the empty-state project
+button, whose own upstream class already supplies the same color; it is removed.
+The registry now contains 83 interventions with explicit verification paths.
+
+The read-only setup audit reconfirmed both strict required checks, merge commits,
+and repository auto-merge capability. App ID, login, and key are absent as
+expected; scheduling and promotion are disabled. No setup settings changed.
+
+The populated-Cron viewport journey exposed a pre-existing phone drawer overflow
+at 150% UI scale: its viewport width was scaled twice and could hide the action
+control beyond the screen edge. The drawer now compensates its width for the UI
+scale. Navigation tests check drawer and trigger bounds before clicking, so
+Playwright's automatic scroll-into-view cannot conceal the clipping. This is a
+browser-emulation result; physical-device acceptance remains outstanding.
+
+Final refinement validation: 85 adapter/registry/composition checks, typechecking,
+and the production build passed. All ten final-image Chromium journeys passed:
+the prior eight navigation journeys plus Sessions/Cron disclosure, focus, bounds,
+and draft retention at 390/1440px and 100/150% scale. Captured 150% screenshots
+confirm the phone drawer and action controls remain within the viewport. Fresh
+committed-image CI is required after this refinement.
