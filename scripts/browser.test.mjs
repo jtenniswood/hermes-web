@@ -92,7 +92,7 @@ test('browser moves hidden Bots into the normal roster when the filter option is
 })
 
 test('browser bot menus omit the new-chat shortcut', () => {
-  const { browserPlugin, removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction } = load('src/upstream/browser-plugin.ts')
+  const { browserPlugin, removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction, useBrowserRosterSelection } = load('src/upstream/browser-plugin.ts')
   const filename = path.join(root, '../desktop/src/plugins/hermes-bots/bot-row.tsx')
   const source = readFileSync(filename, 'utf8')
   const output = removeBrowserNewBotChatAction(source)
@@ -100,19 +100,19 @@ test('browser bot menus omit the new-chat shortcut', () => {
   assert.doesNotMatch(output, /saveSelectedRosterBot|setBotsWorkspaceOwner|botWorkspaceOwnerKey/)
   assert.match(output, /import \{ botRosterMeta \} from '\.\/routing'/)
   assert.equal(removeBrowserNewBotChatAction(output), output)
-  assert.equal(browserPlugin(root).transform(source, filename).code, removeBrowserNewBotChatAction(removeBrowserOpenBotChatAction(source)))
+  assert.equal(browserPlugin(root).transform(source, filename).code, useBrowserRosterSelection(removeBrowserNewBotChatAction(removeBrowserOpenBotChatAction(source)), root, 'bot'))
   assert.throws(() => removeBrowserNewBotChatAction(source.replace('newBotChat(bot)', 'newChat(bot)')), /target changed/)
 })
 
 test('browser bot menus omit the open-chat shortcut', () => {
-  const { browserPlugin, removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction } = load('src/upstream/browser-plugin.ts')
+  const { browserPlugin, removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction, useBrowserRosterSelection } = load('src/upstream/browser-plugin.ts')
   const filename = path.join(root, '../desktop/src/plugins/hermes-bots/bot-row.tsx')
   const source = readFileSync(filename, 'utf8')
   const output = removeBrowserOpenBotChatAction(source)
   assert.doesNotMatch(output, /b\.bot\.openBotChat/)
   assert.doesNotMatch(output, /onSelect=\{\(\) => void openRosterBot\(bot\)\}/)
   assert.equal(removeBrowserOpenBotChatAction(output), output)
-  assert.equal(browserPlugin(root).transform(source, filename).code, removeBrowserNewBotChatAction(output))
+  assert.equal(browserPlugin(root).transform(source, filename).code, useBrowserRosterSelection(removeBrowserNewBotChatAction(output), root, 'bot'))
   assert.throws(() => removeBrowserOpenBotChatAction(source.replace('<ContextMenuItem onSelect={() => void openRosterBot(bot)}>', '<ContextMenuItem onSelect={() => void openRosterBot(otherBot)}>')), /target changed/)
 })
 

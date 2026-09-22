@@ -27,7 +27,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
-| 4. Behavioral contracts | Action, profile, and remaining model slices merged; session selection under verification; Bot/group commands outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
+| 4. Behavioral contracts | Action, profile, and remaining model slices merged; session selection merged; Bot/group commands under verification | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
@@ -232,4 +232,34 @@ targeted browser interruption journeys passed, including the reproduced
 Bot-to-session regression and returning to a Bot while its earlier activation is
 pending. The latter initially used a session ID where the browser contract
 exposes a Bot identity; the corrected identity and transcript assertions passed.
-Required CI on the committed image remains pending.
+Required compatibility and preview CI passed on `f70b0a5`; PR #43 merged as
+`ae4c47d`.
+
+## Bot and group selection commands
+
+Roster clicks now resolve the exact Bot key through the current
+engine roster and open it through a browser command. Missing owners and current
+activation failures reach the shared error surface; failures from superseded
+operations stay quiet. Existing and newly created groups use the same browser
+command and retain the engine's authoritative room and composer state.
+
+The group interruption journey exposed a shell effect that always revealed the
+ordinary workspace after selection, hiding the group pane the engine had just
+opened. Removing that corrective effect lets the selection owner control which
+conversation is visible. Returning to an ordinary session also clears group
+selection without deleting the retained room or its draft.
+
+Validation: 67 command, fixture, browser composition, and compatibility checks
+passed. Final typechecking and the production build passed. The final image
+passed Bot A/B ordering, interrupted group activation with both drafts retained,
+creating a group through the real dialog, and navigation/draft checks at 390px
+and 1440px. Adjacent panel, modal, rejected
+Bot activation, and Bot-to-session journeys passed on the preceding candidate.
+Local startup failures were traced to `ERR_NETWORK_CHANGED` while fetching React;
+those failed runs are not full-suite passing evidence. Required CI must verify
+the exact committed image before merge.
+
+The registry now has 67 owned entries, including two reviewed group callback
+integrations. Renderer revision and existing source fingerprints remain fixed.
+Other session entry points and concurrent persisted-action writes still need
+stale-operation review before stage 4 is complete.

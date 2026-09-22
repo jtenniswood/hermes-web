@@ -11,7 +11,9 @@ function selectionHarness() {
   const ownerRoute = tree.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'sessionOwnerRouteFromRow')
   assert.ok(ownerRoute, 'The upstream row-ownership helper must exist')
   let fail = false
+  let group = 'Team'
   const dependencies = {
+    $groupChatWorkspace: { set: value => { group = value } },
     requestSessionResume: (id, owner) => calls.push(['resume', id, owner]),
     forgetSessionOwnerHintsForSession: id => calls.push(['forget', id]),
     bumpBotOpenGeneration: () => calls.push(['cancel']),
@@ -23,7 +25,7 @@ function selectionHarness() {
   evaluate(ownerRoute.getText(tree))
   dependencies.sessionOwnerRouteFromRow = context.exports.sessionOwnerRouteFromRow
   evaluate(readFileSync('apps/web-desktop/src/upstream/selection.ts', 'utf8'))
-  return { select: context.exports.selectBrowserSession, calls, errors, fail: () => { fail = true } }
+  return { select: context.exports.selectBrowserSession, calls, errors, group: () => group, fail: () => { fail = true } }
 }
 
 test('session commands preserve the clicked owner for identical IDs in different profiles', () => {
@@ -42,8 +44,15 @@ test('untagged session rows clear stale owners before ambient resume', () => {
 })
 
 test('session navigation failures reach the browser error surface', () => {
-  const { select, errors, fail } = selectionHarness()
+  const { select, errors, fail, group } = selectionHarness()
   fail()
   select({ sessionId: 'unavailable' }, () => {})
   assert.deepEqual(errors, ['Could not open conversation.'])
+  assert.equal(group(), 'Team')
+})
+
+test('successful session selection releases group identity', () => {
+  const { select, group } = selectionHarness()
+  select({ sessionId: 'ordinary' }, () => {})
+  assert.equal(group(), null)
 })

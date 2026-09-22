@@ -1,6 +1,5 @@
 import { BrowserProfileNavigation } from './profile-navigation'
 import { BrowserGatewayPanel, useBrowserGatewayStatus } from '../upstream/browser-gateway-panel'
-import { revealBrowserWorkspace } from '../upstream/browser-workspace'
 import { BrowserActionError } from './action-errors'
 import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
@@ -66,7 +65,7 @@ function BrowserLayout() {
   // Selection closes the mobile drawer without changing desktop visibility.
   useEffect(() => {
     if (previous.current.selection !== conversation.selectionKey || previous.current.path !== location.pathname) {
-      setDrawerOpen(false); revealBrowserWorkspace()
+      setDrawerOpen(false)
       if (drawerOpen) requestAnimationFrame(() => main.current?.focus())
     }
     previous.current = { selection: conversation.selectionKey, path: location.pathname }

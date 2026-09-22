@@ -68,6 +68,7 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
     if (method === 'process.list') return { processes: [] }
     if (method === 'complete.path') return { items: [] }
     if (method === 'profiles.set_asset' && params.asset === 'avatar') return { ok: true }
+    if (method === 'image.generate') throw new Error('Image generation is unavailable in the synthetic gateway')
     if (method === 'config.get' && params.key === 'approvals.mode') return { value: approvalModes.get(profile) || 'smart' }
     if (method === 'config.set' && params.key === 'approvals.mode') {
       if (!['manual', 'smart', 'off'].includes(params.value)) throw new Error('Invalid approval mode')
@@ -75,6 +76,20 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
       return { value: params.value }
     }
     if (method === 'profiles.list') return { profiles: roster(), bot_mode_protocol: true }
+    if (method === 'profiles.configure' && params.name === 'default' && Object.keys(params.ui_meta || {}).length === 1 && params.ui_meta['hermes-bots-groups']) {
+      const snapshot = params.ui_meta['hermes-bots-groups']
+      if (snapshot.version !== 3 || !snapshot.rooms || typeof snapshot.rooms !== 'object' || Array.isArray(snapshot.rooms)) throw new Error('Invalid group room projection')
+      const owner = profiles.find(item => item.name === 'default')
+      owner.ui_meta = { ...owner.ui_meta, 'hermes-bots-groups': structuredClone(snapshot) }
+      return { applied: { ui_meta: true } }
+    }
+    if (method === 'profiles.configure' && Object.keys(params.ui_meta || {}).length === 1 && params.ui_meta['hermes-bots']) {
+      const owner = profiles.find(item => item.name === params.name)
+      const metadata = params.ui_meta['hermes-bots']
+      if (!owner || !Array.isArray(metadata.groups) || metadata.groups.some(group => typeof group !== 'string')) throw new Error('Invalid Bot group membership')
+      owner.ui_meta = { ...owner.ui_meta, 'hermes-bots': structuredClone(metadata) }
+      return { applied: { ui_meta: true } }
+    }
     if (method === 'session.list') return page(params.profile || 'all', true)
     if (method === 'session.resume' || method === 'session.activate') return snapshot(id)
     if (method === 'session.usage') return { calls: 1, input: 48, output: 120, total: 168 }
@@ -201,7 +216,7 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
     })
   })
   const disconnect = () => { for (const client of clients) client.terminate() }
-  return { server, sessions, messages, controls, disconnect, close: async () => { controls.releaseAll(); for (const timer of timers.values()) clearInterval(timer); disconnect(); sockets.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)) } }
+  return { server, sessions, messages, profiles, controls, disconnect, close: async () => { controls.releaseAll(); for (const timer of timers.values()) clearInterval(timer); disconnect(); sockets.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)) } }
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const gateway = createPreviewGateway({ log: (method, route) => console.log(method, route) })
