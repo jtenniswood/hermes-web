@@ -95,3 +95,54 @@ test('a delayed archive cannot navigate away from a newer conversation', async (
   await expect(page).toHaveURL(/#\/preview-idea$/)
   await expect(editor(page)).toHaveText('Keep the newer conversation draft')
 })
+
+
+test('rejected unread change rolls back the action and preserves the draft', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep the unread-action draft')
+  gatewayApp.controls.reject({ transport: 'http', method: 'PATCH', path: '/api/sessions/preview-week' }, 'Unread rejected')
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Mark as unread', exact: true }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Could not change unread status.' })).toBeVisible()
+  await expect(editor(page)).toHaveText('Keep the unread-action draft')
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Mark as unread', exact: true })).toBeVisible()
+})
+
+test('a delayed delete cannot navigate away from a newer conversation', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  const deletion = gatewayApp.controls.hold({ transport: 'http', method: 'DELETE', path: '/api/sessions/preview-week' })
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Delete', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete', exact: true }).click()
+  await deletion.entered
+  await page.getByText('Explore a product idea', { exact: true }).first().click()
+  await expect(page).toHaveURL(/#\/preview-idea$/)
+  await editor(page).fill('Keep the newer conversation after deletion')
+  const completed = page.waitForResponse(response => response.url().includes('/api/sessions/preview-week') && response.request().method() === 'DELETE')
+  deletion.release()
+  await completed
+  await expect(page.getByRole('button', { name: 'Plan a calmer working week', exact: true })).toHaveCount(0)
+  await expect(page).toHaveURL(/#\/preview-idea$/)
+  await expect(editor(page)).toHaveText('Keep the newer conversation after deletion')
+})
+
+for (const action of ['archive', 'delete']) {
+  test(`unconfirmed ${action} leaves the conversation intact`, async ({ page, gatewayApp }) => {
+    await openConversation(page, gatewayApp.origin)
+    await editor(page).fill('Keep this draft without confirmation')
+    await page.route('**/api/sessions/preview-week', route => {
+      if (route.request().method() === (action === 'archive' ? 'PATCH' : 'DELETE')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: false }) })
+      }
+      return route.continue()
+    })
+    await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: action === 'archive' ? 'Archive' : 'Delete', exact: true }).click()
+    if (action === 'delete') await page.getByRole('dialog').getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(page.getByRole('alert').filter({ hasText: `Could not ${action} conversation.` })).toBeVisible()
+    await expect(page).toHaveURL(/#\/preview-week$/)
+    await expect(editor(page)).toHaveText('Keep this draft without confirmation')
+    expect(gatewayApp.sessions.has('preview-week')).toBe(true)
+  })
+}

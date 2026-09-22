@@ -138,3 +138,16 @@ Local verification: 100 foundation tests, typechecking with no upstream baseline
 a production Vite build, all 52 input contracts, seven interruption journeys,
 and both previous-image real-composer upgrades passed. Broader browser surface
 checks and exact-commit CI remain pending. The renderer pin remains unchanged.
+
+## Browser command migration
+
+The first command slice moves selected-session archive, delete, pin, unread, and
+approval-mode reads/writes out of feature components into adapters with browser
+contracts. The adapters continue to use authoritative upstream stores, preserve
+newer navigation when a mutation finishes, and display failed or unconfirmed
+operations. The chat action menu now receives the persisted unread state.
+
+This slice does not complete stage 4: selection commands, profile/navigation
+models, remaining raw store consumers, and removal of corrective effects still
+need their own migration and interruption evidence. Additional journeys cover
+unread rejection, delayed deletion, and negative mutation acknowledgments.
