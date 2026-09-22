@@ -29,7 +29,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Profile, navigation, settings, mounted tool workspaces, Bots toolbar, roster actions, and sidebar styling/touch refinements merged; physical-device acceptance pending | Shared action definitions for desktop menus and phone sheets; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft checks passed in CI. |
-| 6. Enforcement and activation | Boundary checks and release mechanisms implemented; activation outstanding | Existing image gates retained; compatible and incompatible live update demonstrations, branch refresh/retry evidence, real-gateway smoke and real-device touch verification remain required. Browser rollback/retry is verified; activation waits for the remaining evidence. |
+| 6. Enforcement and activation | Boundary checks and release mechanisms implemented; activation outstanding | Existing image gates retained; compatible and incompatible live update demonstrations, branch refresh/retry evidence, real-gateway smoke and real-device touch verification remain required. Rollback and retry results are recorded below; final image acceptance and activation require the remaining evidence. |
 
 The user explicitly deferred updater App setup. Continue independent code and
 verification work while App setup and final activation remain pending. Do not
@@ -920,7 +920,14 @@ The previous supported image and fetched renderer sources remain unchanged.
 Three local real-image reproductions passed with the prototype: rollback
 activation took 155–210 ms after requesting the verified update, and both drafts
 survived rollback and another reload. The permanent regression adds background
-traffic to the existing rollback journey. Final implementation checks, committed
-image CI, and native release verification are still required. Deferred App
-setup, authenticated gateway smoke tests, and physical-device acceptance remain
+traffic to the existing rollback journey. All 193 foundation checks, typechecking, and the final production build passed.
+The first committed compatibility image (`054d8ff`, PR #64 head `1e8fb49`) passed
+all five real upgrade/rollback journeys without retries. Its full report had
+120 passes and two failures: the smaller safety fixture had not embedded the new
+network module and threw during registration. The fixture now embeds the actual
+module, rejects unknown imports, and reports startup exceptions immediately; all
+three targeted safety tests pass locally. The preview image passed all 77 UI
+cases without skips or retries. The corrected fixture still requires a green
+complete CI run, followed by native release verification. Deferred App setup,
+authenticated gateway smoke tests, and physical-device acceptance remain
 separate outstanding gates.
