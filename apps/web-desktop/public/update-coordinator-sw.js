@@ -3,6 +3,7 @@
 let preparingUpdate = false
 const appClients = async () => (await self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
   .filter(client => client.url.startsWith(self.registration.scope))
+const sameClients = (left, right) => left.length === right.length && right.every(client => left.some(known => known.id === client.id))
 function askClient(client, type, transaction) {
   return new Promise(resolve => {
     const channel = new MessageChannel()
@@ -17,27 +18,43 @@ self.addEventListener('message', event => {
   if (!event.source?.url?.startsWith(self.registration.scope)) return
   preparingUpdate = true
   event.waitUntil((async () => {
-    const transaction = crypto.randomUUID()
-    let committed = false
     try {
       const clients = await appClients()
       if (!clients.length) return
-      const replies = await Promise.all(clients.map(client => askClient(client, 'HERMES_FLUSH_UPDATE', transaction)))
-      if (replies.some(reply => !reply?.ready)) return
-      // Two tabs editing the same session differently must not overwrite each other.
-      const texts = new Map()
-      for (const reply of replies) for (const [key, text] of Object.entries(reply.texts || {})) {
-        if (texts.has(key) && texts.get(key) !== text) return
-        texts.set(key, text)
+      let originalTexts
+      // Older composers can refuse verification while cross-tab storage events
+      // settle. Retry that refusal once with a new transaction and every check.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const transaction = crypto.randomUUID()
+        let committed = false
+        try {
+          const participants = attempt === 0 ? clients : await appClients()
+          if (!sameClients(clients, participants)) return
+          const replies = await Promise.all(participants.map(client => askClient(client, 'HERMES_FLUSH_UPDATE', transaction)))
+          if (replies.some(reply => !reply?.ready)) return
+          // Two tabs editing the same session differently must not overwrite each other.
+          const texts = new Map()
+          for (const reply of replies) for (const [key, text] of Object.entries(reply.texts || {})) {
+            if (texts.has(key) && texts.get(key) !== text) return
+            texts.set(key, text)
+          }
+          // A fresh snapshot must never conceal a draft lost or changed since
+          // the first attempt, including drafts in an unmounted conversation.
+          if (originalTexts && [...originalTexts].some(([key, text]) => !texts.has(key) || texts.get(key) !== text)) return
+          originalTexts ??= texts
+          const current = await appClients()
+          if (!sameClients(clients, current)) return
+          const checks = await Promise.all(current.map(client => askClient(client, 'HERMES_VERIFY_UPDATE', transaction)))
+          if (checks.some(reply => !reply?.ready)) continue
+          if (!sameClients(clients, await appClients())) return
+          await self.skipWaiting()
+          committed = true
+          return
+        } finally {
+          if (!committed) for (const client of await appClients()) client.postMessage({ type: 'HERMES_ABORT_UPDATE', transaction })
+        }
       }
-      const current = await appClients()
-      if (current.length !== clients.length || current.some(client => !clients.some(known => known.id === client.id))) return
-      const checks = await Promise.all(current.map(client => askClient(client, 'HERMES_VERIFY_UPDATE', transaction)))
-      if (checks.some(reply => !reply?.ready)) return
-      await self.skipWaiting()
-      committed = true
     } finally {
-      if (!committed) for (const client of await appClients()) client.postMessage({ type: 'HERMES_ABORT_UPDATE', transaction })
       preparingUpdate = false
     }
   })())

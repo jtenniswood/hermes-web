@@ -25,7 +25,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | --- | --- | --- |
 | 1. Update foundation | PR #36 merged; activation prerequisites inventoried | Required compatibility and preview checks passed on `57b6854`; merge `c282dc0`. Read-only audit confirms strict compatibility and renderer-update-policy checks; App credentials and activation remain outstanding. |
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
-| 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) and [PR #59](https://github.com/jtenniswood/hermes-web/pull/59) merged; required CI passed | Previous supported image to candidate and back with the real composer, multiple tabs, active responses, unsent attachments, conflicting drafts, and retry after resolving the conflict. |
+| 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38), [PR #59](https://github.com/jtenniswood/hermes-web/pull/59), and [PR #63](https://github.com/jtenniswood/hermes-web/pull/63) merged; required CI passed | Previous supported image to candidate and back with the real composer, multiple tabs, active responses, unsent attachments, conflicting drafts, and retry after resolving the conflict. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Profile, navigation, settings, mounted tool workspaces, Bots toolbar, roster actions, and sidebar styling/touch refinements merged; physical-device acceptance pending | Shared action definitions for desktop menus and phone sheets; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft checks passed in CI. |
@@ -781,13 +781,97 @@ indefinite-checking observations are not all explained by this diagnosed write r
 App setup remains deferred. Live updater demonstrations, real-gateway smoke tests,
 physical-device acceptance, and automation activation remain outstanding.
 
+### Remaining activation failure evidence
+
+The main release for `a63d241` (run `35760920922`) passed 119 browser cases
+and failed the two-tab rollback journey. Both tabs acknowledged flush and
+verification, but the waiting service worker did not activate. This differs
+from the earlier draft-persistence refusal fixed in PR #59. The native image
+jobs and publication were skipped; this release is not accepted evidence.
+
+Upgrade fixtures now also attach bounded worker diagnostics: whether
+`skipWaiting()` was called or settled, pending event/response promises, and
+worker states. They preserve the original promise return values and omit
+request URLs, drafts, message payloads, and exception text. Closed workers are
+explicitly unavailable; these snapshots supplement the existing page protocol
+journal rather than providing complete worker history. They are test-only
+instrumentation, not an activation fix.
+
+Twelve focused local rollback repetitions (six at normal speed and six with
+2x CPU slowdown) did not reproduce the activation stall. All four upgrade and
+rollback journeys also passed with the worker instrumentation. CI reproduction
+and a verified correction remain outstanding, alongside the deferred App,
+real-gateway smoke test, and physical-device acceptance gates.
+
+PR #61 merged after 120 compatibility tests and 77 preview tests passed without
+skips or retries. Its worker reports contain no dropped observations. The
+activation stall did not recur in that run; native release validation is pending.
+
+### Stable conversation selection for mobile navigation
+
+The mobile drawer could close immediately after opening because the browser
+model included background Bot metadata in its selection key. A traced local
+reproduction showed `web-single::default` becoming `default` while the selected
+session and route stayed unchanged. The navigation effect treated that metadata
+refresh as a conversation switch.
+
+The key now follows the visible session or group. It remains stable while titles,
+Bot identity, or unrelated roster state hydrate, and changes when the actual
+conversation changes. Upstream stores remain authoritative. A regression against
+the actual adapter failed on the earlier implementation and passes with this
+change, including background session changes while a group remains selected.
+
+Validation passed: 180 foundation checks, typechecking, the production build,
+six repeated affected mobile flows with 2x CPU slowdown and no retries, eleven
+existing navigation/profile interaction cases, and a new phone journey switching
+sessions and Bots while preserving both session drafts. Temporary diagnostic
+logging and CPU throttling were removed. Committed-image CI remains required;
+physical-device acceptance and the separate update activation investigation are
+still outstanding.
+
+### Bounded retry after older-client verification refusal
+
+PR #62 merged after 121 compatibility tests and 77 preview tests passed without
+skips or retries. The separate main release for `1079c7f` (run `35766557634`)
+passed 119 browser cases but stopped during the initial previous-image upgrade:
+both tabs flushed, one refused verification, and both received an abort. Worker
+diagnostics show no `skipWaiting()` call and no pending worker promises. This is
+a conservative refusal by the immutable older client, distinct from the earlier
+all-replies-successful activation stall.
+
+The coordinator now retries a verification refusal once with a new transaction
+and another complete all-tab handshake. It retains the first attempt's draft
+union: a missing or changed original draft prevents activation even if the new
+snapshot would otherwise pass. Every tab must still flush and verify, and the
+client set is checked again immediately before activation. Busy tabs, unsent
+files, conflicts, new tabs, and repeated refusals continue to block the update.
+
+A real-image regression injects one refused verification reply before the old
+client loads, then uses the actual client for subsequent replies. It fails on
+the earlier coordinator and passes with the retry; both real composers retain
+their drafts through activation and another reload. Final local validation
+passed all five upgrade/rollback journeys without retries, 185 foundation
+checks, typechecking, and the production build. These local images contain the
+uncommitted change on `bb89381`; exact committed-image CI is still required.
+
+This change does not establish a correction for the separate all-replies-successful
+activation stall. That investigation, native release validation, deferred App
+setup, real-gateway testing, and physical-device acceptance remain outstanding.
+
 ## Complete the direct-import boundary check
 
-PR #59 passed all required checks and merged as `a63d241`. Its full compatibility
-report contains 120 passes with no failures, skips, or retries, including all four
-real-image upgrade journeys. Its preview report contains 77 passing UI journeys.
-Main release `35760920922` is verifying the merged revision; these PR results do
-not establish native release publication or production deployment.
+The boundary branch now includes PR #63, merged as `aa5c126` after every required
+check passed. Its compatibility report contains 122 browser passes, including all
+five upgrade/rollback journeys; its preview report contains 77 passes. Neither
+report has skips or retries. The compatibility image records merge revision
+`45c1c63`; native release acceptance remains separate from these PR results.
+
+The pre-retry main release for `bb89381` (run `35769340547`) passed all 121
+browser cases on arm64. Its amd64 job passed 120 and failed the initial upgrade
+inside the rollback journey: one older tab refused verification, both tabs
+received aborts, and worker diagnostics recorded no `skipWaiting()` call or
+pending promises. Publication was skipped. The new release for `aa5c126` includes
+the bounded retry and still requires native verification.
 
 The acceptance audit found that the feature boundary rejected raw store names
 through browser adapter imports but accepted direct renderer imports through
@@ -802,3 +886,8 @@ checks pass with the added negative cases and the scan of current feature files.
 This delivery changes CI enforcement and the status record; runtime source and
 reviewed compatibility fingerprints are unchanged. Required PR CI remains the
 merge gate.
+
+A read-only check of the locally configured gateway on September 22 returned
+version `0.21.4` with authentication required. This establishes reachability and
+the reported backend version only. The authenticated smoke-test journeys and
+physical-device acceptance remain outstanding; App setup is still deferred.

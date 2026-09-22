@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 import { createPreviewGateway } from '../../scripts/preview/gateway.mjs'
 import { requireBrowserImage } from './test-target.mjs'
 import { installUpdateDiagnostics } from './update-diagnostics.mjs'
+import { installWorkerDiagnostics } from './worker-diagnostics.mjs'
 
 const baseline = JSON.parse(readFileSync(new URL('../fixtures/upgrade-baseline.json', import.meta.url), 'utf8'))
 const docker = args => execFileSync('docker', args, { encoding: 'utf8' }).trim()
@@ -19,9 +20,11 @@ export const test = base.extend({
       const readiness = await waitForBrowserNetwork(browser, upgradeApp.origin)
       await testInfo.attach('fixture-network-readiness', { body: JSON.stringify(readiness), contentType: 'application/json' })
       const context = await browser.newContext({ ...contextOptions, viewport })
+      const workerDiagnostics = installWorkerDiagnostics(context)
       const diagnostics = await installUpdateDiagnostics(context)
       try { await use(context) } finally {
         await testInfo.attach('update-protocol', { body: JSON.stringify(diagnostics(), null, 2), contentType: 'application/json' })
+        await testInfo.attach('update-workers', { body: JSON.stringify(await workerDiagnostics(), null, 2), contentType: 'application/json' })
         await context.close()
       }
     } finally { await browser.close() }
