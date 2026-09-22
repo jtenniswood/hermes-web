@@ -14,11 +14,19 @@
       {
         "file": "tests/browser/interruptions.spec.mjs",
         "scenario": "an explicit profile choice survives delayed Bot activation"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "a session selection supersedes delayed Bot activation without losing its draft"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "returning to a Bot while its previous activation is pending honors the latest choice"
       }
     ],
     "removal": "Remove when routed Bot opens use public browser navigation contracts with equivalent interruption tests.",
     "sourceHash": "e68ccb464f1a8baf812d5881b603153c4ca57af6bffc3d5d677d6345204a9fff",
-    "outputHash": "b7d1f50c479ea5136dee23203fb9e904bd7ed5a911bfd0ab64c0474cf80284b8",
+    "outputHash": "14ee58a9ec67f54752a06899f5a1b28474a2f117109d5dc7f54f7242bbe634c8",
     "handler": "bot-session-cancellation",
     "sourceRoot": "renderer"
   },
@@ -113,11 +121,19 @@
       {
         "file": "tests/browser/interruptions.spec.mjs",
         "scenario": "a late Bot A response cannot replace Bot B or cross their drafts"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "a session selection supersedes delayed Bot activation without losing its draft"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "returning to a Bot while its previous activation is pending honors the latest choice"
       }
     ],
     "removal": "Remove when upstream canonical lookup and deduplicated opens support the single-gateway browser route.",
     "sourceHash": "f8688d56d1fd49844d00d3311b5b1fb08d131ce74fc44c4edc62ae01d877e179",
-    "outputHash": "142560b3a201bb8bfe172987da6612d096bb79b28e60e0cbe2c26b4ebfd8ca00",
+    "outputHash": "08a3d359a30e913118f07537fc8d6ef38b2badd8da9600465e4be81234f30033",
     "handler": "canonical-bot-chat",
     "sourceRoot": "renderer"
   },
@@ -359,22 +375,31 @@
     "kind": "browser-transform",
     "order": 20,
     "module": "app/contrib/wiring.tsx",
-    "reason": "Keep chat tab creation out of browser contribution wiring.",
+    "reason": "Keep browser session selection behind an owner-preserving command and disable chat tab creation.",
     "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
     "tests": [
       {
         "file": "tests/browser/browser.spec.mjs",
         "scenario": "fresh startup restores chat, registrations, bots, and avatar-backed profiles"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "a session selection supersedes delayed Bot activation without losing its draft"
+      },
+      {
+        "file": "scripts/selection.test.mjs",
+        "scenario": "session commands preserve the clicked owner for identical IDs in different profiles"
       }
     ],
     "removal": "Upstream wiring accepts a single-conversation capability.",
     "handlers": [
-      "disableBrowserSessionTabs"
+      "disableBrowserSessionTabs",
+      "useBrowserSessionSelection"
     ],
     "sourceHash": "816669c25c0fab0f2388768eb142bbce5e1435d0b9d62326170f0f4b1adc4e8d",
     "sourceRoot": "renderer",
     "inputHash": "816669c25c0fab0f2388768eb142bbce5e1435d0b9d62326170f0f4b1adc4e8d",
-    "outputHash": "06366482c957a0cccfde21f76360dc4eb316112458acd6c1d14641b81d858ce7"
+    "outputHash": "58fc6addf84f47dd77964ff47596950fda14dcfd542e247f0dda97270f9baa2b"
   },
   {
     "name": "single-conversation-controller",

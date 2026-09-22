@@ -281,6 +281,26 @@ export function disableBrowserSessionTileMirrors(source: string): string {
   return source.replace(target, replacement)
 }
 
+export function useBrowserSessionSelection(source: string, root: string): string {
+  const target = `    onResumeSession: (sessionId, session) => {
+      const ownerRoute = sessionOwnerRouteFromRow(session)
+
+      if (ownerRoute) {
+        requestSessionResume(sessionId, ownerRoute)
+      } else {
+        forgetSessionOwnerHintsForSession(sessionId)
+        requestSessionResume(sessionId)
+      }
+
+      openSession(sessionId, navigate)
+    },`
+  if (source.split(target).length !== 2) throw new Error('Browser session selection target changed')
+  const adapter = JSON.stringify(path.join(root, 'src/upstream/selection.ts'))
+  return (`import { selectBrowserSession } from ${adapter}\n` + source).replace(target, `    onResumeSession: (sessionId, session) => selectBrowserSession({
+      sessionId, connectionId: session?.connection_id, profile: session?.profile
+    }, navigate),`)
+}
+
 export function disableBrowserSessionRowTabs(source: string): string {
   const tabAction = "openSession(session.id, () => undefined, 'tab')"
   const windowAction = "openSession(session.id, () => undefined, 'window')"
@@ -369,6 +389,7 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
     useBrowserMicrophoneCapture, useBrowserComposerLayoutWidth, filterBrowserSessionMenu,
     showHiddenBotsInBrowserRoster, disableBrowserSessionTabs, disableBrowserSessionTileMirrors,
     disableBrowserSessionRowTabs, disableBrowserSessionOpenActions, filterBrowserKeybinds,
+    useBrowserSessionSelection: source => useBrowserSessionSelection(source, root),
     useBrowserSearchLabel: source => useBrowserSearchLabel(source, root),
     ungroupedStore: source => enableBrowserUngroupedSessions(source, 'store'),
     ungroupedMenu: source => enableBrowserUngroupedSessions(source, 'menu'),

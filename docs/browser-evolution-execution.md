@@ -27,7 +27,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
-| 4. Behavioral contracts | Action and profile slices merged; remaining models under verification; selection commands outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
+| 4. Behavioral contracts | Action, profile, and remaining model slices merged; session selection under verification; Bot/group commands outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
@@ -206,4 +206,30 @@ typechecking with no baselined diagnostics, and the production Vite build passed
 Twelve targeted browser journeys passed for pins, panels, navigation, Bots,
 gateway dialogs, delayed selection, reconnect, and hidden-Bot visibility across
 navigation and reload. The renderer pin and compatibility fingerprints are
-unchanged. Required CI on the committed image remains pending.
+unchanged. Required compatibility and preview CI passed on `5b652fe`; PR #42
+merged.
+
+## Session selection and interrupted Bot activation
+
+A new real-browser regression reproduced a late Bot activation replacing a newer
+session-row selection on the preceding model-boundary image. After selecting
+“All profiles” and the ordinary conversation, releasing Research's held profile
+listing navigated back to Research.
+
+The browser session command preserves the clicked row's connection and profile,
+clears stale owner hints for untagged rows, and invalidates older Bot intent
+before invoking the existing engine navigation. Bot navigation now checks that
+intent at the SDK commit point instead of bypassing cancellation. Canonical Bot
+lookup and retry retain the caller's selection guard; returning to a Bot while
+its earlier activation is pending can resolve the newest intent.
+
+The renderer revision and source fingerprints remain fixed. Three generated
+transform outputs were reviewed for these changes. This slice covers session-row
+selection; browser-owned Bot/group commands remain outstanding. Validation of
+the candidate passed: 66 adapter/composition/registry checks, three command
+checks, typechecking with no baselined diagnostics, and a production build. Six
+targeted browser interruption journeys passed, including the reproduced
+Bot-to-session regression and returning to a Bot while its earlier activation is
+pending. The latter initially used a session ID where the browser contract
+exposes a Bot identity; the corrected identity and transcript assertions passed.
+Required CI on the committed image remains pending.

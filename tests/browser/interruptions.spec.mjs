@@ -42,6 +42,43 @@ test('an explicit profile choice survives delayed Bot activation', async ({ page
   await expect(choice).toHaveAttribute('aria-pressed', 'true')
 })
 
+test('a session selection supersedes delayed Bot activation without losing its draft', async ({ page, gatewayApp }) => {
+  const finishHeldResponse = observeResponses(page)
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep the ordinary conversation draft')
+  await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+  const opening = gatewayApp.controls.hold(call => call.transport === 'rpc' && call.method === 'session.list' && call.params.profile === 'research')
+  await page.getByRole('button', { name: /Research · @/ }).click()
+  await opening.entered
+  await page.getByRole('tab', { name: 'Sessions', exact: true }).click()
+  await page.getByRole('button', { name: 'All profiles', exact: true }).click()
+  await page.getByRole('button', { name: 'Plan a calmer working week', exact: true }).click()
+  await expect(page).toHaveURL(/#\/preview-week$/)
+  await finishHeldResponse(opening)
+  await expect(page).toHaveURL(/#\/preview-week$/)
+  await expect(editor(page)).toHaveText('Keep the ordinary conversation draft')
+  await expect(page.locator('[data-browser-conversation-id]')).toHaveAttribute('data-browser-conversation-id', 'preview-week')
+})
+
+test('returning to a Bot while its previous activation is pending honors the latest choice', async ({ page, gatewayApp }) => {
+  const finishHeldResponse = observeResponses(page)
+  await openConversation(page, gatewayApp.origin)
+  await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+  const opening = gatewayApp.controls.hold(call => call.transport === 'rpc' && call.method === 'session.list' && call.params.profile === 'research')
+  await page.getByRole('button', { name: /Research · @/ }).click()
+  await opening.entered
+  await page.getByRole('button', { name: /Writer · @/ }).click()
+  await expect(page).toHaveURL(/#\/preview-writer$/)
+  await editor(page).fill('Keep Writer draft when returning to Research')
+  await page.getByRole('button', { name: /Research · @/ }).click()
+  await finishHeldResponse(opening)
+  await expect(page).toHaveURL(/#\/preview-research$/)
+  await expect(page.locator('[data-browser-conversation-id]')).toHaveAttribute('data-browser-conversation-id', 'legacy::research')
+  await expect(page.getByText('I can help you investigate a question, compare approaches, and organize your findings.', { exact: false }).first()).toBeVisible()
+  await page.getByRole('button', { name: /Writer · @/ }).click()
+  await expect(editor(page)).toHaveText('Keep Writer draft when returning to Research')
+})
+
 test('reconnect preserves the selected conversation and its draft', async ({ page, gatewayApp }) => {
   await openConversation(page, gatewayApp.origin)
   await editor(page).fill('Keep this draft across reconnect')
