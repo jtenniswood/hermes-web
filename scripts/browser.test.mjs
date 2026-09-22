@@ -21,7 +21,7 @@ test('browser omits generic activity toasts while preserving unread tracking and
   const output = filterBrowserActivityToasts(source)
   const { transformRenderer } = load('src/upstream/transforms.ts')
   const compatible = transformRenderer(source, filename).code
-  assert.equal(browserActivityNotificationsPlugin().transform(compatible, filename).code, filterBrowserActivityToasts(compatible))
+  assert.equal(browserActivityNotificationsPlugin(root).transform(compatible, filename).code, filterBrowserActivityToasts(compatible))
   assert.throws(() => filterBrowserActivityToasts(source.replace('host.notify({', 'host.changed({')), /notification target changed/)
   const notifications = [], unread = []
   const mocks = {
@@ -57,7 +57,7 @@ test('browser owns the Bots toolbar instead of rewriting upstream toolbar JSX', 
   const { browserActivityNotificationsPlugin } = load('src/upstream/browser-plugin.ts')
   const filename = path.join(root, '../desktop/src/plugins/hermes-bots/roster-pane-toolbar.tsx')
   const source = readFileSync(filename, 'utf8')
-  const plugin = browserActivityNotificationsPlugin()
+  const plugin = browserActivityNotificationsPlugin(root)
   assert.equal(plugin.transform(source, filename), null)
   const wrapper = readFileSync(path.join(root, 'src/experience/browser-bots-toolbar.tsx'), 'utf8')
   assert.match(wrapper, /<DropdownMenuSubTrigger>Show<\/DropdownMenuSubTrigger>/)

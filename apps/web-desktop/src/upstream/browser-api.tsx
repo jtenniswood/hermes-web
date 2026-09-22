@@ -28,6 +28,4 @@ export type { TitlebarTool } from '@/app/shell/titlebar-controls'
 export type { StatusbarItem } from '@/app/shell/statusbar-controls'
 
 export { BrowserWorkspace } from './browser-workspace'
-export { BrowserPanelButton } from './browser-panel-button'
-export { BrowserActivityToastsItem } from './browser-activity-toasts-item'
 export { ApprovalToolbarTarget } from './browser-statusbar'

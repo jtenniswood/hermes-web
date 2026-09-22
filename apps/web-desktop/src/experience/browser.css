@@ -42,15 +42,15 @@
 .browser-navigation-tabs button:focus-visible { color:var(--foreground); background:var(--browser-hover-fill); outline:none; }
 .browser-navigation-body { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; background:var(--browser-navigation-background); }
 /* Keep the disclosure in the search/navigation flow so expansion reserves space. */
-.browser-more-wrap { width:calc(100% + 1rem); margin:1px -.5rem 0; }
-.browser-more-trigger { width:100%; height:1.5rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.6875rem; font-weight:500; text-align:left; cursor:pointer; }
-.browser-more-trigger > .codicon { width:1rem; flex:0 0 1rem; text-align:center; }
-.browser-more-trigger:hover,.browser-more-trigger:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
-.browser-more-list { display:flex; flex-direction:column; gap:1px; margin-bottom:.25rem; }
-.browser-more-list[hidden] { display:none; }
-.browser-more-list button { width:100%; height:1.75rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.8125rem; font-weight:500; text-align:left; cursor:pointer; }
-.browser-more-list button > .codicon { color:color-mix(in srgb,currentColor 72%,transparent); }
-.browser-more-list button:hover,.browser-more-list button:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
+.browser-navigation-section { width:calc(100% + 1rem); margin:1px -.5rem 0; }
+.browser-navigation-section-trigger { width:100%; height:1.5rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.6875rem; font-weight:500; text-align:left; cursor:pointer; }
+.browser-navigation-section-trigger > .codicon { width:1rem; flex:0 0 1rem; text-align:center; }
+.browser-navigation-section-trigger:hover,.browser-navigation-section-trigger:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
+.browser-navigation-section-list { display:flex; flex-direction:column; gap:1px; margin-bottom:.25rem; }
+.browser-navigation-section-list[hidden] { display:none; }
+.browser-navigation-section-list button { width:100%; height:1.75rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.8125rem; font-weight:500; text-align:left; cursor:pointer; }
+.browser-navigation-section-list button > .codicon { color:color-mix(in srgb,currentColor 72%,transparent); }
+.browser-navigation-section-list button:hover,.browser-navigation-section-list button:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
 .browser-profile-footer { position:relative; display:flex; flex-direction:column; align-items:stretch; gap:0; flex-shrink:0; padding:.6rem .75rem .7rem; background:var(--browser-navigation-background); }
 .browser-profile-footer[hidden] { display:none; }
 .browser-profile-rail { min-width:0; width:100%; display:flex; align-items:center; gap:.4rem; overflow-x:auto; scrollbar-width:none; }
@@ -184,10 +184,9 @@
    illustration intended for the desktop shell. */
 html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:none !important; }
 
-.browser-settings-menu { max-width:calc(100vw - 1rem); }
-.browser-settings-menu :is([role="menuitem"],[role="menuitemcheckbox"]) > .codicon { color:var(--ui-text-tertiary); }
+.browser-settings-menu .browser-action-icon { color:var(--ui-text-tertiary); }
 .browser-gateway-dialog { width:24rem; max-width:calc(100vw / var(--web-ui-scale,1) - 2rem); max-height:calc(100dvh / var(--web-ui-scale,1) - 2rem); overflow:auto; gap:0; padding:0; }
-.browser-gateway-dialog-title { padding:.85rem 2.5rem .65rem .75rem; font-size:.875rem; outline:none; }
+.browser-modal-title { padding:.85rem 2.5rem .65rem .75rem; font-size:.875rem; outline:none; }
 
 .browser-action-error { position:fixed; z-index:200; top:1rem; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:1rem; max-width:calc(100% - 2rem); padding:.75rem 1rem; border:1px solid var(--border); border-radius:.5rem; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 .5rem 1.5rem #0005; }
 .browser-action-error button { flex-shrink:0; padding:.25rem .5rem; border:1px solid var(--border); border-radius:.25rem; background:transparent; color:inherit; cursor:pointer; }
@@ -216,3 +215,7 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-navigation-actions-trigger { display:inline-flex; align-items:center; justify-content:center; flex:0 0 2.75rem; min-height:2.75rem; border:0; background:transparent; color:var(--muted-foreground); cursor:pointer; }
 .browser-navigation-actions-trigger:hover,.browser-navigation-actions-trigger:focus-visible { background:var(--browser-hover-fill); color:var(--foreground); }
 .browser-action-check { display:inline-block; width:1rem; flex:0 0 1rem; margin-right:.5rem; color:var(--primary,#4d86ff); }
+
+.browser-action-group + .browser-action-group { margin-top:.3rem; padding-top:.3rem; border-top:1px solid var(--border); }
+.browser-action-group-label { margin:0; padding:.45rem .65rem .2rem; color:var(--muted-foreground); font-size:.7rem; font-weight:600; }
+.browser-action-icon { display:inline-flex; align-items:center; justify-content:center; flex:0 0 1rem; margin-right:.5rem; }

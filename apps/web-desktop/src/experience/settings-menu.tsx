@@ -1,5 +1,9 @@
-import type { ReactNode } from 'react'
-import { ActionsMenu, APP_ROUTES, BrowserActivityToastsItem, BrowserPanelButton, Codicon } from '../upstream/browser-api'
+import { useState, type RefObject } from 'react'
+import { APP_ROUTES, Codicon } from '../upstream/browser-api'
+import { useBrowserSettings } from '../upstream/settings'
+import { BrowserActionSurface, type BrowserActionAnchor, type BrowserActionGroup } from './ui/action-surface'
+import { BrowserToolbarButton } from './ui/toolbar-button'
+import { useCompactBrowser } from './ui/use-compact-browser'
 
 const TOOL_ROUTE_META: Record<string, { label: string; icon: string }> = {
   'command-center': { label: 'Command center', icon: 'symbol-misc' },
@@ -30,40 +34,36 @@ type PanelEntry = {
 }
 
 type SettingsMenuProps = {
-  children: ReactNode
-  gatewayDialogOpen: boolean
+  triggerRef: RefObject<HTMLButtonElement | null>
   onOpenGateway: () => void
   onOpenPanel: () => void
   onOpenRoute: (path: string) => void
   panelPanes: PanelEntry[]
 }
 
-export function SettingsMenu({ children, gatewayDialogOpen, onOpenGateway, onOpenPanel, onOpenRoute, panelPanes }: SettingsMenuProps) {
-  return <ActionsMenu align="end" ariaLabel="Settings and workspace" contentClassName="w-40 browser-settings-menu" onCloseAutoFocus={event => { if (gatewayDialogOpen) event.preventDefault() }} items={kit => <>
-    <kit.Label>Notifications</kit.Label>
-    <BrowserActivityToastsItem />
-    {panelPanes.length > 0 && <>
-      <kit.Separator />
-      <kit.Label>Panels</kit.Label>
-      {panelPanes.map(pane => {
-        const title = String(pane.title || pane.id)
-        const icon = pane.id === 'review' ? 'git-compare' : 'files'
-        const data = pane.data as { collapsible?: boolean } | undefined
-        return <BrowserPanelButton key={pane.id} id={pane.id} title={sentenceCase(title)} ariaLabel={title} icon={<Codicon name={icon} size="0.875rem" />} collapsible={Boolean(data?.collapsible)} onOpen={onOpenPanel} />
-      })}
-    </>}
-    <kit.Separator />
-    <kit.Label>Systems</kit.Label>
-    <kit.Item onSelect={() => onOpenRoute('/settings')}><Codicon name="settings-gear" size="0.875rem" /><span>Settings</span></kit.Item>
-    <kit.Item onSelect={onOpenGateway}><Codicon name="pulse" size="0.875rem" /><span>Gateway</span></kit.Item>
-    <kit.Separator />
-    <kit.Label>Workspace</kit.Label>
-    {APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => <kit.Item key={route.path} onSelect={() => onOpenRoute(route.path)}>
-      <Codicon name={toolRouteIcon(route.id)} size="0.875rem" /><span>{toolRouteLabel(route.id)}</span>
-    </kit.Item>)}
-  </>}>
-    {children}
-  </ActionsMenu>
+export function SettingsMenu({ triggerRef, onOpenGateway, onOpenPanel, onOpenRoute, panelPanes }: SettingsMenuProps) {
+  const compact = useCompactBrowser()
+  const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
+  const model = useBrowserSettings(panelPanes.map(pane => ({ id: pane.id, collapsible: Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible) })))
+  const groups: BrowserActionGroup[] = [
+    { key: 'notifications', label: 'Notifications', actions: [{ key: 'activity-toasts', label: 'Activity toasts', checked: model.activityToasts.enabled, icon: <Codicon name={model.activityToasts.enabled ? 'bell' : 'bell-slash'} size="0.875rem" />, run: model.activityToasts.toggle }] },
+    { key: 'panels', label: 'Panels', actions: model.panels.map(panel => {
+      const title = String(panelPanes.find(pane => pane.id === panel.id)?.title || panel.id)
+      return { key: panel.id, label: sentenceCase(title), ariaLabel: title, checked: panel.checked, icon: <Codicon name={panel.id === 'review' ? 'git-compare' : 'files'} size="0.875rem" />, afterClose: true, run: () => { if (panel.select()) onOpenPanel() } }
+    }) },
+    { key: 'systems', label: 'Systems', actions: [
+      { key: 'settings', label: 'Settings', icon: <Codicon name="settings-gear" size="0.875rem" />, afterClose: true, run: () => onOpenRoute('/settings') },
+      { key: 'gateway', label: 'Gateway', icon: <Codicon name="pulse" size="0.875rem" />, afterClose: true, run: onOpenGateway }
+    ] },
+    { key: 'workspace', label: 'Workspace', actions: APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => ({ key: route.path, label: toolRouteLabel(route.id), icon: <Codicon name={toolRouteIcon(route.id)} size="0.875rem" />, afterClose: true, run: () => onOpenRoute(route.path) })) }
+  ]
+  return <>
+    <BrowserToolbarButton ref={triggerRef} tooltip="Settings" aria-label="Open settings menu" aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(anchor)} onClick={event => {
+      const bounds = event.currentTarget.getBoundingClientRect()
+      setAnchor({ x: bounds.right, y: bounds.bottom, returnFocus: event.currentTarget })
+    }}><Codicon name="settings-gear" size="0.75rem" /></BrowserToolbarButton>
+    <BrowserActionSurface title="Settings and workspace" className="browser-settings-menu" groups={groups} anchor={anchor} compact={compact} onClose={() => setAnchor(null)} fallbackFocus={triggerRef} />
+  </>
 }
 
 function sentenceCase(label: string) {

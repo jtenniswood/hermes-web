@@ -28,7 +28,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
-| 5. Shared interaction surfaces | Profile and navigation controls with shared toolbar/menu/sheet primitives under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
+| 5. Shared interaction surfaces | Profile and navigation controls merged; settings controls under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
 The user explicitly deferred updater App setup. Continue independent code and
@@ -373,7 +373,8 @@ menus, action parity at 390px/1440px and 100%/150% scale, focus and drafts,
 emulated touch taps, saved-order preservation, and unavailable preference
 storage. An initial layout regression and an outside-click focus regression
 were caught and fixed before this passing run. Screenshots were captured at
-each tested viewport/scale. Required CI is still needed for the committed image.
+each tested viewport/scale. PR #48 passed all required checks on its refreshed
+head `4dc4947` and merged as `bc0ccb2`.
 
 This is the first stage 5 slice. Navigation, settings, and Bots controls, further
 shell extraction, and physical-device touch validation remain outstanding.
@@ -404,13 +405,14 @@ navigation, focus restoration, and scaled pointer/keyboard resizing. Seven
 existing profile and drawer journeys also passed on the same candidate. Initial
 desktop keyboard checks moved focus before menu dismissal restored it; the tests
 now wait for that required focus state before exercising arrow navigation.
-Required CI must still verify the committed production image.
+PR #49 passed all required checks on refreshed head `5385fd4` and merged as
+`13d9b81`.
 
 Settings and Bots controls, shared navigation sections/modal composition, and
 physical-device verification remain stage 5 work. This does not enable updater
 automation or change the renderer pin.
 
-## Session entry points merged; profile branch refreshed
+## Session entry points, profile, and navigation merges
 
 PR #47 passed required compatibility, preview, and update-policy CI on
 `c191df1` and merged as `d60651b`. A compatibility run had stopped before its
@@ -420,5 +422,41 @@ rerun. Stage 4's browser commands and shared selection owners are now merged.
 
 PR #48 passed all required checks on `c69d74c`. After PR #47 merged, the
 repository required its branch to be up to date with `main`. The branch was
-refreshed with a history-preserving merge as `4dc4947`; required checks must pass
-again on that refreshed head before merging. No branch protection was bypassed.
+refreshed with a history-preserving merge as `4dc4947`; all required checks passed
+again before merge `bc0ccb2`. PR #49 likewise refreshed to `5385fd4`, passed its
+required checks, and merged as `13d9b81`. No branch protection was bypassed.
+
+
+## Shared settings and overlay focus
+
+Settings now defines one action list for desktop menus and phone sheets, with
+shared groups, icons, checkbox state, and toolbar controls. An adapter projects
+activity notifications and contributed panel visibility from their upstream
+stores and rereads those stores when invoking a command. Contributed panels
+retain their existing lifecycle and narrow-screen reveal behavior. The More/Less
+disclosure and Gateway modal now use shared browser components.
+
+Actions that open another surface run after the old menu or sheet has released
+its focus scope. Workspace overlays own initial focus, nested-surface-aware Tab
+containment, and return focus. A real-browser regression exposed the composer's
+automatic visibility effect overriding the restored toolbar button. That effect
+now yields while the overlay's return target retains focus; blur releases the
+claim, and explicit composer focus commands remain available. Both source
+interventions have reviewed registry fingerprints and removal conditions. The
+renderer pin and existing reviewed transform fingerprints are unchanged.
+
+Validation: 52 adapter/registry checks, 23 browser composition checks,
+typechecking, and the production build passed. All 25 targeted Chromium journeys
+passed on the final development image, including settings, contributed panels,
+notifications, disclosure, Gateway, profile/navigation controls, full-page modal
+route return, and Command Center. The new focus matrix covers both viewport sizes
+and scales, draft preservation, Tab wrapping, toolbar focus restoration, and an
+explicit composer focus shortcut. Required CI for the committed image is pending.
+
+Stage 5 remains incomplete. Bots action surfaces still need migration. The
+full-page Capabilities, Messaging, and Artifacts modal routes currently unmount
+the workspace; preserving composer DOM identity and unsent attachments across
+those routes needs a separate ownership change and real-composer tests. Do not
+infer composer-lifetime proof from text-draft restoration alone. Physical-device
+touch verification remains pending. Updater App setup is deferred and scheduling
+and stable promotion remain disabled.

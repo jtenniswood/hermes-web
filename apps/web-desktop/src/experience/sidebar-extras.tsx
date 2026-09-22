@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
+import { BrowserNavigationSection } from './ui/navigation-section'
 import { Codicon } from '../upstream/browser-api'
 
 const NavigateContext = createContext<(path: string) => void>(() => {})
@@ -13,16 +14,10 @@ export function BrowserSidebarNavigation({ onNavigate, children }: { onNavigate:
 }
 
 export function BrowserSidebarExtras() {
-  const [expanded, setExpanded] = useState(false)
   const navigate = useContext(NavigateContext)
-  return <div className="browser-more-wrap">
-    <div id="browser-extra-controls" role="group" aria-label="More controls" hidden={!expanded} className="browser-more-list">
-      {EXTRA_ROUTES.map(route => <button key={route.path} type="button" onClick={() => navigate(route.path)}>
-        <Codicon name={route.icon} size="1rem" /><span>{route.label}</span>
-      </button>)}
-    </div>
-    <button type="button" className="browser-more-trigger" aria-controls="browser-extra-controls" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>
-      <Codicon name={expanded ? 'chevron-up' : 'chevron-down'} size=".75rem" /><span>{expanded ? 'Less' : 'More'}</span>
-    </button>
-  </div>
+  return <BrowserNavigationSection id="browser-extra-controls" label="More controls">
+    {EXTRA_ROUTES.map(route => <button key={route.path} type="button" onClick={() => navigate(route.path)}>
+      <Codicon name={route.icon} size="1rem" /><span>{route.label}</span>
+    </button>)}
+  </BrowserNavigationSection>
 }

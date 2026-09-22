@@ -518,6 +518,7 @@ test('the command center opens a session in the browser conversation view', asyn
   await editor(page).fill('Keep the previous conversation draft')
   await page.keyboard.press('Control+k')
   const command = page.getByRole('combobox')
+  await expect(command).toBeFocused()
   await command.fill('Explore a product idea')
   const choice = page.getByRole('group', { name: 'Sessions', exact: true }).getByRole('option', { name: /Explore a product idea/ })
   await expect(choice).toBeVisible()
