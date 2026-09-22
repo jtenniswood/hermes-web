@@ -66,6 +66,47 @@ function writePin(id: string, pinned: boolean, profile?: null | string): void {
   return output
 }
 
+export function useBrowserOpenSessionOwner(source: string, root: string): string {
+  const target = 'export function openSession('
+  if (source.split(target).length !== 2) throw new Error('Browser session entry point changed')
+  const owner = JSON.stringify(path.join(root, 'src/upstream/selection-owner'))
+  return `import { runBrowserSessionSelection } from ${owner}\n` + source.replace(target, 'function openEngineSession(') + `
+export function openSession(
+  storedSessionId: string,
+  navigate: OpenSessionNavigate,
+  intent: OpenSessionIntent = 'in-place',
+  workspaceScope: OpenSessionWorkspaceScope = { workspaceMode: 'sessions' }
+): void {
+  if (!storedSessionId) return
+  const bot = workspaceScope.workspaceMode === 'bots'
+  // Browser navigation has one conversation surface, including palette/refs.
+  const browserIntent = !bot && ['stack', 'tab', 'window'].includes(intent) ? 'in-place' : intent
+  const select = () => openEngineSession(storedSessionId, navigate, browserIntent, workspaceScope)
+  // Bot activation owns its existing generation and must not cancel itself.
+  if (bot) select()
+  else runBrowserSessionSelection(select)
+}
+`
+}
+
+export function useBrowserFreshSessionOwner(source: string, root: string): string {
+  const start = '    (options: boolean | FreshSessionDraftOptions = false) => {'
+  const end = '      setFreshDraftReady(true)\n    },'
+  if (source.split(start).length !== 2 || source.split(end).length !== 2) throw new Error('Browser fresh-session owner changed')
+  const owner = JSON.stringify(path.join(root, 'src/upstream/selection-owner'))
+  return `import { runBrowserSessionSelection } from ${owner}\n` + source
+    .replace(start, start.replace('=> {', '=> runBrowserSessionSelection(() => {'))
+    .replace(end, end.replace('    },', '    }),'))
+}
+
+export function useBrowserDirectResumeOwner(source: string): string {
+  const target = '    resumeStoredSession: resumeSession,'
+  if (source.split(target).length !== 2) throw new Error('Browser direct resume owner changed')
+  // Navigate first, so the route-resume owner cannot restore the previous route
+  // while a typed /resume command loads its chosen conversation.
+  return source.replace(target, '    resumeStoredSession: id => openSession(id, navigate),')
+}
+
 export function scopeBrowserStorage(source: string): string {
   const original = source.split(storageScope).join('')
   const contract = contracts.find(item => item.module === 'lib/storage.ts')!
@@ -459,6 +500,9 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
   if (digest(code) !== entry.inputHash) throw new Error(`Browser compatibility changed: ${entry.name} (${entry.module}). Review this registry entry.`)
   const handlers: Record<string, (source: string) => string> = {
     useBrowserPinWrites: source => useBrowserPinWrites(source, root),
+    useBrowserOpenSessionOwner: source => useBrowserOpenSessionOwner(source, root),
+    useBrowserFreshSessionOwner: source => useBrowserFreshSessionOwner(source, root),
+    useBrowserDirectResumeOwner: source => useBrowserDirectResumeOwner(source),
     scopeBrowserStorage, filterBrowserNarrowNavigation, closeBrowserWorkspacePanels,
     exportBrowserStatusbarItem, filterBrowserActivityToasts, removeBrowserNewSessionShortcut,
     removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction, fixBrowserTooltipBoundary,

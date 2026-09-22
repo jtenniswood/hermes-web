@@ -27,7 +27,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
-| 4. Behavioral contracts | Action, profile, and remaining model slices merged; session selection merged; Bot/group commands merged; remaining action races under review | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
+| 4. Behavioral contracts | Models, commands, and pin/unread ordering merged; shared session entry points under verification | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
@@ -308,6 +308,42 @@ Validation so far: 41 pin-owner and registry checks passed, typechecking passed
 with no baselined diagnostics, and the production build passed. Four targeted
 Chromium journeys passed against the candidate image, covering pin rejection,
 unpin rejection and retry, delayed writes, and negative acknowledgments. Existing
-pinned-section visibility checks also passed at 390px and 1440px. Required CI
-must verify the committed production image before merge. The renderer revision
-and existing compatibility fingerprints remain fixed.
+pinned-section visibility checks also passed at 390px and 1440px. Required
+compatibility, preview, and update-policy CI passed on `213e289`; PR #46 merged
+as `fb6770b`. The renderer revision and existing compatibility fingerprints
+remain fixed.
+
+## Shared session entry points
+
+Browser regressions reproduced delayed Bot activation replacing both a session
+chosen from the picker and a fresh-chat draft. Cancellation and group-identity
+release now belong to the shared session-opening and fresh-draft entry points.
+The row command retains its explicit owner-hint policy. Bot-scoped opens keep
+their own generation and workspace ownership.
+
+Typed `/resume` now requests navigation through the shared opener before the
+route-resume owner loads the session. Directly loading it under the previous
+route allowed that route to restore the old conversation. Command Center also
+reproduced opening a desktop-style tab while leaving the browser route unchanged;
+ordinary tab, window, and stack intents now use the browser's single conversation
+surface.
+
+The fixture explicitly supports slash completion and the Command Center's empty
+read-only catalogs, and separates archived session queries. Unsupported writes
+remain errors. Registry entries cover the two additional engine entry points;
+the reviewed wiring output changes while its pinned input remains unchanged.
+
+Validation: 52 selection-owner, fixture, and registry checks passed, along with
+typechecking with no baselined diagnostics and the production build. Seven
+targeted Chromium journeys passed on the final local image: picker, fresh chat,
+typed resume, Command Center, Bot A/B ordering, returning to a pending Bot, and
+group selection with retained drafts. Local host process exhaustion and
+network-change asset failures interrupted earlier attempts; those runs do not
+count as passing application evidence. Required CI must verify the committed
+production image before merge.
+
+The first full CI run caught a fixture regression in Settings: enabling schema
+reads exposed an optional model-preset endpoint returning an incomplete object.
+The fixture now returns a valid empty auxiliary-model catalog and an explicit
+unavailable response for unsupported mixture-of-agents presets. Both affected
+Settings journeys pass locally; the updated commit still requires full CI.
