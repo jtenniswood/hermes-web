@@ -1,23 +1,35 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ActionsContextMenu } from '../upstream/browser-api'
+import { BrowserActionSurface, type BrowserActionAnchor, type BrowserAction } from './ui/action-surface'
+import { useCompactBrowser } from './ui/use-compact-browser'
 
 const PINNED_HIDDEN_KEY = 'hermes-web.browser.pinned-section-hidden'
 
-export function BrowserSessionsPane({ hidden, children }: { hidden: boolean; children: ReactNode }) {
+export function useBrowserSidebarSections() {
   const [pinnedHidden, setPinnedHidden] = useState(() => {
     try { return localStorage.getItem(PINNED_HIDDEN_KEY) === 'true' } catch { return false }
   })
   useEffect(() => {
     try { localStorage.setItem(PINNED_HIDDEN_KEY, String(pinnedHidden)) } catch { /* Optional preference. */ }
   }, [pinnedHidden])
+  const actions: BrowserAction[] = [{ key: 'pinned', label: pinnedHidden ? 'Show pinned section' : 'Hide pinned section', run: () => setPinnedHidden(value => !value) }]
+  return { pinnedHidden, actions }
+}
 
-  return <ActionsContextMenu ariaLabel="Sidebar sections" items={kit => <>
-    <kit.Item onSelect={() => setPinnedHidden(value => !value)}>
-      {pinnedHidden ? 'Show pinned section' : 'Hide pinned section'}
-    </kit.Item>
-  </>}>
-    <div hidden={hidden} className="browser-pane browser-sessions-pane" data-pinned-hidden={pinnedHidden}>
-      {children}
-    </div>
-  </ActionsContextMenu>
+export function BrowserSessionsPane({ hidden, sections, children }: { hidden: boolean; sections: ReturnType<typeof useBrowserSidebarSections>; children: ReactNode }) {
+  const compact = useCompactBrowser()
+  const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
+  const fallback = { current: document.querySelector<HTMLButtonElement>('.browser-navigation-actions-trigger') }
+  useEffect(() => { if (hidden) setAnchor(null) }, [hidden])
+  // Let the upstream context-menu coordinator leave this browser surface alone.
+  return <div data-hermes-context-menu-trigger="" hidden={hidden} className="browser-pane browser-sessions-pane" data-pinned-hidden={sections.pinnedHidden} onContextMenu={event => {
+    // Session-row menus own their actions and must not open the section surface.
+    if (event.defaultPrevented || (event.target instanceof Element && event.target.closest('[data-row-actions]'))) return
+    event.preventDefault()
+    event.stopPropagation()
+    const target = event.target instanceof Element ? event.target.closest<HTMLElement>('button,a,input,[tabindex]') : null
+    setAnchor({ x: event.clientX, y: event.clientY, returnFocus: target || event.currentTarget })
+  }}>
+    {children}
+    <BrowserActionSurface title="Sidebar sections" actions={sections.actions} anchor={anchor} compact={compact} fallbackFocus={fallback} onClose={() => setAnchor(null)} />
+  </div>
 }

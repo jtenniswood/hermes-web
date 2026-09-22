@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type RefObject, type MouseEvent } from 'react'
+import { useBrowserSidebarSections } from './sidebar-sections'
 import { Codicon } from '../upstream/browser-api'
 import { BrowserActionSurface, type BrowserActionAnchor } from './ui/action-surface'
 import { BrowserToolbarButton } from './ui/toolbar-button'
@@ -12,6 +13,7 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
   main: RefObject<HTMLElement | null>
   trigger: RefObject<HTMLButtonElement | null>
 }) {
+  const sections = useBrowserSidebarSections()
   const drawer = useRef<HTMLElement>(null)
   const compact = useCompactBrowser()
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -49,7 +51,7 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
     return () => document.removeEventListener('keydown', keydown)
   }, [drawerOpen])
   return {
-    drawer, compact, drawerOpen, collapsed, width, setWidth, tab, setTab, visibleTabs,
+    sections, drawer, compact, drawerOpen, collapsed, width, setWidth, tab, setTab, visibleTabs,
     open: compact ? drawerOpen : !collapsed,
     toggle: () => compact ? setDrawerOpen(open => !open) : setCollapsed(value => !value),
     closeDrawer: () => setDrawerOpen(false),
@@ -91,9 +93,9 @@ export function BrowserNavigationTabs({ navigation }: { navigation: Navigation }
       </div>
       <BrowserToolbarButton ref={actionsTrigger} tooltip="Navigation tabs" className="browser-navigation-actions-trigger" aria-label="Navigation tabs" aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(anchor)} onClick={showActions}><Codicon name="ellipsis" size="1rem" /></BrowserToolbarButton>
     </div>
-    <BrowserActionSurface title="Navigation tabs" anchor={anchor} compact={compact} fallbackFocus={actionsTrigger} onClose={() => setAnchor(null)} closeLabel="Done" actions={NAVIGATION_TABS.map(value => ({
+    <BrowserActionSurface title="Navigation tabs" anchor={anchor} compact={compact} fallbackFocus={actionsTrigger} onClose={() => setAnchor(null)} closeLabel="Done" groups={[{ key: 'tabs', actions: NAVIGATION_TABS.map(value => ({
       key: value, label: NAVIGATION_TAB_LABELS[value], checked: visibleTabs.includes(value), disabled: visibleTabs.includes(value) && visibleTabs.length === 1, keepOpen: true, run: () => navigation.toggleTab(value)
-    }))} />
+    })) }, { key: 'sections', label: 'Sections', actions: navigation.sections.actions }]} />
   </>
 }
 

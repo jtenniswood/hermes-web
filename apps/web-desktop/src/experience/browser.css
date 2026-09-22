@@ -90,21 +90,21 @@
 /* Keep the recents section content-sized in the browser rail. The upstream
    sidebar gives it the remaining flex height, which leaves messaging and Cron
    pinned to the bottom when the list is short or empty. */
-.browser-sessions-pane [data-sidebar="group"][class~="min-h-32"][class~="flex-1"] { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
-.browser-sessions-pane [data-sidebar="group"][class~="min-h-32"][class~="flex-1"] > [data-sidebar="group-content"] { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
+.browser-sessions-pane .browser-session-list-section { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
+.browser-sessions-pane .browser-session-list-section > [data-sidebar="group-content"] { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
 .browser-pane[hidden],.browser-chat[hidden] { display:none; }
 /* Match the session search field to the surrounding navigation rows. The
    upstream field intentionally recedes until focused; browser navigation
    treats it as a normal menu item and uses the short "Search" label. */
 .browser-sessions-pane { flex:1 1 auto; height:auto; min-height:0; overflow:auto; }
-.browser-sessions-pane div:has(> input[placeholder="Search"]) { width:calc(100% + 1rem); max-width:none; height:1.75rem; min-height:1.75rem; display:flex; align-items:center; gap:.5rem; margin-top:0; margin-left:-.5rem; margin-right:-.5rem; padding:.5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); font-size:.8125rem; font-weight:500; line-height:1.4285714; opacity:1 !important; }
-.browser-sessions-pane div:has(> input[placeholder="Search"]):focus-within { border-color:transparent; background:var(--ui-control-hover-background,var(--browser-hover-fill)); color:var(--foreground); }
-.browser-sessions-pane div:has(> input[placeholder="Search"]) > svg { width:1rem; height:1rem; flex:0 0 1rem; color:color-mix(in srgb,currentColor 72%,transparent); }
-.browser-sessions-pane div:has(> input[placeholder="Search"]) > input { height:1.25rem; min-width:0; font:inherit; font-size:inherit; line-height:inherit; color:inherit; }
-.browser-sessions-pane div:has(> input[placeholder="Search"]) > input::placeholder { color:inherit; opacity:1; }
+.browser-sessions-pane .browser-session-search { width:calc(100% + 1rem); max-width:none; height:1.75rem; min-height:1.75rem; display:flex; align-items:center; gap:.5rem; margin-top:0; margin-left:-.5rem; margin-right:-.5rem; padding:.5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); font-size:.8125rem; font-weight:500; line-height:1.4285714; opacity:1 !important; }
+.browser-sessions-pane .browser-session-search:focus-within { border-color:transparent; background:var(--ui-control-hover-background,var(--browser-hover-fill)); color:var(--foreground); }
+.browser-sessions-pane .browser-session-search > svg { width:1rem; height:1rem; flex:0 0 1rem; color:color-mix(in srgb,currentColor 72%,transparent); }
+.browser-sessions-pane .browser-session-search > input { height:1.25rem; min-width:0; font:inherit; font-size:inherit; line-height:inherit; color:inherit; }
+.browser-sessions-pane .browser-session-search > input::placeholder { color:inherit; opacity:1; }
 .browser-sessions-pane [data-sidebar="content"] > [data-sidebar="group"]:first-child { padding-bottom:0; }
-.browser-sessions-pane [data-sidebar="content"] > div:has(> div > input[placeholder="Search"]) { padding-top:1px; }
-.browser-sessions-pane div:has(> input[placeholder="Search"]):hover { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); }
+.browser-sessions-pane .browser-session-search-section { padding-top:1px; }
+.browser-sessions-pane .browser-session-search:hover { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); }
 /* Center the empty state in its chat viewport without composer-dependent
    offsets. The browser sizes the wordmark directly from its available width,
    so the upstream hidden measuring copy must not reserve horizontal space. */

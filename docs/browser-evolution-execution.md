@@ -584,3 +584,31 @@ that the browser actually moved focus before returning. Existing navigation
 viewport tests retain their focus assertions. All eight navigation/roster
 viewport journeys, typechecking, and the production build passed after the fix;
 fresh CI must verify the corrected head.
+
+## Touch access to sidebar visibility and explicit styling hooks
+
+Pinned-section visibility now uses one browser command model shared by the
+Navigation tabs menu/phone sheet and the Sessions pane context menu. Touch users
+can hide and restore the section through the explicit toolbar control. The
+existing storage key and actual session pins are preserved. Closing the surface
+returns focus to its opening control, or to the toolbar when the hidden heading
+is no longer focusable. Nested session-row menus keep their own commands.
+
+Session search and the recents/search-results sections now carry explicit browser
+styling classes. The browser stylesheet no longer identifies these elements by
+placeholder text or upstream flex/min-height utility classes. The existing
+sidebar-composition registry entry keeps its reviewed source/input fingerprints;
+only the reviewed output fingerprint changes. Fetched renderer sources and the
+renderer revision are unchanged.
+
+The first browser run exposed upstream interception of the new pane context
+menu. Restoring the coordinator marker preserves the browser surface's right-click
+ownership; the regression test retains desktop right-click and nested Unpin checks.
+Physical-device validation and live updater/gateway rollout evidence remain
+outstanding. App setup is deferred; scheduling and stable promotion stay disabled.
+
+Validation: 83 adapter/registry/composition checks, typechecking, and the production
+build passed. All eight final-image Chromium journeys passed at 390/1440px:
+pinned visibility and nested row actions, search/disclosure alignment at
+100/125/150%, and navigation selection/draft/focus at 100/150%. Required
+committed-image CI remains pending.
