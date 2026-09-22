@@ -1,5 +1,9 @@
+import { useRef, useState } from 'react'
 import { useBrowserBotVisibility } from '../upstream/bots'
-import { Button, cn, Codicon, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger, GatewayKindGlyph, rosterGatewayOptions, SearchField, Tip, type RosterActivityFilter, type RosterKindFilter, type RosterRow, type useBots } from '../upstream/browser-api'
+import { cn, Codicon, GatewayKindGlyph, rosterGatewayOptions, SearchField, type RosterActivityFilter, type RosterKindFilter, type RosterRow, type useBots } from '../upstream/browser-api'
+import { BrowserActionSurface, type BrowserActionGroup, type BrowserActionAnchor } from './ui/action-surface'
+import { BrowserToolbarButton } from './ui/toolbar-button'
+import { useCompactBrowser } from './ui/use-compact-browser'
 
 type RenderRosterToolbarProps = {
   b: ReturnType<typeof useBots>
@@ -23,79 +27,57 @@ type RenderRosterToolbarProps = {
   setGatewayFilter: (value: string) => void
 }
 
+function BotsActionControl({ title, label = title, icon, active = false, groups, closeLabel = 'Cancel' }: {
+  title: string; label?: string; icon: string; active?: boolean; groups: BrowserActionGroup[]; closeLabel?: string
+}) {
+  const compact = useCompactBrowser()
+  const trigger = useRef<HTMLButtonElement>(null)
+  const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
+  return <>
+    <BrowserToolbarButton ref={trigger} tooltip={label} aria-label={label} aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(anchor)} className="browser-bots-control" data-active={active || undefined} onClick={event => {
+      const bounds = event.currentTarget.getBoundingClientRect()
+      setAnchor({ x: bounds.right, y: bounds.bottom, returnFocus: event.currentTarget })
+    }}><Codicon name={icon} size="0.75rem" /></BrowserToolbarButton>
+    <BrowserActionSurface title={title} groups={groups} anchor={anchor} compact={compact} fallbackFocus={trigger} closeLabel={closeLabel} onClose={() => setAnchor(null)} />
+  </>
+}
+
 type BotsFilterMenuProps = Pick<RenderRosterToolbarProps, 'b' | 'activeFilterCount' | 'gatewayOptions' | 'rowKindFilter' | 'setRowKindFilter' | 'activityFilter' | 'setActivityFilter' | 'gatewayFilter' | 'setGatewayFilter'>
 
 function BotsFilterMenu({ b, activeFilterCount, gatewayOptions, rowKindFilter, setRowKindFilter, activityFilter, setActivityFilter, gatewayFilter, setGatewayFilter }: BotsFilterMenuProps) {
-  const { showHidden: showHiddenBots, toggleHidden } = useBrowserBotVisibility()
-  return <DropdownMenu>
-    <Tip label={activeFilterCount ? `Filters (${activeFilterCount} active)` : 'Filter roster'}>
-      <DropdownMenuTrigger asChild>
-        <Button aria-label={activeFilterCount ? `Filter roster, ${activeFilterCount} active` : 'Filter roster'} className={cn('size-6 shrink-0 rounded-md text-(--ui-text-tertiary) hover:text-foreground', activeFilterCount && 'text-(--ui-accent)')} size="icon-xs" variant="ghost"><Codicon name="list-filter" size="0.75rem" /></Button>
-      </DropdownMenuTrigger>
-    </Tip>
-    <DropdownMenuContent align="end">
-      <DropdownMenuSub><DropdownMenuSubTrigger>Show</DropdownMenuSubTrigger><DropdownMenuSubContent>
-        {([['all', b.roster.botsAndGroups], ['bots', b.roster.botsOnly], ['groups', b.roster.groupsOnly]] as [RosterKindFilter, string][]).map(([value, label]) => <DropdownMenuItem key={`kind:${value}`} onSelect={() => setRowKindFilter(value)}><span className="min-w-0 flex-1">{label}</span>{rowKindFilter === value ? <Codicon name="check" /> : null}</DropdownMenuItem>)}
-      </DropdownMenuSubContent></DropdownMenuSub>
-      <DropdownMenuSeparator />
-      <DropdownMenuSub><DropdownMenuSubTrigger>Filter by time</DropdownMenuSubTrigger><DropdownMenuSubContent>
-        {([['all', b.roster.anyActivity], ['active', b.roster.activeNow], ['recent', b.roster.recentlyActive], ['older', b.roster.older]] as [RosterActivityFilter, string][]).map(([value, label]) => <DropdownMenuItem key={`activity:${value}`} onSelect={() => setActivityFilter(value)}><span className="min-w-0 flex-1">{label}</span>{activityFilter === value ? <Codicon name="check" /> : null}</DropdownMenuItem>)}
-      </DropdownMenuSubContent></DropdownMenuSub>
-      {gatewayOptions.length > 1 && <>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => setGatewayFilter('all')}><Codicon className="mr-1.5" name="globe" /><span className="min-w-0 flex-1">All gateways</span>{gatewayFilter === 'all' ? <Codicon name="check" /> : null}</DropdownMenuItem>
-        {gatewayOptions.map(option => <DropdownMenuItem key={option.connectionId} onSelect={() => setGatewayFilter(option.connectionId)}><GatewayKindGlyph className="mr-1.5" kind={option.kind} /><span className="min-w-0 flex-1 truncate">{option.label || option.connectionId}</span><span className="text-[0.625rem] tabular-nums text-(--ui-text-quaternary)">{option.count}</span>{gatewayFilter === option.connectionId ? <Codicon name="check" /> : null}</DropdownMenuItem>)}
-      </>}
-      {activeFilterCount > 0 && <><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => { setRowKindFilter('all'); setActivityFilter('all'); setGatewayFilter('all') }}>{b.roster.clearFilters}</DropdownMenuItem></>}
-      <DropdownMenuSeparator />
-      <DropdownMenuItem onSelect={toggleHidden}><span className="min-w-0 flex-1">Show hidden bots</span>{showHiddenBots ? <Codicon name="check" /> : null}</DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
+  const { showHidden, toggleHidden } = useBrowserBotVisibility()
+  const groups: BrowserActionGroup[] = [
+    { key: 'kind', label: 'Show', selection: 'single', actions: ([['all', b.roster.botsAndGroups], ['bots', b.roster.botsOnly], ['groups', b.roster.groupsOnly]] as [RosterKindFilter, string][]).map(([value, label]) => ({ key: value, label, checked: rowKindFilter === value, keepOpen: true, run: () => setRowKindFilter(value) })) },
+    { key: 'activity', label: 'Filter by time', selection: 'single', actions: ([['all', b.roster.anyActivity], ['active', b.roster.activeNow], ['recent', b.roster.recentlyActive], ['older', b.roster.older]] as [RosterActivityFilter, string][]).map(([value, label]) => ({ key: value, label, checked: activityFilter === value, keepOpen: true, run: () => setActivityFilter(value) })) },
+    { key: 'gateways', label: 'Gateways', selection: 'single', actions: gatewayOptions.length > 1 ? [
+      { key: 'all', label: 'All gateways', icon: <Codicon name="globe" />, checked: gatewayFilter === 'all', keepOpen: true, run: () => setGatewayFilter('all') },
+      ...gatewayOptions.map(option => ({ key: option.connectionId, label: `${option.label || option.connectionId} (${option.count})`, icon: <GatewayKindGlyph kind={option.kind} />, checked: gatewayFilter === option.connectionId, keepOpen: true, run: () => setGatewayFilter(option.connectionId) }))
+    ] : [] },
+    { key: 'visibility', actions: [{ key: 'hidden', label: 'Show hidden bots', checked: showHidden, keepOpen: true, run: toggleHidden }] },
+    { key: 'reset', actions: activeFilterCount ? [{ key: 'clear', label: b.roster.clearFilters, keepOpen: true, run: () => { setRowKindFilter('all'); setActivityFilter('all'); setGatewayFilter('all') } }] : [] }
+  ]
+  return <BotsActionControl title="Filter Bots" label={activeFilterCount ? `Filter roster, ${activeFilterCount} active` : 'Filter roster'} icon="list-filter" active={activeFilterCount > 0} groups={groups} closeLabel="Done" />
 }
 
-export function renderRosterToolbar({
-  b,
-  activeSourceRoster,
-  setCreateOpen,
-  setGroupCreateOpen,
-  setSectionDialog,
-  showRosterTools,
-  showRosterSearch,
-  showRosterFilters,
-  query,
-  setQuery,
-  activeFilterCount,
-  gatewayOptions,
-  rowKindFilter,
-  setRowKindFilter,
-  activityFilter,
-  setActivityFilter,
-  gatewayFilter,
-  setGatewayFilter
-}: RenderRosterToolbarProps) {
+export function renderRosterToolbar(props: RenderRosterToolbarProps) {
+  return <BrowserBotsToolbar {...props} />
+}
+
+function BrowserBotsToolbar({ b, activeSourceRoster, setCreateOpen, setGroupCreateOpen, setSectionDialog, showRosterTools, showRosterSearch, query, setQuery, ...filters }: RenderRosterToolbarProps) {
+  const create: BrowserActionGroup[] = [{ key: 'create', actions: [
+    { key: 'bot', label: b.bot.newTitle, icon: <Codicon name="hubot" />, afterClose: true, run: () => setCreateOpen(true) },
+    { key: 'group', label: b.group.newTitle, icon: <Codicon name="organization" />, disabled: activeSourceRoster.length < 2, afterClose: true, run: () => setGroupCreateOpen(true) },
+    { key: 'section', label: b.sections.newSection, icon: <Codicon name="new-folder" />, afterClose: true, run: () => setSectionDialog({ mode: 'create' }) }
+  ] }]
   return <>
-    <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1.5">
-      <span className="text-[0.6875rem] font-semibold uppercase tracking-wider text-(--ui-text-quaternary)">Bots</span>
-      <div className="flex items-center gap-0.5">
-        <BotsFilterMenu b={b} activeFilterCount={activeFilterCount} gatewayOptions={gatewayOptions} rowKindFilter={rowKindFilter} setRowKindFilter={setRowKindFilter} activityFilter={activityFilter} setActivityFilter={setActivityFilter} gatewayFilter={gatewayFilter} setGatewayFilter={setGatewayFilter} />
-        <DropdownMenu>
-          <Tip label="New…">
-            <DropdownMenuTrigger asChild>
-              <Button aria-label={b.roster.newBotOrGroup} className="rounded-md text-(--ui-text-tertiary) hover:text-foreground" size="icon-xs" variant="ghost">
-                <Codicon name="add" size="0.75rem" />
-              </Button>
-            </DropdownMenuTrigger>
-          </Tip>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setCreateOpen(true)}><Codicon className="mr-1.5" name="hubot" />{b.bot.newTitle}</DropdownMenuItem>
-            <DropdownMenuItem disabled={activeSourceRoster.length < 2} onSelect={() => setGroupCreateOpen(true)}><Codicon className="mr-1.5" name="organization" />{b.group.newTitle}</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setSectionDialog({ mode: 'create' })}><Codicon className="mr-1.5" name="new-folder" />{b.sections.newSection}</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <div className="browser-bots-heading">
+      <span>Bots</span>
+      <div className="browser-bots-actions">
+        <BotsFilterMenu b={b} {...filters} />
+        <BotsActionControl title={b.roster.newBotOrGroup} icon="add" groups={create} />
       </div>
     </div>
-    {showRosterTools && <div className="flex min-w-0 items-center gap-1 px-2.5 pb-1.5">
+    {showRosterTools && <div className="browser-bots-search">
       {showRosterSearch ? <SearchField aria-label={b.roster.search} containerClassName={cn('min-w-0 flex-1', query ? 'opacity-100!' : 'opacity-50 focus-within:opacity-100')} inputClassName="w-full text-[0.75rem] placeholder:text-(--ui-text-tertiary)" key="roster-search" onChange={setQuery} placeholder={b.roster.searchPlaceholder} value={query} /> : <span className="min-w-0 flex-1" key="roster-search-spacer" />}
     </div>}
   </>

@@ -59,12 +59,6 @@ test('browser owns the Bots toolbar instead of rewriting upstream toolbar JSX', 
   const source = readFileSync(filename, 'utf8')
   const plugin = browserActivityNotificationsPlugin(root)
   assert.equal(plugin.transform(source, filename), null)
-  const wrapper = readFileSync(path.join(root, 'src/experience/browser-bots-toolbar.tsx'), 'utf8')
-  assert.match(wrapper, /<DropdownMenuSubTrigger>Show<\/DropdownMenuSubTrigger>/)
-  assert.match(wrapper, /<DropdownMenuSubTrigger>Filter by time<\/DropdownMenuSubTrigger>/)
-  assert.match(wrapper, /Show hidden bots/)
-  assert.match(wrapper, /<Codicon name="add" size="0\.75rem" \/>/)
-  assert.match(wrapper, /<Codicon name="list-filter" size="0\.75rem" \/>/)
 })
 
 test('browser sidebar hides the new-session keyboard shortcut hint', () => {

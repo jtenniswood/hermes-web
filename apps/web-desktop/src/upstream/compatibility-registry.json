@@ -1609,5 +1609,49 @@
     "sourceHash": "cf9e1f226651f9e6da21a3c223b92bc63cfb5f9c47038d3ace72997c5654eee5",
     "inputHash": "cf9e1f226651f9e6da21a3c223b92bc63cfb5f9c47038d3ace72997c5654eee5",
     "outputHash": "359e84c36034bafaa5b1cf5deeb92d4f307cef447b2e514e323f6cc72bf6c438"
+  },
+  {
+    "name": "browser-bot-dialog-return-focus",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "plugins/hermes-bots/create-dialog.tsx",
+    "handlers": [
+      "useBrowserBotDialogFocus"
+    ],
+    "reason": "Restore the opening browser control and provide owned viewport bounds for Bot creation and section dialogs.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "Bots shared actions preserve filters, focus, and drafts"
+      }
+    ],
+    "removal": "Remove when upstream controlled Bot creation and section dialogs restore their opening control and fit browser viewport scaling.",
+    "sourceRoot": "renderer",
+    "sourceHash": "ae04834651e918250de5bc39da213d8a1e88ccee518c5cf812228b51d66147d6",
+    "inputHash": "ae04834651e918250de5bc39da213d8a1e88ccee518c5cf812228b51d66147d6",
+    "outputHash": "92cd575345dd4227c56f7b34d9c4ddee1f3ebe682673093309e69732bdb1b8ef"
+  },
+  {
+    "name": "browser-section-dialog-return-focus",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "plugins/hermes-bots/user-sections-ui.tsx",
+    "handlers": [
+      "useBrowserSectionDialogFocus"
+    ],
+    "reason": "Restore the opening browser control and provide owned viewport bounds for Bot creation and section dialogs.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "Bots shared actions preserve filters, focus, and drafts"
+      }
+    ],
+    "removal": "Remove when upstream controlled Bot creation and section dialogs restore their opening control and fit browser viewport scaling.",
+    "sourceRoot": "renderer",
+    "sourceHash": "4e4e7f22a72b2247f90fb1d038bd57c57b05f1af1ddf575395fcf8c63696b54b",
+    "inputHash": "4e4e7f22a72b2247f90fb1d038bd57c57b05f1af1ddf575395fcf8c63696b54b",
+    "outputHash": "6e7ea7b1b6f3663531eaad0200ab23380599b45addf7adb6c7f69db2110016a2"
   }
 ]

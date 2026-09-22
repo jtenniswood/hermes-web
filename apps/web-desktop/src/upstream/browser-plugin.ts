@@ -99,6 +99,31 @@ export function useBrowserFreshSessionOwner(source: string, root: string): strin
     .replace(end, end.replace('    },', '    }),'))
 }
 
+export function useBrowserBotDialogFocus(source: string, root: string): string {
+  const owner = JSON.stringify(path.join(root, 'src/experience/ui/dialog-focus'))
+  const changes = [
+    ['export function CreateAgentDialog({ open, onClose, roster }: CreateAgentDialogProps) {', 'export function CreateAgentDialog({ open, onClose, roster }: CreateAgentDialogProps) {\n  const browserReturnFocus = useBrowserDialogReturnFocus(open)'],
+    ['export function CreateGroupChatDialog({ open, roster, onClose, onCreated }: CreateGroupChatDialogProps) {', 'export function CreateGroupChatDialog({ open, roster, onClose, onCreated }: CreateGroupChatDialogProps) {\n  const browserReturnFocus = useBrowserDialogReturnFocus(open)'],
+    ['      <DialogContent\n', '      <DialogContent\n        data-browser-bot-dialog={advanced ? \'advanced\' : \'create\'}\n        onCloseAutoFocus={browserReturnFocus}\n'],
+    ['      <DialogContent className="max-w-md">', '      <DialogContent className="max-w-md" data-browser-bot-dialog="group" onCloseAutoFocus={browserReturnFocus}>']
+  ]
+  for (const [before, after] of changes) {
+    if (source.split(before).length !== 2) throw new Error('Browser Bot dialog focus boundary changed')
+    source = source.replace(before, after)
+  }
+  return `import { useBrowserDialogReturnFocus } from ${owner}\n` + source
+}
+
+export function useBrowserSectionDialogFocus(source: string, root: string): string {
+  const owner = JSON.stringify(path.join(root, 'src/experience/ui/dialog-focus'))
+  const start = 'export function SectionNameDialog({ initialName, mode, onOpenChange, onSubmit, open }: SectionNameDialogProps) {'
+  const content = '      <DialogContent className="max-w-sm">'
+  if (source.split(start).length !== 2 || source.split(content).length !== 2) throw new Error('Browser section dialog focus boundary changed')
+  return `import { useBrowserDialogReturnFocus } from ${owner}\n` + source
+    .replace(start, start + '\n  const browserReturnFocus = useBrowserDialogReturnFocus(open)')
+    .replace(content, '      <DialogContent className="max-w-sm" data-browser-bot-dialog="section" onCloseAutoFocus={browserReturnFocus}>')
+}
+
 export function keepBrowserWorkspaceRoute(source: string, root: string): string {
   const target = "import { Navigate, Route, Routes, useParams } from 'react-router'"
   if (source.split(target).length !== 2) throw new Error('Browser workspace routes changed')
@@ -523,6 +548,8 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
   if (digest(code) === entry.outputHash) return { code, map: null }
   if (digest(code) !== entry.inputHash) throw new Error(`Browser compatibility changed: ${entry.name} (${entry.module}). Review this registry entry.`)
   const handlers: Record<string, (source: string) => string> = {
+    useBrowserBotDialogFocus: source => useBrowserBotDialogFocus(source, root),
+    useBrowserSectionDialogFocus: source => useBrowserSectionDialogFocus(source, root),
     keepBrowserWorkspaceRoute: source => keepBrowserWorkspaceRoute(source, root),
     respectBrowserOverlayFocusReturn: source => respectBrowserOverlayFocusReturn(source, root),
     useBrowserOverlayFocusOwner: source => useBrowserOverlayFocusOwner(source, root),
