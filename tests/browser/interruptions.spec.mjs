@@ -131,8 +131,10 @@ for (const action of ['archive', 'delete']) {
   test(`unconfirmed ${action} leaves the conversation intact`, async ({ page, gatewayApp }) => {
     await openConversation(page, gatewayApp.origin)
     await editor(page).fill('Keep this draft without confirmation')
-    await page.route('**/api/sessions/preview-week', route => {
+    let intercepted = false
+    await page.route(/\/api\/sessions\/preview-week(?:\?|$)/, route => {
       if (route.request().method() === (action === 'archive' ? 'PATCH' : 'DELETE')) {
+        intercepted = true
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: false }) })
       }
       return route.continue()
@@ -143,6 +145,25 @@ for (const action of ['archive', 'delete']) {
     await expect(page.getByRole('alert').filter({ hasText: `Could not ${action} conversation.` })).toBeVisible()
     await expect(page).toHaveURL(/#\/preview-week$/)
     await expect(editor(page)).toHaveText('Keep this draft without confirmation')
+    expect(intercepted).toBe(true)
     expect(gatewayApp.sessions.has('preview-week')).toBe(true)
   })
 }
+
+test('unread action labels follow the persisted state', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep this draft while changing unread state')
+  for (const unread of [true, false]) {
+    await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: unread ? 'Mark as unread' : 'Mark as read', exact: true }).click()
+    await expect.poll(() => gatewayApp.sessions.get('preview-week').unread).toBe(unread)
+  }
+  await expect(editor(page)).toHaveText('Keep this draft while changing unread state')
+})
+
+test('approval initialization waits for the gateway without a false action error', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await expect(page.locator('.browser-approval-control button svg')).toHaveClass(/brain/)
+  await expect.poll(() => gatewayApp.controls.calls.some(call => call.method === 'config.get' && call.params.key === 'approvals.mode')).toBe(true)
+  await expect(page.getByRole('alert').filter({ hasText: 'Could not load approval mode.' })).toHaveCount(0)
+})
