@@ -24,8 +24,8 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | Stage | State | Required evidence |
 | --- | --- | --- |
 | 1. Update foundation | PR #36 merged; activation prerequisites inventoried | Required compatibility and preview checks passed on `57b6854`; merge `c282dc0`. Read-only audit identifies outstanding App and repository setup. |
-| 2a. Interruptions | Implemented locally; PR verification pending | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
-| 2b. Real upgrades | Outstanding | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
+| 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
+| 2b. Real upgrades | Implemented locally; CI pending | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | Outstanding | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
@@ -83,6 +83,27 @@ Reproduce against a built nginx image:
 node --test scripts/preview-gateway.test.mjs scripts/adapter.test.mjs
 HERMES_TEST_IMAGE=hermes-web:verification pnpm exec playwright test tests/browser/interruptions.spec.mjs --project=chromium
 ```
+
+## Real-composer upgrade evidence
+
+Both Chromium upgrade journeys passed locally through the two actual nginx
+images. The baseline is the verified PR #36 digest recorded in
+`tests/fixtures/upgrade-baseline.json`; the candidate is the development image
+identified above. One journey starts a response through the real composer in a
+second tab, verifies blocked activation, resolves the response, attaches an
+actual text file through the picker, verifies blocked activation again, removes
+the file, then activates and verifies both tabs' drafts and selected sessions.
+The other journey confirms conflicting edits to the same conversation prevent
+activation while preserving each tab's in-memory text.
+
+The fixture launches its browser after both Docker containers are ready, switches
+a stable origin between images, and records image IDs, platforms, wrapper and
+renderer revisions, and synthetic gateway version. It checks the candidate's
+actual entry asset after reload. The existing lower-level protocol suite remains
+in the required jobs. Exact-commit CI evidence and native release-candidate
+validation remain pending; these local tests do not establish a real-gateway or
+physical-device result. See [release setup](releases.md#previous-image-upgrade-gate)
+for baseline maintenance and the initial arm64 emulation distinction.
 
 ## Activation checklist
 

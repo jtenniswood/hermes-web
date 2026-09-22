@@ -1,0 +1,7 @@
+{
+  "image": "ghcr.io/jtenniswood/hermes-web@sha256:213833458911834220544c19fa9e77658c4b22714efe746bf97ced0b716b915f",
+  "platform": "linux/amd64",
+  "wrapperRevision": "57b68547e8e2a94bad8618e95b35e0825730b29f",
+  "rendererRevision": "03b0c7947262b220f5148b75a30bb7a3faddcbb2",
+  "verificationRun": "https://github.com/jtenniswood/hermes-web/actions/runs/35695715690"
+}
