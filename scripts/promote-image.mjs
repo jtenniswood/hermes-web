@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { readdirSync, readFileSync, appendFileSync } from 'node:fs'
+import { readdirSync, readFileSync, appendFileSync, writeFileSync } from 'node:fs'
 import { assertCandidateEvidence, assertRendererOnlyChange, promotionTags } from './release-policy.mjs'
 import { rendererLock } from './renderer.mjs'
 const run = (command, args) => execFileSync(command, args, { encoding: 'utf8' }).trim()
@@ -12,6 +12,19 @@ const candidate = `${image}:candidate-${wrapper}-${renderer}-${process.env.GITHU
 run('docker', ['buildx', 'imagetools', 'create', '--tag', candidate, ...evidence.map(item => `${image}@${item.digest}`)])
 const digest = run('docker', ['buildx', 'imagetools', 'inspect', candidate, '--format', '{{.Manifest.Digest}}'])
 if (!/^sha256:[a-f0-9]{64}$/.test(digest)) throw new Error('Cannot identify the tested multi-architecture candidate')
+const release = {
+  schemaVersion: 1,
+  wrapperRevision: wrapper,
+  rendererRevision: renderer,
+  image: `${image}@${digest}`,
+  architectures: evidence,
+  workflowRun: `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+  runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+  promotion: { status: process.env.HERMES_PROMOTION_ENABLED === 'true' ? 'not-completed' : 'disabled', verifiedTags: [] }
+}
+const recordRelease = () => writeFileSync('release-evidence.json', JSON.stringify(release, null, 2) + '\n')
+// Keep the tested immutable artifact even when promotion is disabled or later fails.
+recordRelease()
 appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Tested candidate: \`${image}@${digest}\`\n\nWrapper: \`${wrapper}\`; renderer: \`${renderer}\`.\n`)
 if (process.env.HERMES_PROMOTION_ENABLED !== 'true') {
   console.log('Candidate verified. Stable promotion remains disabled pending rollout gates.'); process.exit(0)
@@ -34,4 +47,6 @@ run('docker', ['buildx', 'imagetools', 'create', ...tags.flatMap(tag => ['--tag'
 for (const tag of tags) {
   if (run('docker', ['buildx', 'imagetools', 'inspect', `${image}:${tag}`, '--format', '{{.Manifest.Digest}}']) !== digest) throw new Error(`Published ${tag} does not identify the tested digest`)
 }
+release.promotion = { status: 'completed', verifiedTags: tags }
+recordRelease()
 appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\nPromoted this digest to: ${tags.map(tag => `\`${tag}\``).join(', ')}. No deployment was restarted.\n`)

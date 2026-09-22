@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-22",
+  "workflowRun": "https://github.com/jtenniswood/hermes-web/actions/runs/35734286692",
+  "wrapperRevision": "af70a278e8ca04b643537427c89d0fa94e2fb236",
+  "rendererRevision": "03b0c7947262b220f5148b75a30bb7a3faddcbb2",
+  "publishedCandidate": "ghcr.io/jtenniswood/hermes-web@sha256:810fc77ff4d9aa6b45f3adf11ca2b9a4161c41ebd6bf99b8cd5c9f1fbdd34282",
+  "architectures": [
+    {
+      "arch": "amd64",
+      "wrapper": "af70a278e8ca04b643537427c89d0fa94e2fb236",
+      "renderer": "03b0c7947262b220f5148b75a30bb7a3faddcbb2",
+      "digest": "sha256:372106b445c4373477adfb1720f1f15210513ee4c3fd765ef69fa61b6086e74f",
+      "tested": true
+    },
+    {
+      "arch": "arm64",
+      "wrapper": "af70a278e8ca04b643537427c89d0fa94e2fb236",
+      "renderer": "03b0c7947262b220f5148b75a30bb7a3faddcbb2",
+      "digest": "sha256:980ff9e54a0ed2457bd1c7522bc0e9070511d485f866f979789d5206bb98c27c",
+      "tested": true
+    }
+  ],
+  "verification": {
+    "nativeArchitectureBrowserJobs": "passed",
+    "combinedManifestContainsTestedArchitectureManifests": true,
+    "stablePromotion": "disabled",
+    "rollback": {
+      "from": {
+        "wrapperRevision": "af70a278e8ca04b643537427c89d0fa94e2fb236",
+        "rendererRevision": "03b0c7947262b220f5148b75a30bb7a3faddcbb2",
+        "dependencyLockHash": "1dfc0e470ed909f9f1085bd8fb172712b99e8beebd2bbcad8547318ace7b8e32",
+        "builtAt": "2026-09-22T13:48:41.000Z",
+        "channel": "stable"
+      },
+      "to": {
+        "wrapperRevision": "57b68547e8e2a94bad8618e95b35e0825730b29f",
+        "rendererRevision": "03b0c7947262b220f5148b75a30bb7a3faddcbb2",
+        "dependencyLockHash": "1dfc0e470ed909f9f1085bd8fb172712b99e8beebd2bbcad8547318ace7b8e32",
+        "builtAt": "2026-09-22T06:39:45.979Z",
+        "channel": "browser-preview"
+      },
+      "fromImage": "ghcr.io/jtenniswood/hermes-web@sha256:372106b445c4373477adfb1720f1f15210513ee4c3fd765ef69fa61b6086e74f",
+      "toImage": "ghcr.io/jtenniswood/hermes-web@sha256:213833458911834220544c19fa9e77658c4b22714efe746bf97ced0b716b915f",
+      "activeResponseBlocked": true,
+      "attachmentBlocked": true,
+      "draftsRetainedAfterReload": true,
+      "gateway": "synthetic-preview-v1",
+      "platform": "linux/amd64",
+      "browser": "chromium",
+      "baselineVerificationRun": "https://github.com/jtenniswood/hermes-web/actions/runs/35695715690",
+      "productionDeploymentChanged": false
+    }
+  },
+  "outstanding": [
+    "Repository-scoped updater App setup (deferred by user)",
+    "Live compatible renderer-only proposal, automatic merge, and publication demonstration",
+    "Live incompatible renderer-only proposal with unchanged stable-image evidence",
+    "Updater branch refresh and retry demonstration",
+    "Configured real gateway smoke test and gateway version",
+    "Physical-device touch verification",
+    "Explicit scheduling and stable-promotion activation after all rollout evidence passes"
+  ]
+}

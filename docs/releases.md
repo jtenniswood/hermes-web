@@ -144,3 +144,45 @@ HERMES_TEST_IMAGE=hermes-web:verification pnpm exec playwright test tests/browse
 
 The tests use a synthetic gateway and do not deploy either image. The separate
 real-gateway smoke test and physical-device checks remain release requirements.
+
+
+## Retained release identity and rollback verification
+
+The publication job retains `release-evidence-RUN-ATTEMPT` containing
+`release-evidence.json`. It records the wrapper and renderer revisions, the
+combined immutable digest, both tested architecture digests, and the workflow
+run. `promotion.status` distinguishes `disabled`, `not-completed`, and
+`completed`; only `completed` confirms that every listed stable tag was read
+back at the tested digest. `not-completed` does not prove that no tag changed:
+inspect the failed job and registry before retrying. Missing candidate evidence
+or a failed combine step produces no release record.
+
+The upgrade suite also switches the actual nginx origin from the candidate back
+to the immutable previous-image baseline. It requires active responses and
+unsent attachments to postpone rollback activation, then verifies both tabs load
+the previous entry asset and retain candidate-edited drafts after reload.
+`rollback-result` records the tested image references and build identities.
+This verifies browser rollback against the synthetic gateway; it does not restart
+production or establish compatibility with an arbitrary older renderer/backend.
+
+The [initial candidate and rollback record](release-evidence/2026-09-22-candidate-rollback.json)
+identifies a published candidate with passing native amd64/arm64 jobs and a local
+amd64 rollback verification. Stable promotion stayed disabled. It explicitly lists
+remaining rollout gates and does not claim an automatic renderer-update run or a
+real-gateway smoke test.
+
+Before enabling automation, retain a release record plus these observations:
+
+- The compatible renderer-only proposal URL, exact checked head, merge commit,
+  publication run, and tested digest; any branch-refresh and retry run links.
+- The incompatible proposal and compatibility report, plus stable tag digests
+  observed before and after failure.
+- The actual gateway version, candidate digest, and observed smoke-test results
+  for new chat, cancellation, session reopen, Bot selection, profile switching,
+  attachment, sign-out, and sign-in. Keep credentials and private deployment
+  addresses out of tracked evidence.
+- Physical-device model, OS/browser versions, viewport/scale, and observed results
+  for shared actions, focus, drafts, safe update activation, and rollback.
+
+Unavailable evidence remains outstanding. Workflow success, a synthetic gateway,
+or touch emulation cannot fill those gaps.
