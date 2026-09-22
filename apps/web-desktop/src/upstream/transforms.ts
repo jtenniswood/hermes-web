@@ -78,10 +78,19 @@ window.__HERMES_WEB_DRAFT_SNAPSHOT__ = () => {
           ? code
           : `${code.slice(0, throwError)}if (options.workspaceMode === 'bots' && error instanceof Error && error.message === 'Session open was superseded by a newer selection.') {\n              return\n            }\n            ${code.slice(throwError)}`
 
-      const scoped = patched.replace(
-        /if \(!openingStillCurrent\(\)\) \{/g,
-        "if (!openingStillCurrent() && !(window.__HERMES_WEB_BRIDGE__ && options.workspaceMode === 'bots')) {"
-      )
+      // Browser Bot navigation shares the main workspace. Desktop workspace
+      // ownership can change while it dials, so use the Bot intent generation
+      // at this commit owner instead of bypassing cancellation in the browser.
+      const generationTarget = '    const generation = ++openSessionGeneration'
+      const currentTarget = `      generation === openSessionGeneration &&
+      (options.workspaceMode !== 'bots' ||`
+      if (patched.split(generationTarget).length !== 2 || patched.split(currentTarget).length !== 2) throw new Error('Browser Bot selection generation target changed')
+      const scoped = (`import { getBotOpenGeneration } from '@/plugins/hermes-bots/shared'\n` + patched)
+        .replace(generationTarget, generationTarget + '\n    const botGeneration = getBotOpenGeneration()')
+        .replace(currentTarget, `      generation === openSessionGeneration &&
+      (window.__HERMES_WEB_BRIDGE__ && options.workspaceMode === 'bots'
+        ? botGeneration === getBotOpenGeneration()
+        : options.workspaceMode !== 'bots' ||`)
       const profileCommit = '      if (explicitRoute) {\n        setShowAllProfiles(true)'
       if (scoped.split(profileCommit).length !== 2) throw new Error('Browser Bot profile scope commit changed')
       const webPatched = scoped.replace(profileCommit, `      if (window.__HERMES_WEB_BRIDGE__ && window.__HERMES_WEB_ACTIVE_PROFILE__) {
@@ -310,7 +319,8 @@ ${withoutStaleFront.slice(lineStart)}`
   }`,
       `  if (pending) {
     try {
-      return await pending
+      const result = await pending
+      if (!openingStillCurrent || !openingStillCurrent()) return result
     } catch (error) {
       const current = typeof openingStillCurrent === 'function' && openingStillCurrent()
       const superseded = /superseded by a newer selection/i.test(String(error?.message || error))
@@ -325,14 +335,14 @@ ${withoutStaleFront.slice(lineStart)}`
     const retried = guarded.replace(
       `  const run = openBotCanonicalChatImpl(owner, null)
   canonicalChatOpens.set(key, run)`,
-      `  const run = openBotCanonicalChatImpl(owner, null).catch(async error => {
+      `  const run = openBotCanonicalChatImpl(owner, openingStillCurrent).catch(async error => {
     const superseded = /superseded by a newer selection/i.test(String(error?.message || error))
 
-    if (!superseded) {
+    if (!superseded || !openingStillCurrent?.()) {
       throw error
     }
 
-    return openBotCanonicalChatImpl(owner, null)
+    return openBotCanonicalChatImpl(owner, openingStillCurrent)
   })
   canonicalChatOpens.set(key, run)`
     )
