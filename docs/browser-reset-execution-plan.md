@@ -1,8 +1,11 @@
 # Browser architecture reset: execution plan
 
-Status: implementation delivered through the reviewable PR chain; merge, trusted
-preview publication, real-gateway verification, and rollout remain explicit
-release gates.
+Status: historical delivery plan. Browser-owned controls, conversation identity,
+startup recovery, and image verification have landed. The review found unfinished
+selection/action ownership, shared desktop/touch surfaces, and real-composer
+upgrade coverage. Do not treat the original PR chain as proof of every acceptance
+criterion below. Current delivery status is tracked in
+[browser evolution execution](browser-evolution-execution.md).
 
 Baseline: wrapper commit `2ccc9c5`, following merged PR #27. Recheck the branch,
 renderer pin, and relevant contracts before starting each delivery. This plan
@@ -487,6 +490,9 @@ them only after relevant changes or when resolving a specific uncertainty.
   delivered product.
 
 ## First implementation task
+
+The following was the original first task; consult the current delivery record
+before starting work. Do not repeat completed deliveries.
 
 Start PR 1 from current main: reproduce the browser-suite skip, unify image input,
 correct the two known stale menu expectations, and run the interaction suite against

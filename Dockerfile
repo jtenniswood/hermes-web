@@ -29,7 +29,7 @@ RUN node -e "require('node:fs').cpSync(require('node:path').dirname(require.reso
 FROM node:24-bookworm-slim AS preview-gateway
 WORKDIR /app
 COPY --from=preview-dependencies /preview-ws ./node_modules/ws
-COPY scripts/preview/gateway.mjs ./scripts/preview/gateway.mjs
+COPY scripts/preview ./scripts/preview
 ENV HOST=0.0.0.0 PORT=9129
 USER node
 EXPOSE 9129
