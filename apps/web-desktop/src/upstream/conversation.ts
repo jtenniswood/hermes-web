@@ -21,5 +21,10 @@ export function useBrowserConversation(): BrowserConversationModel {
     sessions,
     bots
   })
-  return { ...identity, selectionKey: JSON.stringify([selectedSessionId, selectedBotKey, groupName]) }
+  // Roster/profile metadata can change while the same session remains visible.
+  // Dismiss navigation only for a different session or group, including before
+  // that session's title and Bot identity have finished loading.
+  const selectionKey = JSON.stringify(identity.kind === 'group'
+    ? ['group', identity.id] : ['session', identity.sessionId])
+  return { ...identity, selectionKey }
 }

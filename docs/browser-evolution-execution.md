@@ -802,3 +802,29 @@ Twelve focused local rollback repetitions (six at normal speed and six with
 rollback journeys also passed with the worker instrumentation. CI reproduction
 and a verified correction remain outstanding, alongside the deferred App,
 real-gateway smoke test, and physical-device acceptance gates.
+
+PR #61 merged after 120 compatibility tests and 77 preview tests passed without
+skips or retries. Its worker reports contain no dropped observations. The
+activation stall did not recur in that run; native release validation is pending.
+
+### Stable conversation selection for mobile navigation
+
+The mobile drawer could close immediately after opening because the browser
+model included background Bot metadata in its selection key. A traced local
+reproduction showed `web-single::default` becoming `default` while the selected
+session and route stayed unchanged. The navigation effect treated that metadata
+refresh as a conversation switch.
+
+The key now follows the visible session or group. It remains stable while titles,
+Bot identity, or unrelated roster state hydrate, and changes when the actual
+conversation changes. Upstream stores remain authoritative. A regression against
+the actual adapter failed on the earlier implementation and passes with this
+change, including background session changes while a group remains selected.
+
+Validation passed: 180 foundation checks, typechecking, the production build,
+six repeated affected mobile flows with 2x CPU slowdown and no retries, eleven
+existing navigation/profile interaction cases, and a new phone journey switching
+sessions and Bots while preserving both session drafts. Temporary diagnostic
+logging and CPU throttling were removed. Committed-image CI remains required;
+physical-device acceptance and the separate update activation investigation are
+still outstanding.
