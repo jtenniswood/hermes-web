@@ -283,9 +283,9 @@ the production build. Six targeted Chromium journeys passed against the local
 candidate image, including manual overlap, delayed backend writes, negative
 acknowledgments, and automatic read-on-open. The automatic-read journey initially
 used an incorrect exact button locator; it passed after using the established
-session-title locator. Required CI must verify the committed production image
-before merge. Pin persistence and remaining selection entry points still need
-review before stage 4 is complete.
+session-title locator. Required compatibility, preview, and update-policy CI
+passed on `14389fe`; PR #45 merged as `de6db1b`. Pin persistence and remaining
+selection entry points still need review before stage 4 is complete.
 
 ## Ordered pin persistence
 
@@ -300,9 +300,11 @@ A registered transform connects the existing engine reconciliation to this
 owner. It retains saved order, durable lineage IDs, active-profile resolution,
 remote-pin adoption, and deferred resolution through all session slices. Pending
 writes fence stale list pages; a gateway rescope discards queued requests and
-invalidates older callbacks. An explicit retry remains available after rollback.
+invalidates older callbacks. A failed unpin restores its position in the saved
+order; the corresponding regression failed before that fix. An explicit retry
+remains available after rollback.
 
-Validation so far: 40 pin-owner and registry checks passed, typechecking passed
+Validation so far: 41 pin-owner and registry checks passed, typechecking passed
 with no baselined diagnostics, and the production build passed. Four targeted
 Chromium journeys passed against the candidate image, covering pin rejection,
 unpin rejection and retry, delayed writes, and negative acknowledgments. Existing

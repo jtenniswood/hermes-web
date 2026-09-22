@@ -19,7 +19,7 @@ function harness({ rows = [{ id: 'chat', profile: 'research', pinned: false }], 
   const atom = initial => {
     let value = initial
     const listeners = new Set()
-    return { get: () => value, set(next) { value = next; for (const listener of listeners) listener(next) }, listen(listener) { listeners.add(listener); return () => listeners.delete(listener) } }
+    return { get: () => value, set(next) { const previous = value; value = next; for (const listener of listeners) listener(next, previous) }, listen(listener) { listeners.add(listener); return () => listeners.delete(listener) } }
   }
   const pins = atom(saved), sessions = atom(rows), cron = atom([]), messaging = atom([]), profile = atom(active)
   const requests = [], errors = []
@@ -28,7 +28,7 @@ function harness({ rows = [{ id: 'chat', profile: 'research', pinned: false }], 
     normalizeProfileKey: value => value || 'default',
     sessionMatchesStoredId: (row, id) => row.id === id || row.root_session_id === id,
     sessionPinId: row => row.root_session_id || row.id,
-    pinSession: id => { if (!pins.get().includes(id)) pins.set([...pins.get(), id]) },
+    pinSession: (id, index) => { if (!pins.get().includes(id)) { const next = [...pins.get()]; next.splice(index ?? next.length, 0, id); pins.set(next) } },
     unpinSession: id => { if (pins.get().includes(id)) pins.set(pins.get().filter(value => value !== id)) },
     onConnectionScopeChange: callback => { dependencies.rescope = callback },
     setSessionPinnedRemote: (id, pinned, profile) => new Promise((resolve, reject) => requests.push({ id, pinned, profile, resolve, reject })),
@@ -158,4 +158,17 @@ test('remote pins are adopted without echoing a write and unrelated writes run i
   assert.equal(h.requests.length, 2)
   for (const request of h.requests) request.resolve({ ok: true })
   await flush()
+})
+
+test('failed unpin restores its saved position among other pins', async () => {
+  const h = harness({ saved: ['first', 'chat', 'last'], rows: ['first', 'chat', 'last'].map(id => ({ id, profile: 'research', pinned: true })) })
+  await flush()
+  for (const request of h.requests) request.resolve({ ok: true })
+  await flush()
+  h.unpinSession('chat')
+  await flush()
+  h.requests[3].reject(new Error('Unpin rejected'))
+  await flush()
+  assert.deepEqual([...h.pins.get()], ['first', 'chat', 'last'])
+  assert.equal(h.requests.length, 4)
 })

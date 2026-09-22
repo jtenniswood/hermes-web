@@ -20,7 +20,10 @@ export function useBrowserPinWrites(source: string, root: string): string {
   const end = source.indexOf('\n/**', start)
   if (start < 0 || end < 0) throw new Error('Browser pin write owner changed')
   const imports = JSON.stringify(path.join(root, 'src/upstream/browser-pin-writes'))
-  const write = `function writePin(id: string, pinned: boolean, profile?: null | string): void {
+  const write = `let browserPreviousPinOrder: readonly string[] = []
+
+function writePin(id: string, pinned: boolean, profile?: null | string): void {
+  const restoreIndex = browserPreviousPinOrder.indexOf(id)
   const confirmed = unconfirmed.get(id)?.value ?? loadedRowFor(id)?.pinned ?? !pinned
   unconfirmed.set(id, { at: Date.now(), value: pinned })
   queueBrowserPinWrite(id, pinned, profile, confirmed, (value, failed) => {
@@ -31,7 +34,7 @@ export function useBrowserPinWrites(source: string, root: string): string {
       if (value) mirrored.add(id)
       else mirrored.delete(id)
       // Mirror bookkeeping is settled before notifying the reconciliation owner.
-      if (value) pinSession(id)
+      if (value) pinSession(id, restoreIndex < 0 ? undefined : restoreIndex)
       else unpinSession(id)
     }
     publishUnconfirmed()
@@ -48,7 +51,12 @@ export function useBrowserPinWrites(source: string, root: string): string {
       mirrored.delete(id)
       pending.add(id)
     })`, 'writePin(id, true, row.profile)'],
-    ['export function resetSessionPinMirror(): void {', 'export function resetSessionPinMirror(): void {\n  resetBrowserPinWrites()']
+    ['$pinnedSessionIds.listen(reconcile)', `$pinnedSessionIds.listen((_ids, previous) => {
+    // Capture the removed pin's position before reconciliation queues its unpin.
+    browserPreviousPinOrder = previous
+    reconcile()
+  })`],
+    ['export function resetSessionPinMirror(): void {', 'export function resetSessionPinMirror(): void {\n  browserPreviousPinOrder = []\n  resetBrowserPinWrites()']
   ]
   let output = source
   for (const [before, after] of replacements) {
