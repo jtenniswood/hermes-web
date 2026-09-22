@@ -27,7 +27,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
-| 4. Behavioral contracts | Models, commands, and pin/unread ordering merged; shared session entry points under verification | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
+| 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Profile and navigation controls with shared toolbar/menu/sheet primitives under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
@@ -384,7 +384,7 @@ Updater App setup remains deferred and automation remains disabled.
 Navigation preferences, tab selection, drawer focus/dismissal, and resizing now
 have browser-owned components and a dedicated hook outside the shell. The shell
 composes the existing panes without changing their mounted lifetime. The old
-manual tab-menu listeners and profile-specific style pattern are replaced by
+manual tab-menu listeners and styles are replaced by
 the shared action surface, extended with checked actions that can stay open.
 
 A visible navigation-actions button exposes the same tab-visibility commands as
@@ -409,3 +409,16 @@ Required CI must still verify the committed production image.
 Settings and Bots controls, shared navigation sections/modal composition, and
 physical-device verification remain stage 5 work. This does not enable updater
 automation or change the renderer pin.
+
+## Session entry points merged; profile branch refreshed
+
+PR #47 passed required compatibility, preview, and update-policy CI on
+`c191df1` and merged as `d60651b`. A compatibility run had stopped before its
+reconnect scenario because an initial asset request hit `ERR_NETWORK_CHANGED`;
+the trace identified that startup failure, and the unchanged commit passed on
+rerun. Stage 4's browser commands and shared selection owners are now merged.
+
+PR #48 passed all required checks on `c69d74c`. After PR #47 merged, the
+repository required its branch to be up to date with `main`. The branch was
+refreshed with a history-preserving merge as `4dc4947`; required checks must pass
+again on that refreshed head before merging. No branch protection was bypassed.
