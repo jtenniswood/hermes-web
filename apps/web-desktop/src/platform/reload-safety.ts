@@ -8,6 +8,7 @@ declare global {
   interface Window {
     __HERMES_WEB_DRAFT_SNAPSHOT__?: () => DraftSnapshot
     __HERMES_WEB_DRAFT_BLOCKED__?: boolean
+    __HERMES_WEB_FLUSH_DRAFTS__?: () => Promise<void>
   }
 }
 
@@ -59,6 +60,16 @@ export function reloadReadiness(requirePersisted = true): { ready: boolean; reas
 export function assertSafeReload(): void {
   const state = reloadReadiness()
   if (!state.ready) throw new Error(state.reason)
+}
+
+/** Flush pending cross-tab saves before promising that activation is safe. */
+export async function reloadReadinessAfterSaving(): Promise<ReturnType<typeof reloadReadiness>> {
+  const state = reloadReadiness(false)
+  if (!state.ready) return state
+  try { await window.__HERMES_WEB_FLUSH_DRAFTS__?.() }
+  catch { return { ready: false, reason: 'Your text draft could not be saved. Copy it before reloading.' } }
+  // Capture again after the await: activity or composer content may have changed.
+  return reloadReadiness()
 }
 
 export function assertSafeConnectionChange(): void {

@@ -37,6 +37,7 @@ declare interface Window {
   __HERMES_WEB_ACTIVE_PROFILE__?: string
   __HERMES_WEB_DRAFT_SNAPSHOT__?: unknown
   __HERMES_WEB_DRAFT_BLOCKED__?: boolean
+  __HERMES_WEB_FLUSH_DRAFTS__?: () => Promise<void>
 }
 declare module '*.css' { const value: string; export default value }
 `

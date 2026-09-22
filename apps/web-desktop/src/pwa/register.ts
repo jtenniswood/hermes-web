@@ -1,4 +1,4 @@
-import { reloadReadiness, type DraftSnapshot } from '../platform/reload-safety'
+import { reloadReadinessAfterSaving, type DraftSnapshot } from '../platform/reload-safety'
 
 export type PwaUpdateNotice = {
   readonly update: () => void
@@ -48,7 +48,7 @@ export function registerPwa(): void {
     if (root) root.inert = false
     clearTimeout(timer); transaction = undefined; snapshot = undefined
   }
-  navigator.serviceWorker.addEventListener('message', event => {
+  navigator.serviceWorker.addEventListener('message', async event => {
     const message = event.data
     if (message?.type === 'HERMES_ABORT_UPDATE') {
       if (message.transaction === transaction) unlock()
@@ -58,13 +58,17 @@ export function registerPwa(): void {
     if (!['HERMES_FLUSH_UPDATE', 'HERMES_VERIFY_UPDATE'].includes(message?.type)) return
     if (message.type === 'HERMES_FLUSH_UPDATE') {
       if (transaction && transaction !== message.transaction) { event.ports[0]?.postMessage({ ready: false }); return }
-      const state = reloadReadiness()
+      transaction = message.transaction
+      snapshot = undefined
+      const root = document.getElementById('root')
+      if (root) root.inert = true
+      clearTimeout(timer); timer = setTimeout(unlock, 15000)
+      const state = await reloadReadinessAfterSaving()
+      // A worker timeout/abort must not leave a late save holding the UI locked.
+      if (transaction !== message.transaction) { event.ports[0]?.postMessage({ ready: false }); return }
       if (state.ready) {
-        transaction = message.transaction; snapshot = state.drafts
-        const root = document.getElementById('root')
-        if (root) root.inert = true
-        clearTimeout(timer); timer = setTimeout(unlock, 15000)
-      } else setStatus(state.reason || 'Update postponed.')
+        snapshot = state.drafts
+      } else { unlock(); setStatus(state.reason || 'Update postponed.') }
       event.ports[0]?.postMessage({ ready: state.ready, texts: snapshot?.texts })
     } else {
       let ready = transaction === message.transaction && !!snapshot
@@ -72,20 +76,27 @@ export function registerPwa(): void {
         const stored = JSON.parse(window.localStorage.getItem(snapshot!.storageKey) || '{}')
         ready = ready && Object.entries(snapshot!.texts).every(([key, text]) => stored[key] === text)
       } catch { ready = false }
-      // Recheck activity, without accepting a different draft snapshot.
-      const state = reloadReadiness()
-      ready = ready && state.ready && JSON.stringify(state.drafts?.texts) === JSON.stringify(snapshot?.texts)
+      // Recheck activity and every prepared entry. Other tabs may have added
+      // independently saved drafts while their flushes completed.
+      const state = await reloadReadinessAfterSaving()
+      const current = state.drafts
+      // The upstream stash uses insertion order for recency. A storage sync
+      // can reorder unchanged entries without changing any conversation draft.
+      ready = ready && transaction === message.transaction && state.ready && !!current && !!snapshot &&
+        current.storageKey === snapshot.storageKey &&
+        Object.entries(snapshot.texts).every(([key, text]) => current.texts[key] === text)
       event.ports[0]?.postMessage({ ready })
     }
   })
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (transaction && reloadReadiness().ready) window.location.reload()
+  navigator.serviceWorker.addEventListener('controllerchange', async () => {
+    const prepared = transaction
+    if (prepared && (await reloadReadinessAfterSaving()).ready && transaction === prepared) window.location.reload()
     else unlock()
   })
   const showUpdate = (registration: ServiceWorkerRegistration) => {
     if (!registration.waiting || !navigator.serviceWorker.controller || notice) return
-    const update = () => {
-      const state = reloadReadiness()
+    const update = async () => {
+      const state = await reloadReadinessAfterSaving()
       if (!state.ready) { setStatus(state.reason || 'Update postponed.'); return }
       setStatus('Checking open Hermes tabs…')
       registration.waiting?.postMessage({ type: 'HERMES_PREPARE_UPDATE' })
