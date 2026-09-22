@@ -577,6 +577,15 @@ validation and stage-6 live rollout evidence remain required. App setup remains
 deferred and scheduled proposals/stable promotion stay disabled.
 
 
+PR #53's full preview exposed a desktop navigation context-menu regression in
+focus restoration. Its anchor is a non-focusable wrapper, so calling `focus()`
+must not prevent trying the explicit button fallback. Restoration now checks
+that the browser actually moved focus before returning. Existing navigation
+viewport tests retain their focus assertions. All eight navigation/roster
+viewport journeys, typechecking, and the production build passed after the fix;
+fresh CI must verify the corrected head.
+
+
 ## Release configuration and rollback evidence
 
 The read-only setup audit found that `renderer-update-policy` existed in CI but
