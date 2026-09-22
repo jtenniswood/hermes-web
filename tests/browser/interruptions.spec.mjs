@@ -265,6 +265,89 @@ test('unread action labels follow the persisted state', async ({ page, gatewayAp
   await expect(editor(page)).toHaveText('Keep this draft while changing unread state')
 })
 
+test('an older unread failure cannot undo newer toggles', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep this draft through overlapping unread changes')
+  let release, entered
+  const held = new Promise(resolve => { release = resolve })
+  const observed = new Promise(resolve => { entered = resolve })
+  let first = true
+  await page.route(/\/api\/sessions\/preview-week(?:\?|$)/, async route => {
+    if (route.request().method() !== 'PATCH' || typeof route.request().postDataJSON()?.unread !== 'boolean' || !first) return route.continue()
+    first = false
+    entered()
+    await held
+    await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Older unread change rejected' }) })
+  })
+  const toggle = async unread => {
+    await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: unread ? 'Mark as unread' : 'Mark as read', exact: true }).click()
+  }
+  try {
+    await toggle(true)
+    await observed
+    await toggle(false)
+    await toggle(true)
+    const failed = page.waitForResponse(response => response.url().includes('/api/sessions/preview-week') && response.status() === 503)
+    release()
+    await failed
+    await expect.poll(() => gatewayApp.controls.calls.filter(call => call.transport === 'http' && call.method === 'PATCH' && call.path === '/api/sessions/preview-week').length).toBe(2)
+    await expect.poll(() => gatewayApp.sessions.get('preview-week').unread).toBe(true)
+    await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+    await expect(page.getByRole('menuitem', { name: 'Mark as read', exact: true })).toBeVisible()
+    await expect(editor(page)).toHaveText('Keep this draft through overlapping unread changes')
+    await expect(page.getByRole('alert').filter({ hasText: 'Could not change unread status.' })).toHaveCount(0)
+  } finally { release() }
+})
+
+test('delayed unread writes preserve the final choice on the gateway', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  const first = gatewayApp.controls.hold({ transport: 'http', method: 'PATCH', path: '/api/sessions/preview-week' })
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Mark as unread', exact: true }).click()
+  await first.entered
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Mark as read', exact: true }).click()
+  const completed = page.waitForResponse(response => response.url().includes('/api/sessions/preview-week') && response.request().method() === 'PATCH' && response.request().postDataJSON()?.unread === true)
+  first.release()
+  await completed
+  await expect.poll(() => gatewayApp.controls.calls.filter(call => call.transport === 'http' && call.method === 'PATCH' && call.path === '/api/sessions/preview-week').length).toBe(2)
+  await expect.poll(() => gatewayApp.sessions.get('preview-week').unread).toBe(false)
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Mark as unread', exact: true })).toBeVisible()
+})
+
+test('unconfirmed unread writes restore the confirmed choice and explain the failure', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await page.route(/\/api\/sessions\/preview-week(?:\?|$)/, route => route.request().method() === 'PATCH'
+    ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: false }) })
+    : route.continue())
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Mark as unread', exact: true }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Could not change unread status.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Mark as unread', exact: true })).toBeVisible()
+})
+
+test('opening a session queues its automatic read behind a pending unread write', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  const first = gatewayApp.controls.hold({ transport: 'http', method: 'PATCH', path: '/api/sessions/preview-week' })
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Mark as unread', exact: true }).click()
+  await first.entered
+  await page.getByText('Explore a product idea', { exact: true }).first().click()
+  await expect(page).toHaveURL(/#\/preview-idea$/)
+  await page.getByText('Plan a calmer working week', { exact: true }).first().click()
+  await expect(page).toHaveURL(/#\/preview-week$/)
+  const completed = page.waitForResponse(response => response.url().includes('/api/sessions/preview-week') && response.request().method() === 'PATCH' && response.request().postDataJSON()?.unread === true)
+  first.release()
+  await completed
+  await expect.poll(() => gatewayApp.controls.calls.filter(call => call.transport === 'http' && call.method === 'PATCH' && call.path === '/api/sessions/preview-week').length).toBe(2)
+  await expect.poll(() => gatewayApp.sessions.get('preview-week').unread).toBe(false)
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Mark as unread', exact: true })).toBeVisible()
+})
+
 test('approval initialization waits for the gateway without a false action error', async ({ page, gatewayApp }) => {
   await openConversation(page, gatewayApp.origin)
   await expect(page.locator('.browser-approval-control button svg')).toHaveClass(/brain/)
