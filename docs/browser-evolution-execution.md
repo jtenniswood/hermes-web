@@ -492,8 +492,9 @@ Command Center selection, and contributed panels. Existing settings focus and
 full-page return journeys also passed. The first previous-image upgrade run
 passed the conflicting-draft refusal but postponed activation in the successful
 upgrade journey; its trace contains initial `ERR_NETWORK_CHANGED` asset errors.
-The unchanged candidate is being checked again. Committed-image CI remains pending
-for this slice.
+Both real-composer upgrade journeys then passed on the unchanged candidate,
+including blocked activation during work/attachments, two-tab draft preservation,
+and conflicting-draft refusal. Committed-image CI remains pending for this slice.
 
 PR #50's initial preview failed because the approval-menu test had accidentally
 received the new settings-group selector. Restoring its existing upstream label
