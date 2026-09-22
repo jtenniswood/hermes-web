@@ -32,6 +32,8 @@ async function attachFile(page) {
   await expect(page.locator('[data-slot="composer-attachments"]').getByText('upgrade-draft.txt', { exact: true })).toBeVisible()
 }
 
+const entryFor = async image => (await (await fetch(`http://127.0.0.1:${image.port}/`)).text()).match(/<script[^>]+type="module"[^>]+src="([^"]+)"/)[1]
+
 test('real drafts survive a previous-image upgrade after active work and unsent files are resolved', async ({ page, context, upgradeApp }) => {
   await openPrevious(page, upgradeApp, 'preview-week')
   const other = await context.newPage()
@@ -107,7 +109,6 @@ test('rollback to the previous tested image waits for active work and retains re
   ])
   await expect(editor(page)).toHaveText('First draft before the candidate')
   await expect(editor(other)).toHaveText('Second draft before the candidate')
-  const entryFor = async image => (await (await fetch(`http://127.0.0.1:${image.port}/`)).text()).match(/<script[^>]+type="module"[^>]+src="([^"]+)"/)[1]
   const candidateEntry = await entryFor(upgradeApp.candidate)
   for (const tab of [page, other]) await expect(tab.locator(`script[type="module"][src="${candidateEntry}"]`)).toHaveCount(1)
   await editor(page).fill('First draft edited in the candidate')
@@ -146,4 +147,36 @@ test('rollback to the previous tested image waits for active work and retains re
   expect((await (await page.request.get(`${upgradeApp.origin}/build-info.json`)).json()).wrapperRevision).toBe(upgradeApp.previous.build.wrapperRevision)
   await testInfo.attach('rollback-result', { body: JSON.stringify({ from: upgradeApp.candidate.build, to: upgradeApp.previous.build, fromImage: upgradeApp.candidate.reference, toImage: upgradeApp.previous.reference, activeResponseBlocked: true, attachmentBlocked: true, draftsRetainedAfterReload: true, gateway: 'synthetic-preview-v1' }, null, 2), contentType: 'application/json' })
   await other.close()
+})
+
+test('candidate composers block conflicting rollback drafts and allow retry after the other tab closes', async ({ page, context, upgradeApp }) => {
+  await openPrevious(page, upgradeApp, 'preview-week')
+  await offerCandidate(page, upgradeApp)
+  await Promise.all([
+    page.waitForEvent('load', { timeout: 60000 }),
+    page.getByRole('button', { name: 'Update when safe', exact: true }).click()
+  ])
+  const other = await context.newPage()
+  await openConversation(other, upgradeApp.origin, 'preview-week')
+  const candidateEntry = await entryFor(upgradeApp.candidate)
+  for (const tab of [page, other]) await expect(tab.locator(`script[type="module"][src="${candidateEntry}"]`)).toHaveCount(1)
+  await editor(page).fill('Keep this candidate draft')
+  await editor(other).fill('A different candidate draft')
+  upgradeApp.publishPrevious()
+  await page.evaluate(async () => { const registration = await navigator.serviceWorker.getRegistration(); await registration.update() })
+  const update = page.getByRole('button', { name: 'Update when safe', exact: true })
+  await expect(update).toBeVisible({ timeout: 30000 })
+  await update.click()
+  await expect(page.getByRole('status', { name: 'Application update' })).toContainText(/postponed|could not be saved/)
+  await expect(editor(page)).toHaveText('Keep this candidate draft')
+  await expect(editor(other)).toHaveText('A different candidate draft')
+  await expect(editor(page)).toBeEditable()
+  await expect(editor(other)).toBeEditable()
+  expect(await page.evaluate(async () => Boolean((await navigator.serviceWorker.getRegistration()).waiting))).toBe(true)
+  await other.close()
+  await Promise.all([page.waitForEvent('load', { timeout: 60000 }), update.click()])
+  await expect(page.locator(`script[type="module"][src="${await entryFor(upgradeApp.previous)}"]`)).toHaveCount(1)
+  await expect(editor(page)).toHaveText('Keep this candidate draft')
+  await page.reload()
+  await expect(editor(page)).toHaveText('Keep this candidate draft')
 })

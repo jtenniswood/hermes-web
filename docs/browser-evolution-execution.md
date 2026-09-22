@@ -739,3 +739,44 @@ the prior eight navigation journeys plus Sessions/Cron disclosure, focus, bounds
 and draft retention at 390/1440px and 100/150% scale. Captured 150% screenshots
 confirm the phone drawer and action controls remain within the viewport. Fresh
 committed-image CI is required after this refinement.
+
+## Preserve concurrent drafts during update flushes
+
+PR #58 merged as `04f887c`. Its release run `35752108986` passed 118 browser
+journeys but failed the final rollback activation; candidate publication and
+promotion were skipped. The new protocol evidence showed both tabs accepting
+the flush, followed by the second tab rejecting verification. A local real-image
+repeat reproduced that outcome. The second tab had saved two drafts, then the
+first tab rewrote its stale one-draft cache, removing the second draft from
+storage. The verification guard correctly refused activation.
+
+The reviewed composer integration now saves only the changed conversation keys
+during an update flush, using an exclusive browser lock shared by the tabs. The
+existing storage key, JSON shape, draft limit, and upstream in-memory stash remain
+in use. Ordinary saves and page-unload saves remain synchronous. Pending update
+saves cannot overwrite newer ordinary edits, and storage events retain pending
+drafts and attachment-only stashes. No fetched renderer source or pin changes.
+
+The update handshake waits for queued saves, refreshes the shared stash, and
+checks activity and persistence again. Verification still rejects changed or
+missing prepared drafts; an independently persisted draft arriving from another
+tab or a change in key ordering is allowed. Abort and timeout checks prevent late
+asynchronous completions from relocking or reloading the page. Missing lock
+support or failed storage leaves the live composer usable and refuses unsafe
+activation. The lock covers the synchronous read/modify/write callback, following
+the [Web Locks specification](https://www.w3.org/TR/web-locks/).
+
+The deterministic regression runs the actual transformed composer in two stale
+tabs: main loses the first tab's draft; the new integration retains both. Tests
+also cover pending writes, cancellation by a newer edit, failed storage and retry,
+unchanged ordinary saves, and attachment preservation. Three complete repetitions
+of the existing real-image upgrade/conflict/rollback journeys passed with the
+core fix. A further journey checks conflicting drafts in the candidate itself
+and retries rollback after the conflicting tab closes. Final local validation
+passed all four real-image journeys and the existing busy-tab/attachment safety
+fixture, plus 177 foundation checks, typechecking, and the production build.
+Exact committed-image CI and native release validation remain required. Earlier
+indefinite-checking observations are not all explained by this diagnosed write race.
+
+App setup remains deferred. Live updater demonstrations, real-gateway smoke tests,
+physical-device acceptance, and automation activation remain outstanding.

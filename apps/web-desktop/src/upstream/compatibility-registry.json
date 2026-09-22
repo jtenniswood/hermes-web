@@ -142,17 +142,29 @@
     "kind": "renderer-transform",
     "order": 30,
     "module": "store/composer.ts",
-    "reason": "Expose the upstream draft stash after flushing all mounted composers",
+    "reason": "Preserve synchronous ordinary saves while serializing update-handshake draft writes across tabs.",
     "owner": "apps/web-desktop/src/upstream/transforms.ts",
     "tests": [
       {
         "file": "tests/browser/upgrades.spec.mjs",
         "scenario": "real drafts survive a previous-image upgrade after active work and unsent files are resolved"
+      },
+      {
+        "file": "tests/browser/upgrades.spec.mjs",
+        "scenario": "rollback to the previous tested image waits for active work and retains real drafts in both tabs"
+      },
+      {
+        "file": "scripts/draft-persistence.test.mjs",
+        "scenario": "actual composer flushes preserve stale-tab drafts and ordinary saves remain synchronous"
+      },
+      {
+        "file": "tests/browser/upgrades.spec.mjs",
+        "scenario": "candidate composers block conflicting rollback drafts and allow retry after the other tab closes"
       }
     ],
     "removal": "Remove when upstream exposes a public complete draft and attachment snapshot for safe browser updates.",
     "sourceHash": "c103325f85b186116535bc2dd445dbac7cec45a5e29290ae7cb0efffaca0710c",
-    "outputHash": "6da7600ab288a216f2f5186c260517595fc5bb471d62434f7ed00ce61fd60f18",
+    "outputHash": "bf553416a5550348421e9fedb940e3b8e17ad34e923226b7d0e763cd05f66edf",
     "handler": "browser-draft-snapshot",
     "sourceRoot": "renderer"
   },
@@ -1828,5 +1840,25 @@
     "sourceHash": "874910a58f9b53a65a197df6ee637d60951df2b7f2d74e0a004c7347764d4d45",
     "inputHash": "874910a58f9b53a65a197df6ee637d60951df2b7f2d74e0a004c7347764d4d45",
     "outputHash": "8733712816ba9525e756de304d36efdf6184647fcfa18cdae35d845f56e88214"
+  },
+  {
+    "name": "browser-draft-persistence-alias",
+    "kind": "alias",
+    "order": 0,
+    "module": null,
+    "reason": "Resolve the shared browser draft persistence adapter from the reviewed composer transform.",
+    "owner": "scripts/aliases.mjs",
+    "tests": [
+      {
+        "file": "tests/browser/upgrades.spec.mjs",
+        "scenario": "rollback to the previous tested image waits for active work and retains real drafts in both tabs"
+      }
+    ],
+    "removal": "Remove when upstream saves independent browser drafts under a shared lock.",
+    "sourceRoot": "renderer",
+    "specifier": "hermes:web-draft-persistence",
+    "replacement": "./src/platform/draft-persistence.ts",
+    "aliasGroup": "renderer",
+    "fingerprintPolicy": "The wrapper-owned adapter is verified through the locked renderer transform and real-image draft journeys."
   }
 ]

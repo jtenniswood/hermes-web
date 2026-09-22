@@ -33,6 +33,9 @@
       ],
       "@hermes/shared/*": [
         "../shared/src/*"
+      ],
+      "hermes:web-draft-persistence": [
+        "./src/platform/draft-persistence.ts"
       ]
     }
   }

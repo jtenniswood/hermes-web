@@ -40,11 +40,27 @@ function rewrite(code: string, id: string): { code: string; map: null } | null {
     }
 
     if (normalizedId.endsWith('/desktop/src/store/composer.ts')) {
-      return { map: null, code: code + `
+      let patched = `import { createDraftPersistence } from 'hermes:web-draft-persistence'\n` + code
+      patched = patched.replace('const draftsBySession = new Map<string, SessionDraft>(loadPersistedDraftTexts())', `const draftsBySession = new Map<string, SessionDraft>(loadPersistedDraftTexts())
+const browserDraftPersistence = createDraftPersistence(SESSION_DRAFTS_STORAGE_KEY, MAX_PERSISTED_DRAFTS)
+let browserFlushingDrafts = false
+window.__HERMES_WEB_FLUSH_DRAFTS__ = async () => {
+  await browserDraftPersistence.flush()
+  reloadPersistedDrafts()
+}`)
+        .replace('  persistDraftTexts()', `  if (browserFlushingDrafts) browserDraftPersistence.write(key, text.trim() ? text : "")
+  else { browserDraftPersistence.cancel(key); persistDraftTexts() }`)
+        .replace('  for (const [key, draft] of incoming) {', '  for (const [key, draft] of incoming) {\n    if (browserDraftPersistence.pending(key)) continue')
+        .replace('    if (!incoming.has(key)) {', '    if (!incoming.has(key) && !browserDraftPersistence.pending(key) && !draftsBySession.get(key)?.attachments.length) {')
+      return { map: null, code: patched + `
 // Browser update safety: flush the existing composers, then inspect upstream's stash.
 window.__HERMES_WEB_DRAFT_SNAPSHOT__ = () => {
   window.__HERMES_WEB_DRAFT_BLOCKED__ = false
-  requestComposerDraftSync('flush', 'web-all')
+  // Keep ordinary/pagehide persistence synchronous. Only the acknowledged
+  // update handshake may wait for cross-tab writes to finish.
+  browserFlushingDrafts = true
+  try { requestComposerDraftSync('flush', 'web-all') }
+  finally { browserFlushingDrafts = false }
   return {
     blocked: window.__HERMES_WEB_DRAFT_BLOCKED__,
     storageKey: SESSION_DRAFTS_STORAGE_KEY,
