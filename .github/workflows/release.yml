@@ -140,3 +140,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HERMES_PROMOTION_ENABLED: ${{ vars.HERMES_PROMOTION_ENABLED }}
           HERMES_UPDATER_LOGIN: ${{ vars.HERMES_UPDATER_LOGIN }}
+
+      - name: Preserve tested release identity and promotion result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-evidence.json
+          if-no-files-found: warn

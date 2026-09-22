@@ -41,7 +41,7 @@ export const test = base.extend({
         const port = Number(docker(['port', container, '80/tcp']).split(':').at(-1))
         await expect.poll(async () => { try { return (await fetch(`http://127.0.0.1:${port}/build-info.json`)).status } catch { return 0 } }).toBe(200)
         const imageId = docker(['inspect', '--format', '{{.Image}}', container])
-        return { image: imageId, platform: docker(['image', 'inspect', '--format', '{{.Os}}/{{.Architecture}}', imageId]), port, build: await (await fetch(`http://127.0.0.1:${port}/build-info.json`)).json() }
+        return { reference: image, image: imageId, platform: docker(['image', 'inspect', '--format', '{{.Os}}/{{.Architecture}}', imageId]), port, build: await (await fetch(`http://127.0.0.1:${port}/build-info.json`)).json() }
       }
       const previous = await startImage(baseline.image, baseline.platform)
       const candidate = await startImage(requireBrowserImage())
@@ -82,7 +82,7 @@ export const test = base.extend({
       await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve))
       const origin = `http://127.0.0.1:${proxy.address().port}`
       await testInfo.attach('upgrade-image-identities', { body: JSON.stringify({ previous, candidate, gateway: 'synthetic-preview-v1', baselineVerification: baseline.verificationRun }, null, 2), contentType: 'application/json' })
-      await use({ ...gateway, origin, previous, candidate, publishCandidate: () => { servingPort = candidate.port } })
+      await use({ ...gateway, origin, previous, candidate, publishCandidate: () => { servingPort = candidate.port }, publishPrevious: () => { servingPort = previous.port } })
     } finally {
       gateway.controls.releaseAll()
       for (const socket of sockets) socket.destroy()
