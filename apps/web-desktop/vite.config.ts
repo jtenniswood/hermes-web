@@ -1,8 +1,9 @@
+import { compatibilityRegistryPlugin } from '../../scripts/compatibility-registry.mjs'
 import { dependencyCompatibilityPlugin } from './src/upstream/dependency-compatibility'
 import { browserPlugin, browserActivityNotificationsPlugin } from './src/upstream/browser-plugin'
 import { rendererOverrides } from './src/upstream/overrides'
 import { runtimeConfiguration, runtimeScripts, matchesGatewayRoute, type HostingConfiguration } from '../../scripts/runtime-config.mjs'
-import { rendererAliases } from '../../scripts/aliases.mjs'
+import { rendererAliases, compatibilityAliases, compatibilitySingletons } from '../../scripts/aliases.mjs'
 import { buildInfoPlugin } from '../../scripts/build-info.mjs'
 import { defineConfig, loadEnv, type Plugin, type PreviewServer } from 'vite'
 import { rendererCompatibilityPlugin } from './src/upstream/transforms'
@@ -41,16 +42,6 @@ const fsAllow = [
     ].filter((p): p is string => p !== null)
   )
 ]
-
-// The dev-only render/state churn counters (apps/desktop/src/debug) must be
-// imported STATICALLY above react-dom; alias the whole graph out of normal
-// web-dev and production builds. The upstream diagnostics depend on `bippy`,
-// which is intentionally not part of this wrapper's dependency set. Opt into
-// that graph explicitly with VITE_PERF_PROBE=1 when it is available.
-const debugEntry = (env: Record<string, string>) =>
-  env.VITE_PERF_PROBE === '1'
-    ? path.resolve(__dirname, '../desktop/src/debug/dev-only.ts')
-    : path.resolve(__dirname, '../desktop/src/debug/dev-only.noop.ts')
 
 // The emoji picker fetches emojibase JSON at runtime; serve the bundled
 // emojibase-data package at a stable local path (same as desktop).
@@ -244,6 +235,7 @@ export default defineConfig(({ command, mode }) => {
   return {
   base: './',
   plugins: [
+    compatibilityRegistryPlugin(path.resolve(__dirname, '../..')),
     dependencyCompatibilityPlugin(__dirname),
     buildInfoPlugin(),
     rendererOverrides(__dirname),
@@ -337,39 +329,11 @@ export default defineConfig(({ command, mode }) => {
     // under the read-only store path and fail to resolve bare imports.
     preserveSymlinks: true,
     alias: [
-      { find: '@/debug/dev-only', replacement: debugEntry(process.env as Record<string, string>) },
+      ...compatibilityAliases(__dirname).filter(alias => alias.find === '@/debug/dev-only'),
       ...rendererAliases(),
-      {
-        find: 'react/jsx-dev-runtime',
-        replacement: path.resolve(__dirname, '../../node_modules/react/jsx-dev-runtime.js')
-      },
-      {
-        find: 'react/jsx-runtime',
-        replacement: path.resolve(__dirname, '../../node_modules/react/jsx-runtime.js')
-      },
-      {
-        find: 'react-dom',
-        replacement: path.resolve(__dirname, '../../node_modules/react-dom')
-      },
-      {
-        find: 'react',
-        replacement: path.resolve(__dirname, '../../node_modules/react')
-      },
-      // driver.js's exports field doesn't expose the .iife subpath that
-      // preview-tour.ts fetches (as ?raw) for the guest-page tour engine; alias
-      // it straight to the on-disk file so the web build resolves it.
-      {
-        find: /^driver\.js\/dist\/driver\.js\.iife\.js(\?raw)?$/,
-        // Keep the ?raw query ($1) so the file is imported as raw text (the
-        // guest-page tour injects the IIFE payload), not parsed as a module.
-        replacement:
-          path.resolve(
-            __dirname,
-            '../../node_modules/driver.js/dist/driver.js.iife.js'
-          ) + '$1'
-      }
+      ...compatibilityAliases(__dirname).filter(alias => alias.find !== '@/debug/dev-only')
     ],
-    dedupe: ['react', 'react-dom', 'react-router']
+    dedupe: compatibilitySingletons(__dirname)
   },
   server: {
     host: '0.0.0.0',

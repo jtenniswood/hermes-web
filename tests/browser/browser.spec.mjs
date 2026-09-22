@@ -804,3 +804,15 @@ test('entry failure leaves the independent recovery surface visible', async ({ p
   await expect(page.getByRole('heading', { name: 'Hermes could not load the browser interface.' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible()
 })
+
+test('bundled emoji data is available to browser pickers', async ({ request }) => {
+  const response = await request.get(`${origin}/emojibase/en/data.json`)
+  expect(response.ok()).toBe(true)
+  const data = await response.json()
+  expect(data.some(emoji => emoji.hexcode === '1F600')).toBe(true)
+  for (const file of ['messages.json', 'shortcodes/emojibase.json']) {
+    const resource = await request.get(`${origin}/emojibase/en/${file}`)
+    expect(resource.ok()).toBe(true)
+    expect(Object.keys(await resource.json()).length).toBeGreaterThan(0)
+  }
+})

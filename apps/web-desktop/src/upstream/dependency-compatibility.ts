@@ -3,12 +3,13 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import type { Plugin } from 'vite'
+import registry from './compatibility-registry.json'
 
 // nanostores 1.4.0 marks batch() side-effect-free even though it executes its
 // callback. Rolldown consequently deletes upstream batch(() => store.set(...))
 // calls whose return value is unused. Remove only that erroneous annotation;
 // preserve batching, queue semantics, and all other tree-shaking hints.
-const sourceHash = 'd821b53d28eee40e810e2a5fc6d714fecc60dacc67796cbde689eadf2dfe9b20'
+const sourceHash = registry.find(entry => entry.name === 'nanostores-batch-effects')!.sourceHash
 const before = '/* @__NO_SIDE_EFFECTS__ */\nexport const batch = fn => {'
 const after = '/* Hermes Web: batch executes its callback and must be retained. */\nexport const batch = fn => {'
 export function preserveBatchEffects(code: string): string {

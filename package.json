@@ -2,7 +2,7 @@
   "name": "hermes-mobile",
   "private": true,
   "version": "0.1.1",
-  "description": "Hermes Desktop — Web & Mobile (PWA) version. Official Hermes chat UI as a browser/PWA app; nix-free Docker build.",
+  "description": "Hermes Desktop \u2014 Web & Mobile (PWA) version. Official Hermes chat UI as a browser/PWA app; nix-free Docker build.",
   "scripts": {
     "dev": "pnpm --filter web-desktop run dev",
     "build": "pnpm --filter web-desktop run build",
@@ -12,7 +12,9 @@
     "check:renderer": "node scripts/renderer.mjs --check",
     "check:upstream": "node scripts/renderer-compatibility-report.mjs",
     "check:update-setup": "node scripts/check-update-setup.mjs",
-    "test:foundation": "node --test scripts/*.test.mjs"
+    "test:foundation": "node --test scripts/*.test.mjs",
+    "check:compatibility-registry": "node scripts/compatibility-registry.mjs",
+    "docs:compatibility": "node scripts/compatibility-registry.mjs --write"
   },
   "packageManager": "pnpm@11.20.0",
   "devDependencies": {

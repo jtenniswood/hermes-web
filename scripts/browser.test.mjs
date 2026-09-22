@@ -156,11 +156,12 @@ test('browser shell contracts reject missing or changed upstream modules', t => 
   browserPlugin(root).buildStart()
   const fixture = mkdtempSync(path.join(tmpdir(), 'browser-contract-'))
   t.after(() => rmSync(fixture, { recursive: true, force: true }))
-  mkdirSync(path.join(fixture, 'desktop/src/app'), { recursive: true })
+  const first = JSON.parse(readFileSync(path.join(root, 'src/upstream/compatibility-registry.json'), 'utf8')).find(entry => entry.sourceRoot === 'renderer' && entry.module && entry.sourceHash)
+  mkdirSync(path.dirname(path.join(fixture, 'desktop/src', first.module)), { recursive: true })
   const plugin = browserPlugin(path.join(fixture, 'web-desktop'))
   assert.throws(() => plugin.buildStart(), /ENOENT/)
-  writeFileSync(path.join(fixture, 'desktop/src/app/index.tsx'), 'changed')
-  assert.throws(() => plugin.buildStart(), /Browser integration changed: app\/index.tsx/)
+  writeFileSync(path.join(fixture, 'desktop/src', first.module), 'changed')
+  assert.throws(() => plugin.buildStart(), /Browser integration changed:/)
 })
 test('browser layout storage is isolated, deterministic and checked without moving shared drafts', () => {
   const filename = '../desktop/src/lib/storage.ts'

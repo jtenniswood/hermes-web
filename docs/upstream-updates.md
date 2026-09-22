@@ -16,7 +16,7 @@ must stop with evidence, while the last tested image remains available.
 | `renderer-update.yml` | Checks upstream every six hours and after changes to `main`; also supports manual dispatch. Requires the enablement variable. |
 | Proposal reconciliation | Keeps pending or passing work, refreshes branches behind `main` with a merge commit, and leaves conflicting or draft proposals for review. |
 | Candidate policy | Only the three renderer lock metadata fields may change. Existing proposals are revalidated before updater actions. |
-| Compatibility preflight | Reports every changed or missing source fingerprint from the two existing contract manifests, with expected/actual hashes and candidate identity. |
+| Compatibility preflight | Reports every changed or missing source fingerprint from the compatibility registry, with expected/actual hashes, affected interventions, ownership, verification paths, and candidate identity. |
 | Required compatibility job | Runs transform, type, dependency, routing, production-build, and browser checks after preflight passes. |
 | Tested-image release | Tests each architecture's exact image digest before stable promotion. It does not restart a deployment. |
 
@@ -121,3 +121,34 @@ auto-merge on an already-open proposal if it must not land. Disable
 deployment back to its previous tested digest using the
 [release rollback procedure](releases.md#disable-updates-and-roll-back), keeping
 configuration and browser state intact.
+
+## Maintaining compatibility entries
+
+`apps/web-desktop/src/upstream/compatibility-registry.json` is the source of truth
+for renderer transforms, browser transforms, module replacements, resolution
+workarounds, runtime assets, and composition contracts. Each entry identifies its
+owner, purpose, application order, behavioral verification, and removal condition.
+Source fingerprints cover both renderer and shared modules. Dependency inputs
+are reported as pending before installation and required by the production build
+after installation.
+
+The generated [inventory](browser-transform-inventory.md) and preflight
+`compatibility-coverage.json` describe declared verification paths. They are not
+measured code coverage or proof that a test passed. Required CI supplies execution
+evidence. Browser transform inputs and outputs are checked, including the
+renderer-then-activity-filter sequence; generated TypeScript aliases and Vite
+resolution read the same registry.
+
+When reviewing an intentional compatibility change, inspect the source and
+behavior, update only the relevant reviewed fingerprint, then run:
+
+```sh
+pnpm docs:compatibility
+pnpm check:compatibility-registry
+pnpm check:upstream
+```
+
+Documentation generation never recalculates fingerprints or accepts upstream
+changes. A changed dependency, missing test reference, invalid ordering, stale
+inventory, or incomplete transform must be repaired explicitly. Keep the
+behavioral tests required by each affected entry in the verification run.
