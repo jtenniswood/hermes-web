@@ -1,3 +1,4 @@
+import { BrowserToolModal } from './tool-modal'
 import { BrowserModal } from './ui/modal'
 import { BrowserToolbarButton } from './ui/toolbar-button'
 import { BrowserNavigationTabs, BrowserNavigationResizer, useBrowserNavigation } from './navigation'
@@ -8,16 +9,13 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
-import { SettingsMenu, toolRouteLabel } from './settings-menu'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, SessionTileCloseConfirm, BrowserWorkspace, OverlayView, SessionActionsMenu } from '../upstream/browser-api'
+import { SettingsMenu } from './settings-menu'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, SessionTileCloseConfirm, BrowserWorkspace, SessionActionsMenu } from '../upstream/browser-api'
 import { useBrowserConversation } from '../upstream/conversation'
 import { useBrowserSessionActions } from '../upstream/conversation-actions'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
 import { ApprovalToolbarTarget } from '../upstream/browser-api'
 
-// Settings and Command Center are owned by the upstream ContribWiring overlay
-// router. Only the full-page workspace routes need the browser modal shell.
-const BROWSER_MODAL_ROUTES = new Set(['/skills', '/messaging', '/artifacts'])
 export function BrowserShell() {
   return <SidebarProvider className="browser-provider" style={{ '--sidebar-width': '100%' } as CSSProperties}>
     <ContribWiring><BrowserLayout /><SessionTileCloseConfirm /></ContribWiring>
@@ -39,8 +37,6 @@ function BrowserLayout() {
   const settingsTrigger = useRef<HTMLButtonElement>(null)
   const [updateNotice, setUpdateNotice] = useState<PwaUpdateNotice | null>(() => currentPwaUpdate())
   const [updateDismissed, setUpdateDismissed] = useState(false)
-  const browserModalReturnPath = useRef('/')
-  const browserModalRoute = BROWSER_MODAL_ROUTES.has(location.pathname)
   const bots = panes.find(pane => pane.id === 'hermes-bots:pane')
   useEffect(() => subscribePwaUpdate(notice => {
     setUpdateNotice(notice)
@@ -48,14 +44,8 @@ function BrowserLayout() {
   }), [])
   const surface = (pane: typeof bots) => pane?.render ? <ContribBoundary id={pane.id}><ContribRender render={pane.render} /></ContribBoundary> : null
   const openRoute = (path: string) => {
-    if (BROWSER_MODAL_ROUTES.has(path.split('?')[0]) && !browserModalRoute) browserModalReturnPath.current = location.pathname || '/'
     navigateToWorkspacePage(navigate, path)
     navigation.closeDrawer()
-  }
-  const closeBrowserModal = () => {
-    const returnPath = browserModalReturnPath.current || '/'
-    browserModalReturnPath.current = '/'
-    navigateToWorkspacePage(navigate, returnPath)
   }
   const panelPanes = panes.filter(pane => !['workspace', 'sessions', 'hermes-bots:pane', 'terminal'].includes(pane.id))
   return <ApprovalToolbarTarget value={approvalTarget}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
@@ -89,15 +79,13 @@ function BrowserLayout() {
             <SettingsMenu triggerRef={settingsTrigger} onOpenGateway={() => { navigation.closeDrawer(); setGatewayDialogOpen(true) }} onOpenPanel={() => main.current?.focus()} onOpenRoute={openRoute} panelPanes={panelPanes} />
           </div>
         </div>
-        {!browserModalRoute && <BrowserWorkspace />}
+        <BrowserWorkspace />
         <div className="browser-status"><WiredPane part="statusbar" /></div>
       </main>
       <BrowserModal title="Gateway" open={gatewayDialogOpen} onOpenChange={setGatewayDialogOpen} returnFocus={settingsTrigger} className="browser-gateway-dialog">
         <BrowserGatewayPanel status={gatewayStatus} onClose={() => setGatewayDialogOpen(false)} onOpenSystem={() => { setGatewayDialogOpen(false); openRoute('/command-center?section=system') }} />
       </BrowserModal>
-      {browserModalRoute && <OverlayView closeLabel={`Close ${toolRouteLabel(location.pathname.slice(1))}`} onClose={closeBrowserModal}>
-        <WiredPane part="chatRoutes" />
-      </OverlayView>}
+      <BrowserToolModal />
     </div>
   </div></ApprovalToolbarTarget>
 }

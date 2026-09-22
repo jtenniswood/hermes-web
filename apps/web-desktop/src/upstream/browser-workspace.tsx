@@ -1,3 +1,5 @@
+import { useLocation } from 'react-router'
+import { browserRouteCoversWorkspace } from './browser-routes'
 import { useStore } from '@nanostores/react'
 import { useEffect } from 'react'
 import { $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen } from '@/store/layout'
@@ -23,6 +25,7 @@ function sessionTileIds(node: unknown): string[] {
 }
 
 export function BrowserWorkspace() {
+  const covered = browserRouteCoversWorkspace(useLocation().pathname)
   const tree = useStore($layoutTree)
   const pinnedSessionIds = useStore($pinnedSessionIds), pinsOpen = useStore($sidebarPinsOpen)
   useEffect(() => {
@@ -40,7 +43,7 @@ export function BrowserWorkspace() {
     (pane.data as { placement?: string } | undefined)?.placement !== 'main'
   ).map(pane => pane.id))
   const workspace = tree && browserWorkspaceTree(tree, panelIds)
-  return <div className="browser-upstream-workspace">
+  return <div className="browser-upstream-workspace" inert={covered} aria-hidden={covered || undefined}>
     {workspace && <TreeNode node={workspace} root rootRow={workspace.type === 'split' && workspace.orientation === 'row'} />}
     <NarrowOverlays />
     <FloatingPanes />

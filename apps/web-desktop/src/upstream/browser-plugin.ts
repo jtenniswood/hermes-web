@@ -99,6 +99,13 @@ export function useBrowserFreshSessionOwner(source: string, root: string): strin
     .replace(end, end.replace('    },', '    }),'))
 }
 
+export function keepBrowserWorkspaceRoute(source: string, root: string): string {
+  const target = "import { Navigate, Route, Routes, useParams } from 'react-router'"
+  if (source.split(target).length !== 2) throw new Error('Browser workspace routes changed')
+  const owner = JSON.stringify(path.join(root, 'src/upstream/browser-routes'))
+  return source.replace(target, `import { Navigate, Route, useParams } from 'react-router'\nimport { BrowserWorkspaceRoutes as Routes } from ${owner}`)
+}
+
 export function useBrowserOverlayFocusOwner(source: string, root: string): string {
   const start = '}: OverlayViewProps) {', element = '    <div\n      className={cn('
   if (source.split(start).length !== 2 || source.split(element).length !== 2) throw new Error('Browser overlay focus owner changed')
@@ -516,6 +523,7 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
   if (digest(code) === entry.outputHash) return { code, map: null }
   if (digest(code) !== entry.inputHash) throw new Error(`Browser compatibility changed: ${entry.name} (${entry.module}). Review this registry entry.`)
   const handlers: Record<string, (source: string) => string> = {
+    keepBrowserWorkspaceRoute: source => keepBrowserWorkspaceRoute(source, root),
     respectBrowserOverlayFocusReturn: source => respectBrowserOverlayFocusReturn(source, root),
     useBrowserOverlayFocusOwner: source => useBrowserOverlayFocusOwner(source, root),
     useBrowserPinWrites: source => useBrowserPinWrites(source, root),
