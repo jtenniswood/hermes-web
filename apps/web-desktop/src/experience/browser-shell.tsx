@@ -1,21 +1,17 @@
+import { BrowserProfileNavigation } from './profile-navigation'
 import { BrowserActionError } from './action-errors'
 import { useStore } from '@nanostores/react'
-import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProperties, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
 import { SettingsMenu, toolRouteLabel } from './settings-menu'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, removeTreePane, revealTreePane, $profileOrder, $profiles, $activeGatewayProfile, $showAllProfiles, ALL_PROFILES, selectProfile, setProfileOrder, setShowAllProfiles, sortByProfileOrder, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $botMeta, $lastRoster, botRosterMeta, avatarColor, botAppearance, BotFace, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu } from '../upstream/browser-api'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, removeTreePane, revealTreePane, $activeGatewayProfile, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu } from '../upstream/browser-api'
 import { useBrowserConversation } from '../upstream/conversation'
 import { useBrowserSessionActions } from '../upstream/conversation-actions'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
 import { ApprovalToolbarTarget } from '../upstream/browser-api'
-import { clampNavigationWidth, DEFAULT_NAVIGATION_WIDTH, MAX_NAVIGATION_WIDTH, MIN_NAVIGATION_WIDTH, NAVIGATION_TAB_LABELS, NAVIGATION_TABS, readHiddenProfiles, readNavigationTab, readNavigationWidth, readVisibleNavigationTabs, type NavigationTab, writeBrowserPreference } from './browser-preferences'
-
-function sentenceCase(label: string) {
-  const value = label.replaceAll('-', ' ').trim()
-  return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value
-}
+import { clampNavigationWidth, DEFAULT_NAVIGATION_WIDTH, MAX_NAVIGATION_WIDTH, MIN_NAVIGATION_WIDTH, NAVIGATION_TAB_LABELS, NAVIGATION_TABS, readNavigationTab, readNavigationWidth, readVisibleNavigationTabs, type NavigationTab, writeBrowserPreference } from './browser-preferences'
 
 // Settings and Command Center are owned by the upstream ContribWiring overlay
 // router. Only the full-page workspace routes need the browser modal shell.
@@ -55,14 +51,10 @@ function BrowserLayout() {
   const { requestGateway } = useGatewayRequest()
   const { inferenceStatus, statusSnapshot } = useStatusSnapshot(gatewayState, requestGateway, `${activeConnectionId ?? ''}\0${activeGatewayProfile}`)
   const pinnedSessionIds = useStore($pinnedSessionIds), pinsOpen = useStore($sidebarPinsOpen)
-  const profiles = useStore($profiles), profileOrder = useStore($profileOrder), profile = useStore($activeGatewayProfile), showAllProfiles = useStore($showAllProfiles)
-  const roster = useStore($lastRoster), botMeta = useStore($botMeta)
   const chatTitle = conversation.displayName || ''
   const tree = useStore($layoutTree)
   const panes = useContributions('panes')
-  const main = useRef<HTMLElement>(null), menu = useRef<HTMLButtonElement>(null), drawer = useRef<HTMLElement>(null), navigationTabsMenu = useRef<HTMLDivElement>(null), profileContextMenu = useRef<HTMLDivElement>(null)
-  const requestedProfile = useRef<string | null>(null)
-  const draggedProfile = useRef<string | null>(null)
+  const main = useRef<HTMLElement>(null), menu = useRef<HTMLButtonElement>(null), drawer = useRef<HTMLElement>(null), navigationTabsMenu = useRef<HTMLDivElement>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [compactNavigation, setCompactNavigation] = useState(() => window.matchMedia('(max-width:47.999rem)').matches)
   const [navigationCollapsed, setNavigationCollapsed] = useState(false)
@@ -71,10 +63,6 @@ function BrowserLayout() {
   const [gatewayDialogOpen, setGatewayDialogOpen] = useState(false)
   const settingsTrigger = useRef<HTMLButtonElement>(null)
   const gatewayHeading = useRef<HTMLHeadingElement>(null)
-  const [draggingProfile, setDraggingProfile] = useState<string | null>(null)
-  const [dropTargetProfile, setDropTargetProfile] = useState<{ key: string; after: boolean } | null>(null)
-  const [hiddenProfiles, setHiddenProfiles] = useState<string[]>(readHiddenProfiles)
-  const [profileContextMenuPosition, setProfileContextMenuPosition] = useState<{ x: number; y: number; profile: string | null } | null>(null)
   const [updateNotice, setUpdateNotice] = useState<PwaUpdateNotice | null>(() => currentPwaUpdate())
   const [updateDismissed, setUpdateDismissed] = useState(false)
   const [navigationWidth, setNavigationWidth] = useState(readNavigationWidth)
@@ -113,7 +101,6 @@ function BrowserLayout() {
     if (!visibleNavigationTabs.includes(tab)) setTab(visibleNavigationTabs[0])
   }, [tab, visibleNavigationTabs])
   useEffect(() => { writeBrowserPreference('navigationWidth', String(navigationWidth)) }, [navigationWidth])
-  useEffect(() => { writeBrowserPreference('hiddenProfiles', JSON.stringify(hiddenProfiles)) }, [hiddenProfiles])
   useEffect(() => {
     if (pinnedSessionIds.length === 0 && pinsOpen) setSidebarPinsOpen(false)
   }, [pinnedSessionIds, pinsOpen])
@@ -121,11 +108,6 @@ function BrowserLayout() {
     setUpdateNotice(notice)
     if (notice) setUpdateDismissed(false)
   }), [])
-  useEffect(() => {
-    // A Bot activation can finish after a profile pick and restore the
-    // upstream all-profiles flag. Keep an explicit browser selection in force.
-    if (requestedProfile.current === profile && showAllProfiles) setShowAllProfiles(false)
-  }, [profile, showAllProfiles])
   useEffect(() => {
     if (!drawerOpen) return
     drawer.current?.querySelector<HTMLButtonElement>('button')?.focus()
@@ -159,22 +141,6 @@ function BrowserLayout() {
       document.removeEventListener('keydown', closeOnEscape)
     }
   }, [navigationTabsMenuPosition])
-  useEffect(() => {
-    if (!profileContextMenuPosition) return
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (!profileContextMenu.current?.contains(event.target as Node)) setProfileContextMenuPosition(null)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setProfileContextMenuPosition(null)
-    }
-    document.addEventListener('pointerdown', closeOnOutsidePointer)
-    document.addEventListener('keydown', closeOnEscape)
-    requestAnimationFrame(() => profileContextMenu.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus())
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutsidePointer)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [profileContextMenuPosition])
   const surface = (pane: typeof bots) => pane?.render ? <ContribBoundary id={pane.id}><ContribRender render={pane.render} /></ContribBoundary> : null
   const openRoute = (path: string) => {
     if (BROWSER_MODAL_ROUTES.has(path.split('?')[0]) && !browserModalRoute) browserModalReturnPath.current = location.pathname || '/'
@@ -186,101 +152,7 @@ function BrowserLayout() {
     browserModalReturnPath.current = '/'
     navigateToWorkspacePage(navigate, returnPath)
   }
-  const profileValue = showAllProfiles ? ALL_PROFILES : profile
-  const defaultProfile = profiles.find(item => item.is_default)
-  const profileSortOrder = defaultProfile && !profileOrder.includes(defaultProfile.name)
-    ? [defaultProfile.name, ...profileOrder]
-    : profileOrder
-  const orderedProfiles = sortByProfileOrder(profiles, profileSortOrder)
-  const profileAvatars = orderedProfiles.map(item => {
-    const bot = roster.find(row => row.name === item.name || row.targetProfile === item.name || row.route?.targetProfile === item.name)
-    const appearance = botAppearance(item.name, bot ? botRosterMeta(bot, botMeta) : undefined)
-    return { appearance, botName: bot?.name || item.name, is_default: Boolean(item.is_default), key: item.name, label: sentenceCase(item.display_name || item.name) }
-  })
-  const visibleProfileAvatars = profileAvatars.filter(item => !hiddenProfiles.includes(item.key))
   const panelPanes = panes.filter(pane => !['workspace', 'sessions', 'hermes-bots:pane', 'terminal'].includes(pane.id))
-  const chooseProfile = (value: string) => {
-    if (value === ALL_PROFILES) {
-      requestedProfile.current = null
-      // The session-list adapter uses this marker to route concrete profile
-      // refreshes through the shared browser connection. Clear it explicitly
-      // so the upstream ALL_PROFILES scope can request the combined view.
-      window.__HERMES_WEB_ACTIVE_PROFILE__ = null
-      setShowAllProfiles(true)
-      return
-    }
-    requestedProfile.current = value
-    selectProfile(value)
-  }
-  const openProfileContextMenu = (event: React.MouseEvent, profileName: string | null = null) => {
-    event.preventDefault()
-    event.stopPropagation()
-    const uiScale = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--web-ui-scale')) || 1
-    const viewportWidth = window.innerWidth / uiScale
-    const viewportHeight = window.innerHeight / uiScale
-    // Keep the small menu reachable when the rail is close to a viewport edge.
-    setProfileContextMenuPosition({
-      x: Math.max(4, Math.min(event.clientX / uiScale, viewportWidth - 180)),
-      y: Math.max(4, Math.min(event.clientY / uiScale, viewportHeight - 96)),
-      profile: profileName
-    })
-  }
-  const hideProfile = (profileName: string) => {
-    setHiddenProfiles(current => current.includes(profileName) ? current : [...current, profileName])
-    if (profile === profileName) chooseProfile(ALL_PROFILES)
-    setProfileContextMenuPosition(null)
-  }
-  const showHiddenProfiles = () => {
-    setHiddenProfiles([])
-    setProfileContextMenuPosition(null)
-  }
-  const beginProfileDrag = (event: ReactDragEvent<HTMLButtonElement>, name: string) => {
-    draggedProfile.current = name
-    setDraggingProfile(name)
-    setDropTargetProfile(null)
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', name)
-  }
-  const finishProfileDrag = () => {
-    draggedProfile.current = null
-    setDraggingProfile(null)
-    setDropTargetProfile(null)
-  }
-  const profileDropTarget = (event: ReactDragEvent<HTMLDivElement>) => {
-    // Resolve one insertion point across avatars, gaps and trailing space.
-    // Markers are positioned out of flow so preview and drop use the same bounds.
-    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[data-profile-key]'))
-    for (const button of buttons) {
-      const bounds = button.getBoundingClientRect()
-      if (event.clientX < bounds.left + bounds.width / 2) return { key: button.dataset.profileKey!, after: false }
-    }
-    const last = buttons.at(-1)
-    return last ? { key: last.dataset.profileKey!, after: true } : null
-  }
-  const hoverProfileDrop = (event: ReactDragEvent<HTMLDivElement>) => {
-    if (!draggedProfile.current) return
-    event.preventDefault()
-    event.stopPropagation()
-    event.dataTransfer.dropEffect = 'move'
-    const target = profileDropTarget(event)
-    setDropTargetProfile(target?.key === draggedProfile.current ? null : target)
-  }
-  const reorderProfiles = (event: ReactDragEvent<HTMLDivElement>) => {
-    if (!draggedProfile.current) return
-    event.preventDefault()
-    event.stopPropagation()
-    const target = profileDropTarget(event)
-    const source = draggedProfile.current
-    const named = orderedProfiles.map(item => item.name)
-    if (target && source !== target.key && named.includes(source) && named.includes(target.key)) {
-      const next = named.filter(name => name !== source)
-      const insertionIndex = next.indexOf(target.key) + (target.after ? 1 : 0)
-      next.splice(insertionIndex, 0, source)
-      setProfileOrder(next)
-    }
-    finishProfileDrag()
-  }
-  const lastVisibleProfile = visibleProfileAvatars.at(-1)?.key
   const beginNavigationResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
     event.preventDefault()
@@ -329,19 +201,7 @@ function BrowserLayout() {
           <p>{updateNotice.message}</p>
           <button type="button" className="browser-update-panel-action" onClick={updateNotice.update}>Update when safe</button>
         </div>}
-        {tab === 'sessions' && <div className="browser-profile-footer">
-          <div className="browser-profile-rail" role="radiogroup" aria-label="Profiles" onContextMenu={event => openProfileContextMenu(event)} onDragOver={hoverProfileDrop} onDrop={reorderProfiles} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTargetProfile(null) }}>
-            {profiles.length > 1 && <Tip label="All profiles"><button className="browser-profile-choice browser-profile-all" type="button" aria-label="All profiles" aria-pressed={showAllProfiles} onClick={() => chooseProfile(ALL_PROFILES)} onContextMenu={event => openProfileContextMenu(event)}><Codicon name="symbol-misc" size="1rem" /></button></Tip>}
-            {!showAllProfiles && !profiles.some(item => item.name === profile) && <Tip label={sentenceCase(profile)}><button className="browser-profile-choice" type="button" aria-label={sentenceCase(profile)} aria-pressed={profileValue === profile} onClick={() => chooseProfile(profile)} onContextMenu={event => openProfileContextMenu(event, profile)}><BotFace color={avatarColor(null, profile)} name={profile} shape={botAppearance(profile, undefined).shape} size={28} /></button></Tip>}
-            {visibleProfileAvatars.map(item => <div className="browser-profile-slot" key={item.key}>
-              {draggingProfile && dropTargetProfile?.key === item.key && !dropTargetProfile.after && draggingProfile !== item.key && <span className="browser-profile-drop-indicator" aria-hidden="true" />}
-              <Tip label={item.label}><button className={`browser-profile-choice${draggingProfile === item.key ? ' is-dragging' : ''}${dropTargetProfile?.key === item.key && draggingProfile !== item.key ? ' is-drop-target' : ''}`} draggable data-profile-key={item.key} type="button" aria-label={item.label} aria-pressed={!showAllProfiles && profileValue === item.key} onClick={() => chooseProfile(item.key)} onContextMenu={event => openProfileContextMenu(event, item.key)} onDragStart={event => beginProfileDrag(event, item.key)} onDragEnd={finishProfileDrag}><BotFace color={avatarColor(item.appearance.color, item.botName)} image={item.appearance.image} name={item.botName} shape={item.appearance.shape} size={28} /></button></Tip>
-            </div>)}
-            {lastVisibleProfile && <div className="browser-profile-drop-end" aria-hidden="true">
-              {draggingProfile && dropTargetProfile?.key === lastVisibleProfile && dropTargetProfile.after && draggingProfile !== lastVisibleProfile && <span className="browser-profile-drop-indicator" />}
-            </div>}
-          </div>
-        </div>}
+        <BrowserProfileNavigation hidden={tab !== 'sessions'} />
       </aside>
       {/* Keep fixed context menus outside the transformed mobile drawer so
           viewport coordinates stay anchored to the originating control. */}
@@ -353,10 +213,7 @@ function BrowserLayout() {
           </button>
         })}
       </div>}
-      {profileContextMenuPosition && <div ref={profileContextMenu} className="browser-profile-context-menu" role="menu" aria-label="Profile actions" style={{ left: profileContextMenuPosition.x, top: profileContextMenuPosition.y }}>
-        {profileContextMenuPosition.profile && <button type="button" role="menuitem" onClick={() => hideProfile(profileContextMenuPosition.profile!)}>Hide profile</button>}
-        <button type="button" role="menuitem" disabled={!hiddenProfiles.length} onClick={showHiddenProfiles}>Show hidden</button>
-      </div>}
+
       <div className="browser-navigation-resizer" hidden={!navigationOpen} role="separator" tabIndex={0} aria-label="Resize navigation panel" aria-orientation="vertical" aria-valuemin={MIN_NAVIGATION_WIDTH} aria-valuemax={MAX_NAVIGATION_WIDTH} aria-valuenow={Math.round(navigationWidth)} onPointerDown={beginNavigationResize} onPointerMove={updateNavigationResize} onPointerUp={endNavigationResize} onPointerCancel={endNavigationResize} onDoubleClick={() => setNavigationWidth(DEFAULT_NAVIGATION_WIDTH)} onKeyDown={event => {
         if (event.key === 'ArrowLeft') { event.preventDefault(); nudgeNavigationWidth(-16) }
         if (event.key === 'ArrowRight') { event.preventDefault(); nudgeNavigationWidth(16) }

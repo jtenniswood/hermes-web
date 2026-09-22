@@ -78,10 +78,16 @@ window.__HERMES_WEB_DRAFT_SNAPSHOT__ = () => {
           ? code
           : `${code.slice(0, throwError)}if (options.workspaceMode === 'bots' && error instanceof Error && error.message === 'Session open was superseded by a newer selection.') {\n              return\n            }\n            ${code.slice(throwError)}`
 
-      const webPatched = patched.replace(
+      const scoped = patched.replace(
         /if \(!openingStillCurrent\(\)\) \{/g,
         "if (!openingStillCurrent() && !(window.__HERMES_WEB_BRIDGE__ && options.workspaceMode === 'bots')) {"
       )
+      const profileCommit = '      if (explicitRoute) {\n        setShowAllProfiles(true)'
+      if (scoped.split(profileCommit).length !== 2) throw new Error('Browser Bot profile scope commit changed')
+      const webPatched = scoped.replace(profileCommit, `      if (window.__HERMES_WEB_BRIDGE__ && window.__HERMES_WEB_ACTIVE_PROFILE__) {
+        setShowAllProfiles(false)
+      } else if (explicitRoute) {
+        setShowAllProfiles(true)`)
 
       if (patched === code) {
         throw new Error('Bot Mode cancellation override no longer matches the SDK source')
@@ -139,8 +145,10 @@ ${code.slice(scopeMarkerStart + scopeMarker.length)}`
           : `${code.slice(0, targetEnd)}
   if (window.__HERMES_WEB_BRIDGE__) {
     window.__HERMES_WEB_ACTIVE_PROFILE__ = target
-    $activeGatewayProfile.set(target)
-    return
+    return batch(() => {
+      $showAllProfiles.set(false)
+      $activeGatewayProfile.set(target)
+    })
   }
 ${code.slice(targetEnd)}`
 

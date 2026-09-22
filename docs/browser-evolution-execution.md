@@ -27,7 +27,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
-| 4. Behavioral contracts | First action slice in draft PR #40; selection and remaining models outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
+| 4. Behavioral contracts | Action slice PR #40 merged; profile slice under verification; remaining selection and models outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
@@ -159,4 +159,28 @@ journeys passed, including negative acknowledgments, unread labels/rejection,
 delayed deletion, and approval startup. Local full interruption runs encountered
 startup network failures before some existing scenarios began; those runs are
 not a complete passing suite. The fixture now starts an isolated browser after
-Docker networking is ready. Required exact-commit CI remains the merge gate.
+Docker networking is ready. Required compatibility and preview CI passed on `3d4a61e`; PR #40 merged as `b166a5d`.
+
+
+The profile slice introduces a read-only browser profile model with selection and
+ordering commands, and extracts the profile rail from the shell. Delayed Bot
+activation now respects the explicit scope at the SDK state write. Profile picks
+commit the selected profile and its scope together, replacing the shell's
+corrective effect. Startup restoration preserves the existing all-profiles flag
+and tab profile key. Hidden-profile preferences retain their component lifetime
+when switching navigation tabs.
+
+Eleven targeted browser journeys passed on the development image: startup,
+approval/profile behavior, profile menu placement, hide/show, ordering at both
+viewports and multiple scales, delayed Bot selection, delayed profile activation,
+and draft/scope persistence across reloads. The latter caught an all-profiles
+restoration regression that was fixed and verified against the previous image.
+Forty-two adapter/registry checks and typechecking passed. Only the two reviewed
+SDK/profile transform output fingerprints changed; source hashes and renderer
+pin remain fixed. Shared phone action sheets and disabling phone reordering are
+still stage 5 work; these browser tests are not physical-device evidence.
+
+The final extracted-component build and typecheck passed. Two final browser
+journeys verified scope/draft reload and hidden-profile state across navigation
+with preference writes deliberately unavailable. Twenty-three startup/composition
+checks also passed. Exact-commit CI is pending for the profile slice.
