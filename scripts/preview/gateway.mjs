@@ -88,7 +88,11 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
     if (method === 'profiles.configure' && Object.keys(params.ui_meta || {}).length === 1 && params.ui_meta['hermes-bots']) {
       const owner = profiles.find(item => item.name === params.name)
       const metadata = params.ui_meta['hermes-bots']
-      if (!owner || !Array.isArray(metadata.groups) || metadata.groups.some(group => typeof group !== 'string')) throw new Error('Invalid Bot group membership')
+      if (!owner || typeof metadata !== 'object' || Array.isArray(metadata)) throw new Error('Invalid Bot metadata')
+      if ('groups' in metadata && (!Array.isArray(metadata.groups) || metadata.groups.some(group => typeof group !== 'string'))) throw new Error('Invalid Bot group membership')
+      if (Object.keys(metadata).some(key => !['groups', 'group', 'pinned', 'hidden', 'sectionId'].includes(key)) ||
+        ['pinned', 'hidden'].some(key => key in metadata && typeof metadata[key] !== 'boolean') ||
+        ['group', 'sectionId'].some(key => key in metadata && metadata[key] !== null && typeof metadata[key] !== 'string')) throw new Error('Invalid Bot metadata')
       owner.ui_meta = { ...owner.ui_meta, 'hermes-bots': structuredClone(metadata) }
       return { applied: { ui_meta: true } }
     }

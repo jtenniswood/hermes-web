@@ -28,7 +28,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
-| 5. Shared interaction surfaces | Profile, navigation, settings, and mounted tool workspaces merged; Bots controls under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
+| 5. Shared interaction surfaces | Profile, navigation, settings, mounted tool workspaces, and Bots toolbar merged; roster row actions under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
 The user explicitly deferred updater App setup. Continue independent code and
@@ -531,10 +531,47 @@ visibility across navigation/reload. Thirteen existing settings, navigation, and
 profile surface journeys passed. All four final matrix cases passed normal and
 advanced creation-dialog bounds checks; one passed on retry after startup
 `ERR_NETWORK_CHANGED` errors with unchanged assertions. The four remaining
-final-image control journeys passed. Committed-image CI is pending.
+final-image control journeys passed. Required compatibility, policy, and image
+checks passed on `0743498`; PR #52 merged as `72bae0f`.
 
 This toolbar slice does not complete all Bots interactions. Bot/group row and
 section context menus still need an accessible touch entry point and shared
 browser action surfaces. Physical-device validation and stage-6 live rollout
 evidence remain outstanding; updater App setup is deferred and automation stays
 disabled.
+
+
+## Shared roster row and section actions
+
+Bot, group, and section rows now expose an explicit action button alongside
+right-click and keyboard context-menu access. One action definition drives the
+desktop menu and phone sheet. Bot metadata commands remain behind the browser
+adapter; upstream metadata stores, profile ownership, section persistence,
+selection commands, and form callbacks remain authoritative. A gateway that
+explicitly rejects metadata persistence produces a visible browser error while
+retaining the upstream local fallback. Existing older-gateway fallback semantics
+are preserved.
+
+Owned section headings retain collapse, rename, ordering, and deletion. Bot menus
+retain pin, hide, edit, groups, duplicate, section filing, and deletion. Group
+menus keep their existing open and disband callbacks. Creation/edit/group and
+confirmation dialogs release the action surface first, restore focus on close,
+and fit scaled viewports. Five reviewed registry entries cover these boundaries;
+the renderer revision and previously reviewed fingerprints are unchanged.
+
+Verification reproduced lost focus when creating a section remounted the Bot row.
+Focus restoration now resolves the current row using its source-qualified key,
+or returns to the active navigation tab when the row has been removed. The
+registry pipeline test now runs browser and renderer prerequisites in actual
+Vite order. The strict gateway fixture validates pin, hide, and section fields
+and rejects malformed metadata without mutation.
+
+Validation: 94 adapter/registry/fixture checks, typechecking, and the build passed.
+All 18 final-image surface journeys passed: four row viewport/scale cases, two
+canonical-menu regressions, and twelve settings/profile/Bots toolbar regressions.
+Three final-image interruption journeys passed for tap-only Bot/group actions,
+unconfirmed metadata saves, and rejected Bot duplication/deletion. Five existing
+selection/group-creation/conversation-failure journeys also passed before the
+final focus refinement. Required committed-image CI is pending. Physical-device
+validation and stage-6 live rollout evidence remain required. App setup remains
+deferred and scheduled proposals/stable promotion stay disabled.
