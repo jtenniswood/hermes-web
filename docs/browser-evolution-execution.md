@@ -28,7 +28,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, and pin/unread ordering merged; shared session entry points under verification | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
-| 5. Shared interaction surfaces | Profile actions and shared toolbar/menu/sheet primitives under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
+| 5. Shared interaction surfaces | Profile and navigation controls with shared toolbar/menu/sheet primitives under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
 The user explicitly deferred updater App setup. Continue independent code and
@@ -378,3 +378,34 @@ each tested viewport/scale. Required CI is still needed for the committed image.
 This is the first stage 5 slice. Navigation, settings, and Bots controls, further
 shell extraction, and physical-device touch validation remain outstanding.
 Updater App setup remains deferred and automation remains disabled.
+
+## Shared navigation controls
+
+Navigation preferences, tab selection, drawer focus/dismissal, and resizing now
+have browser-owned components and a dedicated hook outside the shell. The shell
+composes the existing panes without changing their mounted lifetime. The old
+manual tab-menu listeners and profile-specific style pattern are replaced by
+the shared action surface, extended with checked actions that can stay open.
+
+A visible navigation-actions button exposes the same tab-visibility commands as
+the desktop context menu through a phone sheet. Both surfaces enforce at least
+one visible tab and switch to a visible tab when the current one is hidden.
+Stored tab visibility, active tab, and panel width retain their existing keys.
+
+A regression reproduced the previous divider moving 135 physical pixels after
+a 90-pixel drag at 150% UI scale. Resizing now converts pointer motion to the
+scaled layout coordinates; keyboard resizing retains its bounds and saved width.
+
+Validation: the production build, typechecking with no baselined diagnostics,
+and all 16 adapter checks passed. Five navigation journeys passed through the
+local image: menu/sheet parity at 390px/1440px and 100%/150% scale, retained
+drafts and routes, persisted tab visibility, last-tab protection, arrow-key
+navigation, focus restoration, and scaled pointer/keyboard resizing. Seven
+existing profile and drawer journeys also passed on the same candidate. Initial
+desktop keyboard checks moved focus before menu dismissal restored it; the tests
+now wait for that required focus state before exercising arrow navigation.
+Required CI must still verify the committed production image.
+
+Settings and Bots controls, shared navigation sections/modal composition, and
+physical-device verification remain stage 5 work. This does not enable updater
+automation or change the renderer pin.
