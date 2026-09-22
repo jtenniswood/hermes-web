@@ -4,7 +4,7 @@ import vm from 'node:vm'
 import { test } from 'node:test'
 import ts from 'typescript'
 
-function registration() {
+function registration(network = { pause: async () => true, resume() {} }) {
   const listeners = new Map()
   const root = { inert: false }
   let drafts = { blocked: false, storageKey: 'drafts', texts: { first: 'one', second: 'two' }, attachments: 0 }
@@ -33,7 +33,8 @@ function registration() {
     return context.exports
   }
   const safety = load('platform/reload-safety.ts')
-  context.require = () => safety
+  context.require = name => name === './update-network'
+    ? { installUpdateNetworkBarrier: () => network } : safety
   safety.setActiveWork({ count: 0 })
   load('pwa/register.ts').registerPwa()
   return {
@@ -129,4 +130,25 @@ test('an abort during the final persistence check prevents controller-change rel
   await changed
   assert.equal(app.reloads(), 0)
   assert.equal(app.root.inert, false)
+})
+
+test('pending network activity refuses update and resumes requests without reloading', async () => {
+  let resumed = 0
+  const app = registration({ pause: async () => false, resume: () => { resumed++ } })
+  assert.equal((await app.ask('HERMES_FLUSH_UPDATE')).ready, false)
+  assert.equal(app.root.inert, false)
+  assert.equal(resumed, 1)
+  await app.controllerChange()
+  assert.equal(app.reloads(), 0)
+})
+
+test('an abort while requests drain prevents a late readiness reply from freezing the page', async () => {
+  let finish, resumed = 0
+  const app = registration({ pause: () => new Promise(resolve => { finish = resolve }), resume: () => { resumed++ } })
+  const flushing = app.ask('HERMES_FLUSH_UPDATE')
+  await app.ask('HERMES_ABORT_UPDATE')
+  finish(true)
+  assert.equal((await flushing).ready, false)
+  assert.equal(app.root.inert, false)
+  assert.equal(resumed, 1)
 })

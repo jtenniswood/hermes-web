@@ -1,4 +1,5 @@
 import { reloadReadinessAfterSaving, type DraftSnapshot } from '../platform/reload-safety'
+import { installUpdateNetworkBarrier } from './update-network'
 
 export type PwaUpdateNotice = {
   readonly update: () => void
@@ -34,6 +35,7 @@ export function registerPwa(): void {
   const { hostname, protocol } = window.location
   const local = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost')
   if (protocol !== 'https:' && !local) return
+  const network = installUpdateNetworkBarrier()
   let transaction: string | undefined
   let snapshot: DraftSnapshot | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -47,6 +49,7 @@ export function registerPwa(): void {
     const root = document.getElementById('root')
     if (root) root.inert = false
     clearTimeout(timer); transaction = undefined; snapshot = undefined
+    network.resume()
   }
   navigator.serviceWorker.addEventListener('message', async event => {
     const message = event.data
@@ -63,13 +66,15 @@ export function registerPwa(): void {
       const root = document.getElementById('root')
       if (root) root.inert = true
       clearTimeout(timer); timer = setTimeout(unlock, 15000)
+      const networkReady = network.pause()
       const state = await reloadReadinessAfterSaving()
+      const drained = await networkReady
       // A worker timeout/abort must not leave a late save holding the UI locked.
       if (transaction !== message.transaction) { event.ports[0]?.postMessage({ ready: false }); return }
-      if (state.ready) {
+      if (state.ready && drained) {
         snapshot = state.drafts
-      } else { unlock(); setStatus(state.reason || 'Update postponed.') }
-      event.ports[0]?.postMessage({ ready: state.ready, texts: snapshot?.texts })
+      } else { unlock(); setStatus(state.reason || 'Update postponed. Wait for pending requests to finish, then try again.') }
+      event.ports[0]?.postMessage({ ready: state.ready && drained, texts: snapshot?.texts })
     } else {
       let ready = transaction === message.transaction && !!snapshot
       try {

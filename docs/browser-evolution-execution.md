@@ -891,3 +891,36 @@ A read-only check of the locally configured gateway on September 22 returned
 version `0.21.4` with authentication required. This establishes reachability and
 the reported backend version only. The authenticated smoke-test journeys and
 physical-device acceptance remain outstanding; App setup is still deferred.
+
+## Prevent background requests from stalling rollback activation
+
+The final-main release for `31db049` (run `35775330847`) failed its rollback
+journey after every tab acknowledged both persistence checks. The waiting
+worker called `skipWaiting()`, but the outgoing worker stopped and restarted
+when another fetch arrived; activation did not finish within 60 seconds.
+Publication was skipped. The separate green compatibility run does not waive
+this release failure.
+
+A browser-process lifecycle journal now records version transitions even when a
+worker restart erases its JavaScript diagnostics. A short background-fetch burst
+reproduced the failure against the published PR #63 image. A minimal Chromium
+reproduction also stalled without Hermes code. Excluding debugger attachment
+allowed that minimal example to activate after the worker's idle delay, but the
+application's regular API polling still prevented timely activation. Removing
+worker diagnostics alone is not a correction.
+
+During update preparation, browser-owned code now holds new fetches and waits
+up to two seconds for existing fetches to settle, including a short quiet period
+before acknowledging readiness. Failure, abort, and the existing preparation
+expiry release the queued requests. Request cancellation remains effective while
+queued; existing requests are never cancelled by the update barrier. Draft,
+attachment, active-work, transaction, and cross-tab verification remain required.
+The previous supported image and fetched renderer sources remain unchanged.
+
+Three local real-image reproductions passed with the prototype: rollback
+activation took 155–210 ms after requesting the verified update, and both drafts
+survived rollback and another reload. The permanent regression adds background
+traffic to the existing rollback journey. Final implementation checks, committed
+image CI, and native release verification are still required. Deferred App
+setup, authenticated gateway smoke tests, and physical-device acceptance remain
+separate outstanding gates.

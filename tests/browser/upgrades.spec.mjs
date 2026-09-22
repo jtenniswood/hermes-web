@@ -171,6 +171,20 @@ test('rollback to the previous tested image waits for active work and retains re
   await expect(page.getByRole('status', { name: 'Application update' })).toContainText('unsent attachments')
   await expect(page.locator(`script[type="module"][src="${candidateEntry}"]`)).toHaveCount(1)
   await page.getByRole('button', { name: 'Remove upgrade-draft.txt', exact: true }).click()
+  // Background requests arriving during worker shutdown used to restart the
+  // outgoing worker and leave the verified rollback waiting indefinitely.
+  await page.evaluate(() => {
+    window.__rollbackTrafficRequests = 0
+    const until = Date.now() + 1500
+    const fetchAgain = () => {
+      window.__rollbackTrafficRequests++
+      void fetch('/index.html', { cache: 'no-store' }).catch(() => {}).finally(() => {
+        if (Date.now() < until) setTimeout(fetchAgain, 1)
+      })
+    }
+    fetchAgain()
+  })
+  await page.waitForFunction(() => window.__rollbackTrafficRequests >= 3)
   await Promise.all([
     page.waitForEvent('load', { timeout: 60000 }), other.waitForEvent('load', { timeout: 60000 }), update.click()
   ])
