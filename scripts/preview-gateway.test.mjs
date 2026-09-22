@@ -121,6 +121,10 @@ test('command center catalogs are explicit reads and archived sessions stay sepa
   assert.deepEqual((await gateway.request('plugins.manage', { action: 'list' })).result, { plugins: [] })
   assert.deepEqual(await (await fetch(gateway.origin + '/api/config/schema')).json(), { fields: {} })
   assert.deepEqual(await (await fetch(gateway.origin + '/api/env')).json(), {})
+  const auxiliary = await (await fetch(gateway.origin + '/api/model/auxiliary')).json()
+  assert.deepEqual(auxiliary.tasks, [])
+  assert.equal(auxiliary.main.provider, 'custom')
+  assert.equal((await fetch(gateway.origin + '/api/model/moa')).status, 501)
   gateway.sessions.get('preview-idea').archived = true
   const sessions = async archived => (await (await fetch(gateway.origin + '/api/profiles/sessions?archived=' + archived)).json()).sessions.map(row => row.id)
   assert.deepEqual(await sessions('only'), ['preview-idea'])

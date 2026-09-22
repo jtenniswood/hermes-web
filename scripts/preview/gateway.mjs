@@ -171,6 +171,8 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
       if (pathname === '/api/config') return send({ config: { model: { default: info.model, provider: 'custom' }, display: {}, terminal: {} }, raw: '', path: '/workspace/config.yaml' })
       if (pathname === '/api/model/info') return send({ ...info, context_length: 128000, provider_configured: true })
       if (pathname === '/api/model/options') return send(modelOptions)
+      if (req.method === 'GET' && pathname === '/api/model/auxiliary') return send({ main: { model: info.model, provider: 'custom' }, tasks: [] })
+      if (req.method === 'GET' && pathname === '/api/model/moa') return send({ error: 'Synthetic gateway has no mixture-of-agents presets' }, 501)
       if (pathname === '/api/tools/terminal/backends') return send({ backends: [] })
       if (pathname === '/api/projects') return send({ projects: [], active_id: null })
       if (pathname === '/api/skills') return send(skills)

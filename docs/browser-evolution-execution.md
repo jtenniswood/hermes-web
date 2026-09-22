@@ -341,3 +341,9 @@ group selection with retained drafts. Local host process exhaustion and
 network-change asset failures interrupted earlier attempts; those runs do not
 count as passing application evidence. Required CI must verify the committed
 production image before merge.
+
+The first full CI run caught a fixture regression in Settings: enabling schema
+reads exposed an optional model-preset endpoint returning an incomplete object.
+The fixture now returns a valid empty auxiliary-model catalog and an explicit
+unavailable response for unsupported mixture-of-agents presets. Both affected
+Settings journeys pass locally; the updated commit still requires full CI.
