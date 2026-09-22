@@ -34,6 +34,45 @@ async function attachFile(page) {
 
 const entryFor = async image => (await (await fetch(`http://127.0.0.1:${image.port}/`)).text()).match(/<script[^>]+type="module"[^>]+src="([^"]+)"/)[1]
 
+test('a previous-image verification refusal retries the complete handshake and retains both drafts', async ({ page, context, upgradeApp }, testInfo) => {
+  let refusals = 0
+  await context.exposeBinding('__rejectFirstUpgradeVerification', () => { refusals++ })
+  await openPrevious(page, upgradeApp, 'preview-week')
+  const other = await context.newPage()
+  // Fault-inject one conservative refusal after the real old composer has
+  // handled verification. All subsequent replies come from the actual client.
+  await other.addInitScript(() => {
+    let rejected = false
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (rejected || event.data?.type !== 'HERMES_VERIFY_UPDATE') return
+      rejected = true
+      const port = event.ports[0], post = port.postMessage.bind(port)
+      port.postMessage = (message, ...args) => {
+        void window.__rejectFirstUpgradeVerification()
+        return post({ ...message, ready: false }, ...args)
+      }
+    })
+  })
+  await openPrevious(other, upgradeApp, 'preview-idea')
+  await editor(page).fill('First draft survives verification retry')
+  await editor(other).fill('Second draft survives verification retry')
+  await offerCandidate(page, upgradeApp)
+  await Promise.all([
+    page.waitForEvent('load', { timeout: 30000 }), other.waitForEvent('load', { timeout: 30000 }),
+    page.getByRole('button', { name: 'Update when safe', exact: true }).click()
+  ])
+  expect(refusals).toBe(1)
+  const candidateEntry = await entryFor(upgradeApp.candidate)
+  for (const [tab, draft] of [[page, 'First draft survives verification retry'], [other, 'Second draft survives verification retry']]) {
+    await expect(tab.locator(`script[type="module"][src="${candidateEntry}"]`)).toHaveCount(1)
+    await expect(editor(tab)).toHaveText(draft)
+    await tab.reload()
+    await expect(editor(tab)).toHaveText(draft)
+  }
+  await testInfo.attach('verification-retry', { body: JSON.stringify({ refusals, draftsRetainedAfterReload: true }), contentType: 'application/json' })
+  await other.close()
+})
+
 test('real drafts survive a previous-image upgrade after active work and unsent files are resolved', async ({ page, context, upgradeApp }) => {
   await openPrevious(page, upgradeApp, 'preview-week')
   const other = await context.newPage()

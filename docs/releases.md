@@ -125,6 +125,14 @@ drafts prevents activation. Once work is safe, both tabs must activate the new
 worker, load the candidate's actual entry asset, and retain independent drafts
 and conversation selections.
 
+If an older client refuses draft verification, the waiting worker aborts that
+transaction and retries the complete handshake once. Every tab must still be
+safe, every draft from the first attempt must remain unchanged, and the tab set
+must remain the same through final verification. Busy tabs, unsent files,
+conflicting drafts, or another refusal keep the update waiting. The real-image
+suite injects one refusal and checks that both drafts survive activation and
+reload; this retry does not bypass the safety checks.
+
 The initial baseline is the tested PR #36 image, immediately preceding the
 browser interruption work. Its digest, wrapper and renderer revisions, and
 verification run are recorded together. Baseline changes require review of the
