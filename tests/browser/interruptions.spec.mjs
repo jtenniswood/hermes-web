@@ -167,3 +167,46 @@ test('approval initialization waits for the gateway without a false action error
   await expect.poll(() => gatewayApp.controls.calls.some(call => call.method === 'config.get' && call.params.key === 'approvals.mode')).toBe(true)
   await expect(page.getByRole('alert').filter({ hasText: 'Could not load approval mode.' })).toHaveCount(0)
 })
+
+
+test('profile commands preserve the conversation draft across scope changes and reload', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep the draft while browsing other profiles')
+  const writer = page.locator('[data-profile-key="writer"]')
+  await writer.click()
+  await expect(writer).toHaveAttribute('aria-pressed', 'true')
+  await expect(editor(page)).toHaveText('Keep the draft while browsing other profiles')
+  await page.reload()
+  await expect(writer).toHaveAttribute('aria-pressed', 'true', { timeout: 30000 })
+  await expect(editor(page)).toHaveText('Keep the draft while browsing other profiles', { timeout: 30000 })
+  const all = page.getByRole('button', { name: 'All profiles', exact: true })
+  await all.click()
+  await expect(all).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(() => page.evaluate(() => window.__HERMES_WEB_ACTIVE_PROFILE__)).toBe(null)
+  await expect(editor(page)).toHaveText('Keep the draft while browsing other profiles')
+  await page.reload()
+  await expect(all).toHaveAttribute('aria-pressed', 'true', { timeout: 30000 })
+  await expect(editor(page)).toHaveText('Keep the draft while browsing other profiles', { timeout: 30000 })
+})
+
+test('profile visibility survives navigation when preference storage is unavailable', async ({ page, gatewayApp }) => {
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem
+    Storage.prototype.setItem = function (key, value) {
+      if (key === 'hermes-web.browser.hidden-profiles') throw new Error('Preference storage unavailable')
+      return original.call(this, key, value)
+    }
+  })
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep the draft across profile navigation')
+  const writer = page.locator('[data-profile-key="writer"]')
+  await writer.click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Hide profile', exact: true }).click()
+  await expect(writer).toHaveCount(0)
+  await page.getByRole('tab', { name: 'Bots', exact: true }).click()
+  await expect(page.locator('.browser-profile-footer')).toBeHidden()
+  await page.getByRole('tab', { name: 'Sessions', exact: true }).click()
+  await expect(page.locator('.browser-profile-footer')).toBeVisible()
+  await expect(writer).toHaveCount(0)
+  await expect(editor(page)).toHaveText('Keep the draft across profile navigation')
+})

@@ -57,6 +57,7 @@
 .browser-more-list button > .codicon { color:color-mix(in srgb,currentColor 72%,transparent); }
 .browser-more-list button:hover,.browser-more-list button:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
 .browser-profile-footer { position:relative; display:flex; align-items:center; gap:.45rem; flex-shrink:0; padding:.6rem .75rem .7rem; background:var(--browser-navigation-background); }
+.browser-profile-footer[hidden] { display:none; }
 .browser-profile-rail { min-width:0; width:100%; display:flex; align-items:center; gap:.4rem; overflow-x:auto; scrollbar-width:none; }
 .browser-profile-slot { position:relative; display:flex; align-items:center; flex:0 0 2.5rem; }
 .browser-profile-slot > .browser-profile-drop-indicator { position:absolute; top:50%; left:-.3rem; transform:translateY(-50%); }

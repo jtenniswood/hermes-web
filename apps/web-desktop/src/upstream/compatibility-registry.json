@@ -10,11 +10,15 @@
       {
         "file": "tests/browser/interruptions.spec.mjs",
         "scenario": "a late Bot A response cannot replace Bot B or cross their drafts"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "an explicit profile choice survives delayed Bot activation"
       }
     ],
     "removal": "Remove when routed Bot opens use public browser navigation contracts with equivalent interruption tests.",
     "sourceHash": "e68ccb464f1a8baf812d5881b603153c4ca57af6bffc3d5d677d6345204a9fff",
-    "outputHash": "9281962e18c43201e36539835e250aabffb7c035645e3959005d950405e1acf4",
+    "outputHash": "b7d1f50c479ea5136dee23203fb9e904bd7ed5a911bfd0ab64c0474cf80284b8",
     "handler": "bot-session-cancellation",
     "sourceRoot": "renderer"
   },
@@ -48,11 +52,15 @@
       {
         "file": "tests/browser/interruptions.spec.mjs",
         "scenario": "an explicit profile choice survives delayed Bot activation"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "profile commands preserve the conversation draft across scope changes and reload"
       }
     ],
     "removal": "Remove when upstream profile selection supports a browser-owned scope without starting desktop backends.",
     "sourceHash": "ef162f7cef5ebde1224c68328a663351594cfe63224e274b6450bd8ec0fcac6e",
-    "outputHash": "0586d4440c6d2ad6ae8717398509765b04e8e1cdf75d899a01f0142a2ed30d38",
+    "outputHash": "95dc1a62327752db6574662a233754b69a319b85a7b772ebe81c7e0731c18167",
     "handler": "browser-profile-selection",
     "sourceRoot": "renderer"
   },
