@@ -13,7 +13,7 @@ must stop with evidence, while the last tested image remains available.
 
 | Mechanism | Behavior |
 | --- | --- |
-| `renderer-update.yml` | Checks upstream every six hours and after changes to `main`; also supports manual dispatch. Requires the enablement variable. |
+| `renderer-update.yml` | Checks upstream every six hours and after changes to `main`; manual dispatch can validate one exact revision while recurring triggers remain disabled. |
 | Proposal reconciliation | Keeps pending or passing work, refreshes branches behind `main` with a merge commit, and leaves conflicting or draft proposals for review. |
 | Candidate policy | Only the three renderer lock metadata fields may change. Existing proposals are revalidated before updater actions. |
 | Compatibility preflight | Reports every changed or missing source fingerprint from the compatibility registry, with expected/actual hashes, affected interventions, ownership, verification paths, and candidate identity. |
@@ -45,8 +45,9 @@ policy require review rather than automatic repair.
    missing items and exits unsuccessfully until all settings and switches are
    ready. Before activation, the two disabled switches are expected findings.
    An inaccessible setting is an inspection failure, never a passing result.
-4. Complete the existing release rollout gates: compatible and deliberately
-   incompatible candidates, state/update tests, and a real-gateway smoke test.
+4. Use the one-off validation procedure below for the compatible and deliberately
+   incompatible candidates while scheduling and stable promotion remain disabled.
+   Complete state/update tests and a real-gateway smoke test.
    Retain the workflow links, candidate digest, renderer revision, and tested
    gateway version in the release evidence. The setup audit cannot verify App
    key validity, installation permissions, or this behavioral evidence.
@@ -57,6 +58,43 @@ policy require review rather than automatic repair.
 Do not enable these switches just because a setup audit or source preflight
 passes. An operator chooses when to update a running deployment to a published
 digest; deployment automation is separate from upstream integration.
+
+## One-off validation before activation
+
+After the App is configured and both strict Actions checks are required, dispatch
+from `main` without enabling scheduled proposals. The same App identity, token
+scope, renderer-only policy, compatibility jobs, and protected auto-merge apply.
+A passing proposal can merge into `main` and publish a tested candidate. Stable
+promotion still requires its separate switch; no deployment is restarted.
+
+Choose a reviewed full upstream commit and set `REVIEWED_RENDERER_SHA` to that
+40-character revision. Then run:
+
+```sh
+gh workflow run renderer-update.yml --ref main --field renderer_revision="$REVIEWED_RENDERER_SHA"
+gh run list --workflow renderer-update.yml --event workflow_dispatch --limit 5
+```
+
+Leave the input empty to resolve upstream `main` once. Exact revision overrides
+are accepted only for manual runs from this repository's `main`. Scheduled and
+push-triggered runs remain disabled until `HERMES_RENDERER_UPDATES_ENABLED=true`;
+the updater script also enforces this when invoked directly. Manual dispatch
+does not alter either enablement variable or supply missing App credentials.
+
+There is still at most one proposal. A manual exact revision cannot silently
+merge or refresh an unrelated passing/pending proposal: finish or retire that
+proposal first. A completed failed proposal may be replaced using the existing
+create-before-close policy. If the requested revision itself fails, retain its
+compatibility artifact and stable-tag observations before proceeding.
+
+To exercise refresh, advance `main` through a normal reviewed change, then
+redispatch the same exact candidate. The updater requests a merge of `main` into
+the proposal using its inspected head SHA; fresh checks must pass. To retry a
+transient CI failure, rerun that proposal's failed workflow using
+`gh run rerun RUN_ID --failed`, then redispatch the same candidate if protected
+auto-merge needs to be restored. Do not change fingerprints to make a retry pass.
+Retain the actual proposal, checked heads, run attempts, merge, publication, and
+stable-tag observations as described in [release evidence](releases.md#retained-release-identity-and-rollback-verification).
 
 ## Reading a blocked update
 

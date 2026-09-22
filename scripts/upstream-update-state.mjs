@@ -39,3 +39,17 @@ export function automationReadiness({ repository, variables, secrets, rules }) {
     { name: 'Tested image promotion', ready: variables.HERMES_PROMOTION_ENABLED === 'true' }
   ]
 }
+
+
+/** Manual validation uses the real updater without enabling recurring triggers. */
+export function rendererUpdateRequest({ eventName, ref, enabled, revision = '' }) {
+  if (!['workflow_dispatch', 'schedule', 'push'].includes(eventName) || ref !== 'refs/heads/main') {
+    throw new Error('Renderer updates must run from main through a supported workflow event')
+  }
+  if (typeof revision !== 'string') throw new Error('Renderer revision must be an exact commit string')
+  const requested = revision.trim()
+  if (requested && (eventName !== 'workflow_dispatch' || !/^[a-f0-9]{40}$/.test(requested))) {
+    throw new Error('An exact 40-character renderer revision is allowed only for manual validation')
+  }
+  return { allowed: eventName === 'workflow_dispatch' || enabled === 'true', revision: requested || null }
+}

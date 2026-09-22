@@ -614,3 +614,25 @@ physical-device verification. All three real-image upgrade/rollback journeys
 passed against the published amd64 digest, and 14 release-policy/updater/evidence
 checks passed. Required committed-image CI remains pending. No running deployment
 was changed.
+
+
+## One-off updater validation
+
+The release audit exposed an activation ordering problem: manual updater dispatch
+was gated by the same variable as recurring proposals, yet live validation was
+required before enabling that variable. Manual dispatch from `main` now uses the
+real configured App without changing scheduling or promotion. An optional exact
+upstream revision makes compatible/incompatible runs reproducible; automatic
+triggers continue to resolve upstream `main` only after enablement.
+
+The CLI rejects unsupported events, non-main workflow refs, malformed revisions,
+and automatic-trigger revision overrides before external operations. A manual
+exact revision will not act on an unrelated passing/pending proposal. Existing
+failed-proposal replacement, head-guarded refresh, source metadata checks,
+renderer-only lock policy, and protected auto-merge remain in force. App setup
+is still deferred; this prepares the validation path but is not evidence of a
+live App run. The runbook records the dispatch, refresh, and retry steps and the
+remaining evidence required before activation.
+
+All 20 updater, release-policy, and release-evidence checks passed locally. The
+workflow parsed successfully; required CI and live App validation are pending.
