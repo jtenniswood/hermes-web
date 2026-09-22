@@ -176,16 +176,35 @@ test('Vite resolves compatibility aliases to one React runtime and the raw tour 
   assert.equal(compatibilityAliases(root, { VITE_PERF_PROBE: '1' }).find(alias => alias.find === '@/debug/dev-only').replacement, path.resolve(root, '../desktop/src/debug/dev-only.ts'))
 })
 
+const browserBoundaryAliases = rendererAliases()
+const withinDirectory = (filename, directory) => {
+  const relative = path.relative(directory, filename)
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+}
 function assertBrowserModelBoundary(source, filename) {
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true)
   const walk = node => {
     const module = ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier
-      : ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0] : null
-    if (module && ts.isStringLiteral(module) && /(?:^|\/)upstream(?:\/|$)/.test(module.text)) {
-      const bindings = ts.isImportDeclaration(node) ? node.importClause?.namedBindings
-        : ts.isExportDeclaration(node) ? node.exportClause : null
-      assert.ok(bindings && (ts.isNamedImports(bindings) || ts.isNamedExports(bindings)), `${filename}: use explicit browser model imports`)
-      for (const binding of bindings.elements) assert.ok(!(binding.propertyName || binding.name).text.startsWith('$'), `${filename}: raw upstream store import`)
+      : ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) ? node.moduleReference.expression
+      : ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) ? node.argument.literal
+      : ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || ts.isIdentifier(node.expression) && node.expression.text === 'require') ? node.arguments[0] : null
+    if (module) {
+      assert.ok(ts.isStringLiteralLike(module), `${filename}: module imports must be statically inspectable`)
+      const specifier = module.text.split('?')[0]
+      const alias = browserBoundaryAliases.find(entry => entry.find.test(specifier))
+      const resolved = alias ? specifier.replace(alias.find, alias.replacement)
+        : specifier.startsWith('.') || path.isAbsolute(specifier) ? path.resolve(path.dirname(filename), specifier) : null
+      if (resolved) {
+        for (const directory of ['desktop', 'shared']) {
+          assert.ok(!withinDirectory(resolved, path.join(repositoryRoot, 'apps', directory)), `${filename}: renderer imports must go through browser adapters`)
+        }
+      }
+      if (resolved && withinDirectory(resolved, path.join(root, 'src/upstream'))) {
+        const bindings = ts.isImportDeclaration(node) ? node.importClause?.namedBindings
+          : ts.isExportDeclaration(node) ? node.exportClause : null
+        assert.ok(bindings && (ts.isNamedImports(bindings) || ts.isNamedExports(bindings)), `${filename}: use explicit browser model imports`)
+        for (const binding of bindings.elements) assert.ok(!(binding.propertyName || binding.name).text.startsWith('$'), `${filename}: raw upstream store import`)
+      }
     }
     ts.forEachChild(node, walk)
   }
@@ -193,14 +212,32 @@ function assertBrowserModelBoundary(source, filename) {
 }
 
 test('browser features cannot acquire raw upstream stores through aliases or namespaces', () => {
+  const filename = path.join(root, 'src/experience/feature.ts')
   for (const source of [
     "import { $sessions as rows } from '../upstream/browser-api'",
     "import * as runtime from '../upstream/browser-api'",
     "export { $sessions as rows } from '../upstream/browser-api'",
     "export * from '../upstream/browser-api'",
-    "const runtime = await import('../upstream/browser-api')"
-  ]) assert.throws(() => assertBrowserModelBoundary(source, 'feature.ts'))
-  assertBrowserModelBoundary("import { useBrowserConversation as useConversation } from '../upstream/conversation'", 'feature.ts')
+    "const runtime = await import('../upstream/browser-api')",
+    "import { $sessions as rows } from '@/store/session'",
+    "import * as store from '@/store/session'",
+    "import '@/store/session'",
+    "export { $sessions as rows } from '../../../desktop/src/store/session'",
+    "const store = await import(`@/plugins/hermes-bots/shared`)",
+    "const store = require('@/store/session')",
+    "import store = require('@/store/session')",
+    "type Store = typeof import('@/store/session')",
+    "import { openSession } from '@hermes/plugin-sdk'",
+    "import type { Profile } from '@hermes/shared'",
+    "export * from '../upstream/../upstream/browser-api'",
+    "const store = await import('@/store/' + name)"
+  ]) assert.throws(() => assertBrowserModelBoundary(source, filename), source)
+  for (const source of [
+    "import { useBrowserConversation as useConversation } from '../upstream/conversation'",
+    "import type { ConversationIdentity } from './contracts/conversation'",
+    "import { ToolbarButton } from './ui/toolbar-button'",
+    "import React from 'react'"
+  ]) assertBrowserModelBoundary(source, filename)
   const visit = directory => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const filename = path.join(directory, entry.name)

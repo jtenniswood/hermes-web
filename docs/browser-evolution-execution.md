@@ -25,11 +25,11 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | --- | --- | --- |
 | 1. Update foundation | PR #36 merged; activation prerequisites inventoried | Required compatibility and preview checks passed on `57b6854`; merge `c282dc0`. Read-only audit confirms strict compatibility and renderer-update-policy checks; App credentials and activation remain outstanding. |
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
-| 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
+| 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) and [PR #59](https://github.com/jtenniswood/hermes-web/pull/59) merged; required CI passed | Previous supported image to candidate and back with the real composer, multiple tabs, active responses, unsent attachments, conflicting drafts, and retry after resolving the conflict. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
-| 5. Shared interaction surfaces | Profile, navigation, settings, mounted tool workspaces, Bots toolbar and roster actions merged; sidebar styling/touch refinement under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
-| 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
+| 5. Shared interaction surfaces | Profile, navigation, settings, mounted tool workspaces, Bots toolbar, roster actions, and sidebar styling/touch refinements merged; physical-device acceptance pending | Shared action definitions for desktop menus and phone sheets; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft checks passed in CI. |
+| 6. Enforcement and activation | Boundary checks and release mechanisms implemented; activation outstanding | Existing image gates retained; compatible and incompatible live update demonstrations, branch refresh/retry evidence, real-gateway smoke and real-device touch verification remain required. Browser rollback/retry is verified; activation waits for the remaining evidence. |
 
 The user explicitly deferred updater App setup. Continue independent code and
 verification work while App setup and final activation remain pending. Do not
@@ -780,3 +780,25 @@ indefinite-checking observations are not all explained by this diagnosed write r
 
 App setup remains deferred. Live updater demonstrations, real-gateway smoke tests,
 physical-device acceptance, and automation activation remain outstanding.
+
+## Complete the direct-import boundary check
+
+PR #59 passed all required checks and merged as `a63d241`. Its full compatibility
+report contains 120 passes with no failures, skips, or retries, including all four
+real-image upgrade journeys. Its preview report contains 77 passing UI journeys.
+Main release `35760920922` is verifying the merged revision; these PR results do
+not establish native release publication or production deployment.
+
+The acceptance audit found that the feature boundary rejected raw store names
+through browser adapter imports but accepted direct renderer imports through
+`@/store/session` and relative paths. The check now resolves the same aliases as
+the build and rejects direct desktop/shared sources from browser features and
+overrides. It also checks re-exports, type imports, dynamic imports, and CommonJS
+forms; computed module paths cannot evade static inspection. Explicit browser
+model imports and ordinary UI/dependency imports remain allowed.
+
+Both direct-import examples were accepted by the previous check. All 16 adapter
+checks pass with the added negative cases and the scan of current feature files.
+This delivery changes CI enforcement and the status record; runtime source and
+reviewed compatibility fingerprints are unchanged. Required PR CI remains the
+merge gate.
