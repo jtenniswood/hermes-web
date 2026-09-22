@@ -1453,5 +1453,39 @@
     "replacement": "src/upstream/browser-unread.ts",
     "sourceHash": "6bde1275a47ec93d6fe68885536bbfa774bdc3f18883d3a1100dc04fc034d0f6",
     "sourceRoot": "renderer"
+  },
+  {
+    "name": "ordered-browser-pin-writes",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "store/session-pin-sync.ts",
+    "handlers": [
+      "useBrowserPinWrites"
+    ],
+    "reason": "Order pin writes and restore confirmed state with visible failures while preserving engine reconciliation and profile ownership.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "a rejected pin restores confirmed state and preserves the draft"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "delayed pin writes preserve the latest choice on the gateway"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "an unconfirmed pin rolls back and explains the failure"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "a rejected unpin restores the confirmed pin and can be retried"
+      }
+    ],
+    "removal": "Remove when upstream pin persistence serializes writes, fences pending intent, invalidates old connection work, and reports current failures.",
+    "sourceRoot": "renderer",
+    "sourceHash": "af6c0060e829d3af9910f44e77019a08ec8b9704f00ea7d6635657df827449ac",
+    "inputHash": "af6c0060e829d3af9910f44e77019a08ec8b9704f00ea7d6635657df827449ac",
+    "outputHash": "473c0c651c97acda064a57cc30a2126d344125d2eb59b746a311d62c6d0ef590"
   }
 ]

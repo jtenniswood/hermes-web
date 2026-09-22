@@ -397,3 +397,61 @@ test('profile visibility survives navigation when preference storage is unavaila
   await expect(writer).toHaveCount(0)
   await expect(editor(page)).toHaveText('Keep the draft across profile navigation')
 })
+
+test('a rejected pin restores confirmed state and preserves the draft', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await editor(page).fill('Keep this draft when pinning fails')
+  gatewayApp.controls.reject({ transport: 'http', method: 'PATCH', path: '/api/sessions/preview-week' }, 'Pin rejected')
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Pin', exact: true }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Could not change pinned status.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Pin', exact: true })).toBeVisible()
+  await expect(editor(page)).toHaveText('Keep this draft when pinning fails')
+  expect(gatewayApp.sessions.get('preview-week').pinned).not.toBe(true)
+})
+
+test('delayed pin writes preserve the latest choice on the gateway', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  const first = gatewayApp.controls.hold({ transport: 'http', method: 'PATCH', path: '/api/sessions/preview-week' })
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Pin', exact: true }).click()
+  await first.entered
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Unpin', exact: true }).click()
+  const completed = page.waitForResponse(response => response.url().includes('/api/sessions/preview-week') && response.request().method() === 'PATCH' && response.request().postDataJSON()?.pinned === true)
+  first.release()
+  await completed
+  await expect.poll(() => gatewayApp.controls.calls.filter(call => call.transport === 'http' && call.method === 'PATCH' && call.path === '/api/sessions/preview-week').length).toBe(2)
+  await expect.poll(() => gatewayApp.sessions.get('preview-week').pinned).toBe(false)
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Pin', exact: true })).toBeVisible()
+})
+
+test('an unconfirmed pin rolls back and explains the failure', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await page.route(/\/api\/sessions\/preview-week(?:\?|$)/, route => route.request().method() === 'PATCH'
+    ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: false }) })
+    : route.continue())
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Pin', exact: true }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Could not change pinned status.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Pin', exact: true })).toBeVisible()
+})
+
+test('a rejected unpin restores the confirmed pin and can be retried', async ({ page, gatewayApp }) => {
+  await openConversation(page, gatewayApp.origin)
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Pin', exact: true }).click()
+  await expect.poll(() => gatewayApp.sessions.get('preview-week').pinned).toBe(true)
+  gatewayApp.controls.reject({ transport: 'http', method: 'PATCH', path: '/api/sessions/preview-week' }, 'Unpin rejected')
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Unpin', exact: true }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Could not change pinned status.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Unpin', exact: true }).click()
+  await expect.poll(() => gatewayApp.sessions.get('preview-week').pinned).toBe(false)
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Pin', exact: true })).toBeVisible()
+})
