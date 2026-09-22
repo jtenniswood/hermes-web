@@ -99,6 +99,48 @@ export function useBrowserFreshSessionOwner(source: string, root: string): strin
     .replace(end, end.replace('    },', '    }),'))
 }
 
+export function useBrowserRosterDialogFocus(source: string, root: string): string {
+  const owner = JSON.stringify(path.join(root, 'src/experience/ui/dialog-focus'))
+  const targets = [
+    ['export function GroupDialog({ bot, onClose }: GroupDialogProps) {', 'true', '      <DialogContent className="max-w-sm">', '      <DialogContent className="max-w-sm" data-browser-bot-dialog="section" onCloseAutoFocus={browserReturnFocus}>'],
+    ['export function EditProfileDialog({ bot, open, onClose }: EditProfileDialogProps) {', 'open', '      <DialogContent\n', '      <DialogContent\n        data-browser-bot-dialog={advanced ? \'advanced\' : \'section\'}\n        onCloseAutoFocus={browserReturnFocus}\n'],
+    ['}: ConfirmDialogProps) {', 'open', '      <DialogContent\n', '      <DialogContent\n        data-browser-bot-dialog="confirm"\n        onCloseAutoFocus={browserReturnFocus}\n']
+  ]
+  const target = targets.find(([start]) => source.includes(start))
+  if (!target) throw new Error('Browser roster dialog boundary changed')
+  const [start, open, before, after] = target
+  if (source.split(start).length !== 2 || source.split(before).length !== 2) throw new Error('Browser roster dialog focus target changed')
+  source = source.replace(start, start + `\n  const browserReturnFocus = useBrowserDialogReturnFocus(${open})`).replace(before, after)
+  return source.includes('import { useBrowserDialogReturnFocus }') ? source : `import { useBrowserDialogReturnFocus } from ${owner}\n` + source
+}
+
+export function useBrowserRosterActionSurfaces(source: string, root: string): string {
+  const owner = JSON.stringify(path.join(root, 'src/experience/browser-roster-actions'))
+  const start = '  return (\n    <ContextMenu>'
+  const end = '    </ContextMenu>\n  )'
+  const replacements = [
+    '  return <BrowserBotRowActions bot={bot} row={row} onDelete={onDelete} onEdit={onEdit} onGroup={onGroup} onNewSection={onNewSection} />',
+    '  return <BrowserGroupRowActions name={group} deleteLabel={b.group.deleteAction} row={row} onOpen={() => onOpen(group)} onDelete={() => onDisband({ name: group, members })} />'
+  ]
+  if (source.split(start).length !== 3 || source.split(end).length !== 3) throw new Error('Browser roster action boundary changed')
+  for (const replacement of replacements) {
+    const from = source.indexOf(start)
+    const to = source.indexOf(end, from) + end.length
+    source = source.slice(0, from) + replacement + source.slice(to)
+  }
+  return `import { BrowserBotRowActions, BrowserGroupRowActions } from ${owner}\n` + source
+}
+
+export function useBrowserSectionActionSurface(source: string, root: string): string {
+  const owner = JSON.stringify(path.join(root, 'src/experience/browser-roster-actions'))
+  const start = '}: UserSectionHeaderProps) {'
+  const end = '\n// ── drop zone'
+  if (source.split(start).length !== 2 || source.split(end).length !== 2) throw new Error('Browser section action boundary changed')
+  const from = source.indexOf(start) + start.length
+  const to = source.indexOf(end, from)
+  return `import { BrowserBotSectionHeader } from ${owner}\n` + source.slice(0, from) + '\n  return <BrowserBotSectionHeader {...{ canMoveDown, canMoveUp, collapsed, count, id, name, onDelete, onMove, onRename, onToggle }} />\n}\n' + source.slice(to)
+}
+
 export function useBrowserBotDialogFocus(source: string, root: string): string {
   const owner = JSON.stringify(path.join(root, 'src/experience/ui/dialog-focus'))
   const changes = [
@@ -548,6 +590,9 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
   if (digest(code) === entry.outputHash) return { code, map: null }
   if (digest(code) !== entry.inputHash) throw new Error(`Browser compatibility changed: ${entry.name} (${entry.module}). Review this registry entry.`)
   const handlers: Record<string, (source: string) => string> = {
+    useBrowserRosterDialogFocus: source => useBrowserRosterDialogFocus(source, root),
+    useBrowserRosterActionSurfaces: source => useBrowserRosterActionSurfaces(source, root),
+    useBrowserSectionActionSurface: source => useBrowserSectionActionSurface(source, root),
     useBrowserBotDialogFocus: source => useBrowserBotDialogFocus(source, root),
     useBrowserSectionDialogFocus: source => useBrowserSectionDialogFocus(source, root),
     keepBrowserWorkspaceRoute: source => keepBrowserWorkspaceRoute(source, root),

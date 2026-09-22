@@ -1,4 +1,5 @@
 import { Dialog, DropdownMenu } from 'radix-ui'
+import { restoreBrowserControlFocus } from './dialog-focus'
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 
@@ -9,6 +10,7 @@ export type BrowserAction = {
   icon?: ReactNode
   afterClose?: boolean
   disabled?: boolean
+  destructive?: boolean
   checked?: boolean
   keepOpen?: boolean
   run: () => void
@@ -48,9 +50,7 @@ export function BrowserActionSurface({ title, actions = [], groups, anchor, comp
     // Clicking another control expresses a new focus target. Escape and
     // action selection still restore the opening control (or its fallback).
     if (returnToTrigger.current) {
-      const target = anchor.returnFocus
-      if (target.isConnected && target.getClientRects().length && target.matches('button,a,input,[tabindex]')) target.focus()
-      else fallbackFocus?.current?.focus()
+      restoreBrowserControlFocus(anchor.returnFocus, fallbackFocus?.current)
     }
     const next = nextAction.current
     nextAction.current = null
@@ -84,7 +84,7 @@ export function BrowserActionSurface({ title, actions = [], groups, anchor, comp
         <div className="browser-action-list">
           {sections.map(group => <div key={group.key} className="browser-action-group" role={group.selection === 'single' ? 'radiogroup' : 'group'} aria-label={group.label}>
             {group.label && <h3 className="browser-action-group-label">{group.label}</h3>}
-            {group.actions.map(action => <button key={action.key} className="browser-action-item" type="button" role={group.selection === 'single' ? 'radio' : action.checked === undefined ? undefined : 'checkbox'} tabIndex={group.selection === 'single' ? (action.checked || (!group.actions.some(item => item.checked) && action === group.actions.find(item => !item.disabled)) ? 0 : -1) : undefined} onKeyDown={group.selection === 'single' ? event => selectRadio(event, group, action) : undefined} aria-label={action.ariaLabel} aria-checked={action.checked} disabled={action.disabled} onClick={() => run(action)}>
+            {group.actions.map(action => <button key={action.key} className="browser-action-item" data-destructive={action.destructive || undefined} type="button" role={group.selection === 'single' ? 'radio' : action.checked === undefined ? undefined : 'checkbox'} tabIndex={group.selection === 'single' ? (action.checked || (!group.actions.some(item => item.checked) && action === group.actions.find(item => !item.disabled)) ? 0 : -1) : undefined} onKeyDown={group.selection === 'single' ? event => selectRadio(event, group, action) : undefined} aria-label={action.ariaLabel} aria-checked={action.checked} disabled={action.disabled} onClick={() => run(action)}>
               {action.checked !== undefined && <span className="browser-action-check" aria-hidden="true">{action.checked ? '✓' : ''}</span>}{label(action)}
             </button>)}
           </div>)}
@@ -111,7 +111,7 @@ export function BrowserActionSurface({ title, actions = [], groups, anchor, comp
               const indicator = <span className="browser-action-check" aria-hidden="true"><DropdownMenu.ItemIndicator>✓</DropdownMenu.ItemIndicator></span>
               if (group.selection === 'single') return <DropdownMenu.RadioItem key={action.key} value={action.key} className="browser-action-item" aria-label={action.ariaLabel} disabled={action.disabled} onSelect={onSelect}>{indicator}{label(action)}</DropdownMenu.RadioItem>
               return action.checked === undefined
-                ? <DropdownMenu.Item key={action.key} className="browser-action-item" aria-label={action.ariaLabel} disabled={action.disabled} onSelect={onSelect}>{label(action)}</DropdownMenu.Item>
+                ? <DropdownMenu.Item key={action.key} className="browser-action-item" data-destructive={action.destructive || undefined} aria-label={action.ariaLabel} disabled={action.disabled} onSelect={onSelect}>{label(action)}</DropdownMenu.Item>
                 : <DropdownMenu.CheckboxItem key={action.key} className="browser-action-item" aria-label={action.ariaLabel} checked={action.checked} disabled={action.disabled} onSelect={onSelect}>{indicator}{label(action)}</DropdownMenu.CheckboxItem>
             })}
           </Group>

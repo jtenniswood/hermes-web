@@ -134,3 +134,15 @@ test('command center catalogs are explicit reads and archived sessions stay sepa
   assert.equal((await gateway.request('plugins.manage', { action: 'install', name: 'unrequested' })).error.code, -32601)
   assert.throws(() => gateway.controls.assertExpected(), /plugins.manage/)
 })
+
+test('Bot roster metadata writes validate pin, visibility, and section fields without mutating on failure', async t => {
+  const gateway = await fixture(t)
+  const metadata = { pinned: true, hidden: false, sectionId: 'section-test' }
+  const write = value => gateway.request('profiles.configure', { name: 'research', ui_meta: { 'hermes-bots': value } })
+  assert.equal((await write(metadata)).result.applied.ui_meta, true)
+  for (const invalid of [{ pinned: 'yes' }, { hidden: 1 }, { sectionId: [] }, { unexpected: true }]) assert.match((await write(invalid)).error.message, /Invalid Bot metadata/)
+  const profiles = (await gateway.request('profiles.list')).result.profiles
+  assert.deepEqual(profiles.find(row => row.name === 'research').ui_meta['hermes-bots'], metadata)
+  assert.equal(profiles.find(row => row.name === 'writer').ui_meta, undefined)
+  gateway.controls.assertExpected()
+})
