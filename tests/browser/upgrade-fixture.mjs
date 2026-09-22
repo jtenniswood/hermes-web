@@ -7,6 +7,7 @@ import { createPreviewGateway } from '../../scripts/preview/gateway.mjs'
 import { requireBrowserImage } from './test-target.mjs'
 import { installUpdateDiagnostics } from './update-diagnostics.mjs'
 import { installWorkerDiagnostics } from './worker-diagnostics.mjs'
+import { observeWorkerVersions } from './worker-version-diagnostics.mjs'
 
 const baseline = JSON.parse(readFileSync(new URL('../fixtures/upgrade-baseline.json', import.meta.url), 'utf8'))
 const docker = args => execFileSync('docker', args, { encoding: 'utf8' }).trim()
@@ -29,12 +30,14 @@ export const test = base.extend({
       }
     } finally { await browser.close() }
   },
-  page: async ({ upgradeApp, context }, use) => {
+  page: async ({ upgradeApp, context }, use, testInfo) => {
     void upgradeApp
     const errors = []
     context.on('page', tab => tab.on('pageerror', error => errors.push(error.message)))
     const page = await context.newPage()
+    const versions = await observeWorkerVersions(page)
     await use(page)
+    await testInfo.attach('worker-versions', { body: JSON.stringify(await versions(), null, 2), contentType: 'application/json' })
     await page.close()
     expect(errors, 'Unhandled browser exceptions during upgrade').toEqual([])
   },

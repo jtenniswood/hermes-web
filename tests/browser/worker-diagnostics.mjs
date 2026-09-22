@@ -59,7 +59,7 @@ export function installWorkerDiagnostics(context) {
     if (!await setup) return { worker: index + 1, unavailable: 'setup' }
     try {
       return { worker: index + 1, ...await worker.evaluate(() => ({
-        ...self.__hermesUpdateDiagnostics,
+        ...(self.__hermesUpdateDiagnostics ?? { unavailable: 'global-state' }),
         active: self.registration.active?.state ?? null,
         waiting: self.registration.waiting?.state ?? null
       })) }

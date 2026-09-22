@@ -13,6 +13,7 @@ const read = file => readFileSync(new URL(`../../apps/web-desktop/${file}`, impo
 const compile = file => ts.transpileModule(read(file).replaceAll('import.meta.env.DEV', 'false'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
 const guard = compile('src/platform/reload-safety.ts')
 const state = compile('src/platform/connection-state.ts')
+const network = compile('src/pwa/update-network.ts')
 const registration = compile('src/pwa/register.ts')
 const coordinator = read('public/update-coordinator-sw.js')
 
@@ -27,8 +28,13 @@ test.beforeAll(async () => {
       res.end(`<!doctype html><html><head><title>Browser safety fixture</title></head><body><div id="root"><textarea aria-label="Draft"></textarea></div>
 <script>window.exports={};${guard};window.safety=exports;</script>
 <script>window.exports={};window.require=()=>({});${state};window.stateFactory=exports.createConnectionState;</script>
+<script>window.exports={};${network};window.updateNetwork=exports;</script>
 <script>
-window.exports={};window.require=()=>window.safety;
+window.exports={};window.require=name=>{
+ if (name==='../platform/reload-safety') return window.safety;
+ if (name==='./update-network') return window.updateNetwork;
+ throw new Error('Unexpected safety fixture import: '+name);
+};
 const register=navigator.serviceWorker.register.bind(navigator.serviceWorker);
 navigator.serviceWorker.register=()=>register('/api/worker.js',{scope:'/api/',updateViaCache:'none'});
 window.safety.setActiveWork({count:0});
@@ -65,7 +71,12 @@ test.afterAll(async () => {
 })
 
 async function openFixture(page) {
-  await page.goto(`${origin}/api/review`)
+  const errors = []
+  const capture = error => errors.push(error.message)
+  page.on('pageerror', capture)
+  try { await page.goto(`${origin}/api/review`) }
+  finally { page.off('pageerror', capture) }
+  expect(errors, 'Safety fixture startup exceptions').toEqual([])
   await page.evaluate(() => navigator.serviceWorker.ready)
   await page.waitForFunction(() => navigator.serviceWorker.controller)
 }
