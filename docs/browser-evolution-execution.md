@@ -25,11 +25,11 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | --- | --- | --- |
 | 1. Update foundation | PR #36 merged; activation prerequisites inventoried | Required compatibility and preview checks passed on `57b6854`; merge `c282dc0`. Read-only audit confirms strict compatibility and renderer-update-policy checks; App credentials and activation remain outstanding. |
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
-| 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
+| 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38), [PR #59](https://github.com/jtenniswood/hermes-web/pull/59), and [PR #63](https://github.com/jtenniswood/hermes-web/pull/63) merged; required CI passed | Previous supported image to candidate and back with the real composer, multiple tabs, active responses, unsent attachments, conflicting drafts, and retry after resolving the conflict. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
-| 5. Shared interaction surfaces | Profile, navigation, settings, mounted tool workspaces, Bots toolbar and roster actions merged; sidebar styling/touch refinement under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
-| 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
+| 5. Shared interaction surfaces | Profile, navigation, settings, mounted tool workspaces, Bots toolbar, roster actions, and sidebar styling/touch refinements merged; physical-device acceptance pending | Shared action definitions for desktop menus and phone sheets; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft checks passed in CI. |
+| 6. Enforcement and activation | Boundary checks and release mechanisms implemented; activation outstanding | Existing image gates retained; compatible and incompatible live update demonstrations, branch refresh/retry evidence, real-gateway smoke and real-device touch verification remain required. Browser rollback/retry is verified; activation waits for the remaining evidence. |
 
 The user explicitly deferred updater App setup. Continue independent code and
 verification work while App setup and final activation remain pending. Do not
@@ -857,3 +857,37 @@ uncommitted change on `bb89381`; exact committed-image CI is still required.
 This change does not establish a correction for the separate all-replies-successful
 activation stall. That investigation, native release validation, deferred App
 setup, real-gateway testing, and physical-device acceptance remain outstanding.
+
+## Complete the direct-import boundary check
+
+The boundary branch now includes PR #63, merged as `aa5c126` after every required
+check passed. Its compatibility report contains 122 browser passes, including all
+five upgrade/rollback journeys; its preview report contains 77 passes. Neither
+report has skips or retries. The compatibility image records merge revision
+`45c1c63`; native release acceptance remains separate from these PR results.
+
+The pre-retry main release for `bb89381` (run `35769340547`) passed all 121
+browser cases on arm64. Its amd64 job passed 120 and failed the initial upgrade
+inside the rollback journey: one older tab refused verification, both tabs
+received aborts, and worker diagnostics recorded no `skipWaiting()` call or
+pending promises. Publication was skipped. The new release for `aa5c126` includes
+the bounded retry and still requires native verification.
+
+The acceptance audit found that the feature boundary rejected raw store names
+through browser adapter imports but accepted direct renderer imports through
+`@/store/session` and relative paths. The check now resolves the same aliases as
+the build and rejects direct desktop/shared sources from browser features and
+overrides. It also checks re-exports, type imports, dynamic imports, and CommonJS
+forms; computed module paths cannot evade static inspection. Explicit browser
+model imports and ordinary UI/dependency imports remain allowed.
+
+Both direct-import examples were accepted by the previous check. All 16 adapter
+checks pass with the added negative cases and the scan of current feature files.
+This delivery changes CI enforcement and the status record; runtime source and
+reviewed compatibility fingerprints are unchanged. Required PR CI remains the
+merge gate.
+
+A read-only check of the locally configured gateway on September 22 returned
+version `0.21.4` with authentication required. This establishes reachability and
+the reported backend version only. The authenticated smoke-test journeys and
+physical-device acceptance remain outstanding; App setup is still deferred.
