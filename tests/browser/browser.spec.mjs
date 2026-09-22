@@ -278,21 +278,31 @@ for (const width of [390, 1440]) {
     const section = page.locator('.browser-pinned-section')
     const heading = section.getByRole('button', { name: /Pinned/ }).first()
     await expect(section).toBeVisible()
-    await heading.click({ button: 'right' })
-    await expect(page.getByRole('menuitem', { name: 'Hide pinned section', exact: true })).toBeVisible()
+    const trigger = page.getByRole('button', { name: 'Navigation tabs', exact: true })
+    const sectionAction = name => page.getByRole(width === 390 ? 'button' : 'menuitem', { name, exact: true })
+    // Touch users reach the same command through an explicit toolbar control.
+    if (width === 390) await trigger.click()
+    else await heading.click({ button: 'right' })
+    await expect(sectionAction('Hide pinned section')).toBeVisible()
     await page.keyboard.press('Escape')
-    if (width === 390) await expect(page.locator('.browser-navigation')).toHaveClass(/is-open/)
+    if (width === 390) {
+      await expect(page.locator('.browser-navigation')).toHaveClass(/is-open/)
+      await expect(trigger).toBeFocused()
+    }
     await expect(section).toBeVisible()
-    await heading.click({ button: 'right' })
-    await page.getByRole('menuitem', { name: 'Hide pinned section', exact: true }).click()
+    if (width === 390) await trigger.click()
+    else await heading.click({ button: 'right' })
+    await sectionAction('Hide pinned section').click()
     await expect(section).toBeHidden()
+    await expect(trigger).toBeFocused()
     await page.reload()
     await expect(editor(page)).toBeVisible()
     if (width === 390) await openNavigation(page)
     await expect(section).toBeHidden()
-    // The remaining section header is a restore target while Pinned is hidden.
-    await page.locator('.browser-sessions-pane').getByRole('button', { name: 'Sessions', exact: true }).click({ button: 'right' })
-    await page.getByRole('menuitem', { name: 'Show pinned section', exact: true }).click()
+    // Both the explicit menu and the remaining heading can restore Pinned.
+    if (width === 390) await trigger.click()
+    else await page.locator('.browser-sessions-pane').getByRole('button', { name: 'Sessions', exact: true }).click({ button: 'right' })
+    await sectionAction('Show pinned section').click()
     await expect(section).toBeVisible()
     if (!await section.locator('[data-row-actions]').count()) await heading.click()
     const row = section.locator('[data-row-actions]').first()
@@ -421,7 +431,7 @@ for (const width of [390, 1440]) {
     await page.emulateMedia({ colorScheme: 'dark' })
     await open(page)
     if (width === 390) await openNavigation(page)
-    const search = page.locator('.browser-sessions-pane div:has(> input[placeholder="Search"])')
+    const search = page.locator('.browser-sessions-pane .browser-session-search')
     const scheduled = page.getByRole('button', { name: 'Scheduled jobs', exact: true })
     const toggle = page.locator('.browser-navigation-section-trigger')
     const extras = page.getByRole('group', { name: 'More controls', exact: true })
@@ -456,6 +466,45 @@ for (const width of [390, 1440]) {
       const moreBox = await toggle.boundingBox()
       expect(moreBox.y - searchBox.y - searchBox.height).toBeLessThan(10)
     }
+  })
+}
+
+for (const width of [390, 1440]) {
+  test(`section headers preserve disclosure and browser styling at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 960 })
+    // A populated schedule exercises the real upstream Cron section too.
+    await page.route(/\/api\/cron\/jobs(?:\?|$)/, route => route.fulfill({ json: [{ id: 'preview-header-job', name: 'Header verification job', prompt: 'Check navigation', enabled: true }] }))
+    await open(page)
+    await editor(page).fill('Draft retained through section disclosure')
+    if (width === 390) await openNavigation(page)
+    const pane = page.locator('.browser-sessions-pane')
+    for (const scale of [100, 150]) {
+      await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), scale)
+      const heights = []
+      for (const name of ['Sessions', 'Cron jobs']) {
+        const label = pane.locator('[data-browser-section-label]').filter({ hasText: new RegExp(`^${name}$`) })
+        await expect(label).toBeVisible()
+        const section = label.locator('xpath=ancestor::*[@data-sidebar="group"][1]')
+        const content = section.locator(':scope > [data-sidebar="group-content"]')
+        const wasOpen = await content.isVisible()
+        await label.click()
+        if (wasOpen) await expect(content).toBeHidden()
+        else await expect(content).toBeVisible()
+        await expect(label).toBeFocused()
+        await label.click()
+        if (wasOpen) await expect(content).toBeVisible()
+        else await expect(content).toBeHidden()
+        const header = section.locator(':scope > [data-browser-section-header]')
+        heights.push((await header.boundingBox()).height)
+        const box = await header.boundingBox()
+        expect(box.x).toBeGreaterThanOrEqual(0)
+        expect(box.x + box.width).toBeLessThanOrEqual(width)
+      }
+      expect(Math.abs(heights[0] - heights[1])).toBeLessThan(1)
+      if (scale === 150) await page.screenshot({ path: testInfo.outputPath('section-headers-150.png') })
+    }
+    if (width === 390) await page.keyboard.press('Escape')
+    await expect(editor(page)).toHaveText('Draft retained through section disclosure')
   })
 }
 
@@ -724,6 +773,13 @@ for (const width of [390, 1440]) {
       await editor(page).fill('Keep this draft while arranging navigation')
       if (width === 390) await openNavigation(page)
       const trigger = page.getByRole('button', { name: 'Navigation tabs', exact: true })
+      if (width === 390) {
+        const drawerBox = await page.locator('.browser-navigation').boundingBox()
+        expect(drawerBox.x).toBeGreaterThanOrEqual(0)
+        expect(drawerBox.x + drawerBox.width).toBeLessThanOrEqual(width * .88 + 1)
+        const triggerBox = await trigger.boundingBox()
+        expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(width)
+      }
       const surface = page.getByRole(width === 390 ? 'dialog' : 'menu', { name: 'Navigation tabs', exact: true })
       const check = name => surface.getByRole(width === 390 ? 'checkbox' : 'menuitemcheckbox', { name, exact: true })
       if (width === 1440) await page.getByRole('tablist', { name: 'Navigation', exact: true }).click({ button: 'right' })

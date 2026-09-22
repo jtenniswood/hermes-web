@@ -375,7 +375,19 @@ function useBrowserComposerLayoutWidth(source: string): string {
     const width = composer.offsetWidth`)
 }
 
-function useBrowserSearchLabel(source: string, root: string): string {
+export function useBrowserSectionStyleHooks(source: string): string {
+  const hooks = [
+    ['<div className="group/section ', '<div data-browser-section-header="" className="group/section '],
+    ['className="group/section-label ', 'data-browser-section-label="" className="group/section-label ']
+  ]
+  for (const [before, after] of hooks) {
+    if (source.split(before).length !== 2) throw new Error('Browser section styling target changed')
+    source = source.replace(before, after)
+  }
+  return source
+}
+
+export function useBrowserSearchLabel(source: string, root: string): string {
   const ariaTarget = 'aria-label={s.searchAria}'
   const placeholderTarget = 'placeholder={s.searchPlaceholder}'
   if (source.split(ariaTarget).length !== 2 || source.split(placeholderTarget).length !== 2) {
@@ -389,6 +401,16 @@ function useBrowserSearchLabel(source: string, root: string): string {
   if (source.split(pinnedTarget).length !== 2) throw new Error('Browser pinned section target changed')
   const pinnedSection = '{!trimmedQuery && (\n              <SidebarSessionsSection\n                activeSessionId={activeSidebarSessionId}\n                contentClassName="flex flex-col gap-px rounded-lg pb-2 pt-1"'
   if (source.split(pinnedSection).length !== 2) throw new Error('Browser pinned section visibility target changed')
+  const hooks: [string, string][] = [
+    ['<div className="shrink-0 px-2 pb-1 pt-1">', '<div className="browser-session-search-section shrink-0 px-2 pb-1 pt-1">'],
+    ['<SearchField', '<SearchField containerClassName="browser-session-search"'],
+    ['rootClassName="min-h-32 flex-1 overflow-hidden p-0"', 'rootClassName="browser-session-list-section min-h-32 flex-1 overflow-hidden p-0"'],
+    ["'min-h-32 flex-1 overflow-hidden p-0'", "'browser-session-list-section min-h-32 flex-1 overflow-hidden p-0'"]
+  ]
+  for (const [before, after] of hooks) {
+    if (source.split(before).length !== 2) throw new Error('Browser sidebar styling target changed')
+    source = source.replace(before, after)
+  }
   return (`import { BrowserSidebarExtras } from ${extras}\n` + source)
     // Use resolved pins, including backend pins, rather than DOM rows: a
     // collapsed populated section must still keep its heading visible.
@@ -602,7 +624,7 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
     useBrowserOpenSessionOwner: source => useBrowserOpenSessionOwner(source, root),
     useBrowserFreshSessionOwner: source => useBrowserFreshSessionOwner(source, root),
     useBrowserDirectResumeOwner: source => useBrowserDirectResumeOwner(source),
-    scopeBrowserStorage, filterBrowserNarrowNavigation, closeBrowserWorkspacePanels,
+    useBrowserSectionStyleHooks, scopeBrowserStorage, filterBrowserNarrowNavigation, closeBrowserWorkspacePanels,
     exportBrowserStatusbarItem, filterBrowserActivityToasts, removeBrowserNewSessionShortcut,
     removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction, fixBrowserTooltipBoundary,
     useBrowserMicrophoneCapture, useBrowserComposerLayoutWidth, filterBrowserSessionMenu,

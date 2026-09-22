@@ -368,7 +368,7 @@
     "sourceHash": "929dff8e048ff96c6ad3beee0fc42a63aae8f837a48d6422e7549494acb29507",
     "sourceRoot": "renderer",
     "inputHash": "929dff8e048ff96c6ad3beee0fc42a63aae8f837a48d6422e7549494acb29507",
-    "outputHash": "a57069f0b6938b9a28353a71fdc98ac757d657bfa0738cb210d2459c120f6860"
+    "outputHash": "3c3fbddf35cffa813245801982cc88cebcd7c0e626808d33318be97de4d2f29b"
   },
   {
     "name": "single-conversation-wiring",
@@ -1784,5 +1784,49 @@
     "sourceHash": "261bf3e28d0d650463ff4cd1fcd79f1b5fa09576d43fa315d8a2505dbfcc2b54",
     "inputHash": "261bf3e28d0d650463ff4cd1fcd79f1b5fa09576d43fa315d8a2505dbfcc2b54",
     "outputHash": "67122a851a2b444ede0b19b7b23cd3623276db0a1b638129f61e10a68e397477"
+  },
+  {
+    "name": "browser-sessions-section-styling",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/chat/sidebar/sessions-section.tsx",
+    "reason": "Expose explicit browser styling hooks for navigation section headers and labels without changing upstream section behavior.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "section headers preserve disclosure and browser styling"
+      }
+    ],
+    "removal": "Remove when a public upstream section API provides stable browser styling hooks or browser components own these headings.",
+    "handlers": [
+      "useBrowserSectionStyleHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "3291806b48008d0ca3bb234f73e0ef30fa3288f074e2107affb9f301ece70413",
+    "inputHash": "3291806b48008d0ca3bb234f73e0ef30fa3288f074e2107affb9f301ece70413",
+    "outputHash": "227ce8c9217ba8229f2e60a16f0809e2ef963d93bb02b3980e1a825a5eecb40f"
+  },
+  {
+    "name": "browser-cron-jobs-section-styling",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/chat/sidebar/cron-jobs-section.tsx",
+    "reason": "Expose explicit browser styling hooks for navigation section headers and labels without changing upstream section behavior.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "section headers preserve disclosure and browser styling"
+      }
+    ],
+    "removal": "Remove when a public upstream section API provides stable browser styling hooks or browser components own these headings.",
+    "handlers": [
+      "useBrowserSectionStyleHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "874910a58f9b53a65a197df6ee637d60951df2b7f2d74e0a004c7347764d4d45",
+    "inputHash": "874910a58f9b53a65a197df6ee637d60951df2b7f2d74e0a004c7347764d4d45",
+    "outputHash": "8733712816ba9525e756de304d36efdf6184647fcfa18cdae35d845f56e88214"
   }
 ]

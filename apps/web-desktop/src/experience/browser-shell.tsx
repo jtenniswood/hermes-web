@@ -55,7 +55,7 @@ function BrowserLayout() {
       <aside id="browser-navigation" ref={navigation.drawer} hidden={!navigation.compact && navigation.collapsed} className={`browser-navigation ${navigation.drawerOpen ? 'is-open' : ''}`} aria-label="Sessions, Bots and tools" style={{ '--browser-navigation-width': `${navigation.width}px` } as CSSProperties}>
         <BrowserNavigationTabs navigation={navigation} />
         <div className="browser-navigation-body" role="tabpanel" aria-label={tab}>
-          <BrowserSessionsPane hidden={tab !== 'sessions'}><BrowserSidebarNavigation onNavigate={openRoute}><WiredPane part="sidebar" /></BrowserSidebarNavigation></BrowserSessionsPane>
+          <BrowserSessionsPane hidden={tab !== 'sessions'} sections={navigation.sections}><BrowserSidebarNavigation onNavigate={openRoute}><WiredPane part="sidebar" /></BrowserSidebarNavigation></BrowserSessionsPane>
           <div hidden={tab !== 'bots'} className="browser-pane">{surface(bots) || <p className="browser-empty">Loading Bots…</p>}</div>
         </div>
         {updateNotice && !updateDismissed && <div className="browser-update-panel" role="status" aria-label="Application update">

@@ -84,27 +84,27 @@
    upstream sections carry different content padding, which otherwise makes
    the visible gap change from one section to the next. */
 .browser-sessions-pane [data-sessions-mode] { row-gap:.5rem; padding-top:.5rem; }
-.browser-sessions-pane [data-sessions-mode] > [data-sidebar="group"] > .group\/section { min-height:1.75rem; padding-block:.125rem; }
+.browser-sessions-pane [data-sessions-mode] > [data-sidebar="group"] > [data-browser-section-header] { min-height:1.75rem; padding-block:.125rem; }
 .browser-sessions-pane [data-sessions-mode] > [data-sidebar="group"] { padding-bottom:0 !important; }
 .browser-sessions-pane [data-sessions-mode] > [data-sidebar="group"] > [data-sidebar="group-content"] { padding-bottom:0 !important; }
 /* Keep the recents section content-sized in the browser rail. The upstream
    sidebar gives it the remaining flex height, which leaves messaging and Cron
    pinned to the bottom when the list is short or empty. */
-.browser-sessions-pane [data-sidebar="group"][class~="min-h-32"][class~="flex-1"] { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
-.browser-sessions-pane [data-sidebar="group"][class~="min-h-32"][class~="flex-1"] > [data-sidebar="group-content"] { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
+.browser-sessions-pane .browser-session-list-section { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
+.browser-sessions-pane .browser-session-list-section > [data-sidebar="group-content"] { flex:0 0 auto !important; min-height:0 !important; overflow:visible !important; }
 .browser-pane[hidden],.browser-chat[hidden] { display:none; }
 /* Match the session search field to the surrounding navigation rows. The
    upstream field intentionally recedes until focused; browser navigation
    treats it as a normal menu item and uses the short "Search" label. */
 .browser-sessions-pane { flex:1 1 auto; height:auto; min-height:0; overflow:auto; }
-.browser-sessions-pane div:has(> input[placeholder="Search"]) { width:calc(100% + 1rem); max-width:none; height:1.75rem; min-height:1.75rem; display:flex; align-items:center; gap:.5rem; margin-top:0; margin-left:-.5rem; margin-right:-.5rem; padding:.5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); font-size:.8125rem; font-weight:500; line-height:1.4285714; opacity:1 !important; }
-.browser-sessions-pane div:has(> input[placeholder="Search"]):focus-within { border-color:transparent; background:var(--ui-control-hover-background,var(--browser-hover-fill)); color:var(--foreground); }
-.browser-sessions-pane div:has(> input[placeholder="Search"]) > svg { width:1rem; height:1rem; flex:0 0 1rem; color:color-mix(in srgb,currentColor 72%,transparent); }
-.browser-sessions-pane div:has(> input[placeholder="Search"]) > input { height:1.25rem; min-width:0; font:inherit; font-size:inherit; line-height:inherit; color:inherit; }
-.browser-sessions-pane div:has(> input[placeholder="Search"]) > input::placeholder { color:inherit; opacity:1; }
+.browser-sessions-pane .browser-session-search { width:calc(100% + 1rem); max-width:none; height:1.75rem; min-height:1.75rem; display:flex; align-items:center; gap:.5rem; margin-top:0; margin-left:-.5rem; margin-right:-.5rem; padding:.5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); font-size:.8125rem; font-weight:500; line-height:1.4285714; opacity:1 !important; }
+.browser-sessions-pane .browser-session-search:focus-within { border-color:transparent; background:var(--ui-control-hover-background,var(--browser-hover-fill)); color:var(--foreground); }
+.browser-sessions-pane .browser-session-search > svg { width:1rem; height:1rem; flex:0 0 1rem; color:color-mix(in srgb,currentColor 72%,transparent); }
+.browser-sessions-pane .browser-session-search > input { height:1.25rem; min-width:0; font:inherit; font-size:inherit; line-height:inherit; color:inherit; }
+.browser-sessions-pane .browser-session-search > input::placeholder { color:inherit; opacity:1; }
 .browser-sessions-pane [data-sidebar="content"] > [data-sidebar="group"]:first-child { padding-bottom:0; }
-.browser-sessions-pane [data-sidebar="content"] > div:has(> div > input[placeholder="Search"]) { padding-top:1px; }
-.browser-sessions-pane div:has(> input[placeholder="Search"]):hover { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); }
+.browser-sessions-pane .browser-session-search-section { padding-top:1px; }
+.browser-sessions-pane .browser-session-search:hover { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); }
 /* Center the empty state in its chat viewport without composer-dependent
    offsets. The browser sizes the wordmark directly from its available width,
    so the upstream hidden measuring copy must not reserve horizontal space. */
@@ -120,11 +120,8 @@
 .browser-shell [data-slot="aui_intro"] .wordmark > :not([aria-hidden]) > * { inline-size:100%; max-width:100%; font-size:min(11cqi,9rem) !important; }
 /* Browser-focused sessions keep messaging groups compact: hide any extra
    header marker while keeping the disclosure caret visible. */
-.browser-sessions-pane button[class*="group/section-label"] > span[aria-hidden="true"] { display:none !important; }
-.browser-sessions-pane button[class*="group/section-label"] > .codicon[aria-hidden="true"] { display:inline-block !important; opacity:.72 !important; }
-/* Keep the section-level New session control visible and match the muted
-   color used by the adjacent filter control. */
-.browser-sessions-pane div:has(> .codicon-root-folder) > button:has(.codicon-add) { color:var(--ui-text-secondary,var(--muted-foreground)); }
+.browser-sessions-pane [data-browser-section-label] > span[aria-hidden="true"] { display:none !important; }
+.browser-sessions-pane [data-browser-section-label] > .codicon[aria-hidden="true"] { display:inline-block !important; opacity:.72 !important; }
 /* Keep these destinations in the Sessions overflow menu so each has one
    browser control while the empty Tools tab stays out of the navigation. */
 .browser-shell [data-sidebar="menu-item"]:has([data-tour="sidebar-nav-skills"]),
@@ -158,7 +155,7 @@
 .browser-scrim { display:none; }
 @media (max-width:47.999rem) {
  .browser-chat-toolbar .browser-actions > button,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button { font-size:.68rem; padding:.4rem; }
- .browser-navigation { position:absolute; top:2.75rem; bottom:0; left:0; z-index:61; width:min(21rem,88vw); transform:translateX(-100%); visibility:hidden; transition:transform 160ms ease,visibility 160ms; box-shadow:8px 0 30px #0002; }
+ .browser-navigation { position:absolute; top:2.75rem; bottom:0; left:0; z-index:61; width:min(21rem,calc(88vw / var(--web-ui-scale,1))); transform:translateX(-100%); visibility:hidden; transition:transform 160ms ease,visibility 160ms; box-shadow:8px 0 30px #0002; }
  .browser-navigation.is-open { transform:none; visibility:visible; }
  .browser-navigation-resizer { display:none; }
  .browser-scrim { display:block; position:absolute; inset:2.75rem 0 0; background:#0006; z-index:60; }
