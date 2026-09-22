@@ -640,9 +640,8 @@ for (const width of [390, 1440]) {
 }
 
 test('profile context menus stay beside their originating profile', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
+  await page.setViewportSize({ width: 1440, height: 960 })
   await open(page)
-  await openNavigation(page)
   const profile = page.locator('.browser-profile-choice[draggable="true"]').first()
   await expect(profile).toBeVisible()
   const origin = await profile.boundingBox()
@@ -657,9 +656,8 @@ test('profile context menus stay beside their originating profile', async ({ pag
 })
 
 test('profiles can reorder and hide the default Hermes profile', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
+  await page.setViewportSize({ width: 1440, height: 960 })
   await open(page)
-  await openNavigation(page)
   const hermes = page.getByRole('button', { name: 'Hermes', exact: true })
   const writer = page.getByRole('button', { name: 'Writer', exact: true })
   await hermes.hover()
@@ -681,7 +679,7 @@ test('profiles can reorder and hide the default Hermes profile', async ({ page }
   await expect(page.getByRole('button', { name: 'Hermes', exact: true })).toBeVisible()
 })
 
-for (const width of [390, 1440]) {
+for (const width of [1440]) {
   test(`profile gap drops stay stable and persist at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 960 })
     await open(page)
@@ -725,8 +723,7 @@ for (const width of [390, 1440]) {
       expected = [original[1], original[0], original[2]]
       await expect.poll(names).toEqual(expected)
       const end = await page.locator('.browser-profile-drop-end').boundingBox()
-      // At high UI scale the mobile rail can extend beyond the viewport;
-      // aim at the visible trailing space, not an off-screen coordinate.
+      // Aim inside the visible trailing space at every UI scale.
       await beginDrag(profiles.first(), Math.min(end.x + end.width / 2, width - 2), y)
       await expect(marker).toBeVisible()
       await page.keyboard.press('Escape')
@@ -772,6 +769,96 @@ for (const width of [390, 1440]) {
     expect(await order.evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-label')))).toEqual(['Research', 'Writer', 'Hermes'])
   })
 }
+
+for (const width of [390, 1440]) {
+  for (const scale of [100, 150]) {
+    test(`profile actions preserve drafts and focus at ${width}px and ${scale}%`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 960 })
+      await open(page)
+      await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), scale)
+      await editor(page).fill('Keep this profile actions draft')
+      if (width === 390) await openNavigation(page)
+      const trigger = page.getByRole('button', { name: 'Profile actions', exact: true })
+      const surface = page.getByRole(width === 390 ? 'dialog' : 'menu', { name: 'Profile actions', exact: true })
+      const actionRole = width === 390 ? 'button' : 'menuitem'
+      await trigger.click()
+      await expect(surface.getByRole(actionRole, { name: 'Show hidden', exact: true })).toBeDisabled()
+      await page.screenshot({ path: testInfo.outputPath('profile-actions.png') })
+      const bounds = await surface.boundingBox()
+      expect(bounds.x).toBeGreaterThanOrEqual(-1)
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1)
+      expect(bounds.y).toBeGreaterThanOrEqual(0)
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(961)
+      if (width === 390) {
+        expect(bounds.y + bounds.height).toBeGreaterThan(950)
+        // The sheet traps Tab; its Escape must leave navigation open.
+        await surface.getByRole('button', { name: 'Cancel', exact: true }).focus()
+        await page.keyboard.press('Tab')
+        await expect(surface.getByRole('button', { name: 'Hide Hermes', exact: true })).toBeFocused()
+      }
+      await page.keyboard.press('Escape')
+      await expect(surface).toHaveCount(0)
+      await expect(trigger).toBeFocused()
+      await trigger.click()
+      await surface.getByRole(actionRole, { name: 'Hide Writer', exact: true }).click()
+      await expect(page.locator('[data-profile-key="writer"]')).toHaveCount(0)
+      await expect(trigger).toBeFocused()
+      await trigger.click()
+      await surface.getByRole(actionRole, { name: 'Show hidden', exact: true }).click()
+      await expect(page.locator('[data-profile-key="writer"]')).toBeVisible()
+      await expect(trigger).toBeFocused()
+      if (width === 390) await page.getByRole('button', { name: 'Hide navigation', exact: true }).click()
+      else {
+        await trigger.click()
+        await editor(page).click()
+        await expect(editor(page)).toBeFocused()
+      }
+      await expect(editor(page)).toHaveText('Keep this profile actions draft')
+    })
+  }
+}
+
+test.describe('touch profile controls', () => {
+  test.use({ hasTouch: true })
+  test('profile actions work with taps without changing the conversation', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page)
+    await editor(page).fill('Keep the touch draft')
+    await page.getByRole('button', { name: 'Open navigation', exact: true }).tap()
+    const trigger = page.getByRole('button', { name: 'Profile actions', exact: true })
+    const sheet = page.getByRole('dialog', { name: 'Profile actions', exact: true })
+    await trigger.tap()
+    await sheet.getByRole('button', { name: 'Hide Research', exact: true }).tap()
+    await expect(page.locator('[data-profile-key="research"]')).toHaveCount(0)
+    await trigger.tap()
+    await sheet.getByRole('button', { name: 'Show hidden', exact: true }).tap()
+    await expect(page.locator('[data-profile-key="research"]')).toBeVisible()
+    await page.getByRole('button', { name: 'Hide navigation', exact: true }).tap()
+    await expect(page).toHaveURL(/#\/preview-week$/)
+    await expect(editor(page)).toHaveText('Keep the touch draft')
+  })
+})
+
+test('phone profiles retain saved desktop order and reject drag operations', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('hermes.desktop.profileOrder', JSON.stringify(['writer', 'default', 'research'])))
+  await page.setViewportSize({ width: 390, height: 844 })
+  await open(page)
+  await openNavigation(page)
+  const profiles = page.locator('[data-profile-key]')
+  const names = () => profiles.evaluateAll(nodes => nodes.map(node => node.getAttribute('aria-label')))
+  await expect.poll(names).toEqual(['Writer', 'Hermes', 'Research'])
+  for (const profile of await profiles.all()) await expect(profile).toHaveAttribute('draggable', 'false')
+  // Even a synthetic drag cannot call the reorder command on a phone.
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer())
+  await profiles.first().dispatchEvent('dragstart', { dataTransfer })
+  await page.locator('.browser-profile-rail').dispatchEvent('drop', { dataTransfer, clientX: 350 })
+  expect(await names()).toEqual(['Writer', 'Hermes', 'Research'])
+  await expect(page.locator('.browser-profile-drop-indicator')).toHaveCount(0)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('hermes.desktop.profileOrder')))).toEqual(['writer', 'default', 'research'])
+  await page.setViewportSize({ width: 1440, height: 960 })
+  for (const profile of await profiles.all()) await expect(profile).toHaveAttribute('draggable', 'true')
+  expect(await names()).toEqual(['Writer', 'Hermes', 'Research'])
+})
 
 test('full-page browser routes open as modals and return to the chat', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })

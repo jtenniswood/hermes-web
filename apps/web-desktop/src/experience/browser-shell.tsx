@@ -1,12 +1,14 @@
+import { BrowserToolbarButton } from './ui/toolbar-button'
+import { useCompactBrowser } from './ui/use-compact-browser'
 import { BrowserProfileNavigation } from './profile-navigation'
 import { BrowserGatewayPanel, useBrowserGatewayStatus } from '../upstream/browser-gateway-panel'
 import { BrowserActionError } from './action-errors'
-import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
 import { SettingsMenu, toolRouteLabel } from './settings-menu'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, SessionTileCloseConfirm, BrowserWorkspace, OverlayView, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu } from '../upstream/browser-api'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, SessionTileCloseConfirm, BrowserWorkspace, OverlayView, Dialog, DialogContent, DialogTitle, SessionActionsMenu } from '../upstream/browser-api'
 import { useBrowserConversation } from '../upstream/conversation'
 import { useBrowserSessionActions } from '../upstream/conversation-actions'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
@@ -16,10 +18,6 @@ import { clampNavigationWidth, DEFAULT_NAVIGATION_WIDTH, MAX_NAVIGATION_WIDTH, M
 // Settings and Command Center are owned by the upstream ContribWiring overlay
 // router. Only the full-page workspace routes need the browser modal shell.
 const BROWSER_MODAL_ROUTES = new Set(['/skills', '/messaging', '/artifacts'])
-function BrowserToolbarButton({ tooltip, ...props }: ComponentPropsWithRef<'button'> & { tooltip: string }) {
-  return <Tip label={tooltip} placement="toolbar" boundary="viewport"><button {...props} /></Tip>
-}
-
 export function BrowserShell() {
   return <SidebarProvider className="browser-provider" style={{ '--sidebar-width': '100%' } as CSSProperties}>
     <ContribWiring><BrowserLayout /><SessionTileCloseConfirm /></ContribWiring>
@@ -36,7 +34,7 @@ function BrowserLayout() {
   const panes = useContributions('panes')
   const main = useRef<HTMLElement>(null), menu = useRef<HTMLButtonElement>(null), drawer = useRef<HTMLElement>(null), navigationTabsMenu = useRef<HTMLDivElement>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [compactNavigation, setCompactNavigation] = useState(() => window.matchMedia('(max-width:47.999rem)').matches)
+  const compactNavigation = useCompactBrowser()
   const [navigationCollapsed, setNavigationCollapsed] = useState(false)
   const navigationOpen = compactNavigation ? drawerOpen : !navigationCollapsed
   const [navigationTabsMenuPosition, setNavigationTabsMenuPosition] = useState<{ x: number; y: number } | null>(null)
@@ -53,15 +51,7 @@ function BrowserLayout() {
   const browserModalRoute = BROWSER_MODAL_ROUTES.has(location.pathname)
   const bots = panes.find(pane => pane.id === 'hermes-bots:pane')
   const previous = useRef({ selection: conversation.selectionKey, path: location.pathname })
-  useEffect(() => {
-    const media = window.matchMedia('(max-width:47.999rem)')
-    const update = () => {
-      setCompactNavigation(media.matches)
-      setDrawerOpen(false)
-    }
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [])
+  useEffect(() => { setDrawerOpen(false) }, [compactNavigation])
   // Selection closes the mobile drawer without changing desktop visibility.
   useEffect(() => {
     if (previous.current.selection !== conversation.selectionKey || previous.current.path !== location.pathname) {
@@ -86,7 +76,7 @@ function BrowserLayout() {
     const keydown = (event: KeyboardEvent) => {
       // Portaled menus own Escape and focus until dismissed; closing one must
       // not also close its mobile navigation drawer.
-      if (event.defaultPrevented || (event.target instanceof Element && event.target.closest('[role="menu"]'))) return
+      if (event.defaultPrevented || (event.target instanceof Element && event.target.closest('[role="menu"], [data-browser-action-surface]'))) return
       if (event.key === 'Escape') { setDrawerOpen(false); menu.current?.focus() }
       if (event.key !== 'Tab') return
       const items = [menu.current, ...Array.from(drawer.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input,select,[tabindex="0"]') || [])].filter((el): el is HTMLElement => Boolean(el?.getClientRects().length))

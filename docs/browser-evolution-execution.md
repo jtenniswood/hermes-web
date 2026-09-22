@@ -28,7 +28,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, and pin/unread ordering merged; shared session entry points under verification | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
-| 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
+| 5. Shared interaction surfaces | Profile actions and shared toolbar/menu/sheet primitives under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
 The user explicitly deferred updater App setup. Continue independent code and
@@ -347,3 +347,34 @@ reads exposed an optional model-preset endpoint returning an incomplete object.
 The fixture now returns a valid empty auxiliary-model catalog and an explicit
 unavailable response for unsupported mixture-of-agents presets. Both affected
 Settings journeys pass locally; the updated commit still requires full CI.
+
+## Shared profile interaction surfaces
+
+Profile actions now use one browser-owned action list, rendered as an anchored
+desktop menu or a modal phone sheet. A visible actions button provides access
+without a right-click or long press; desktop profile context menus remain
+available. The profile heading leaves the existing avatar rail width intact.
+
+A shared toolbar control and viewport hook replace the shell's local versions.
+The action surface owns keyboard navigation, sheet focus trapping, scaled
+positioning, and dismissal. Escape and selection restore the opening control
+(or the actions button when the profile disappears); clicking another control
+retains that new focus target. Closing a sheet does not close the navigation
+drawer. The old profile-specific manual menu listeners and CSS are removed.
+
+Phone profiles disable native dragging and reject drag/drop commands. Desktop
+reordering and saved order remain intact, including after viewport changes.
+Hidden-profile state retains its existing mounted lifetime and storage key.
+
+Validation: typechecking and the production build passed. All 16 adapter checks
+passed, including the browser raw-store boundary check. Eleven targeted Chromium
+journeys passed on the final local image, covering desktop dragging and context
+menus, action parity at 390px/1440px and 100%/150% scale, focus and drafts,
+emulated touch taps, saved-order preservation, and unavailable preference
+storage. An initial layout regression and an outside-click focus regression
+were caught and fixed before this passing run. Screenshots were captured at
+each tested viewport/scale. Required CI is still needed for the committed image.
+
+This is the first stage 5 slice. Navigation, settings, and Bots controls, further
+shell extraction, and physical-device touch validation remain outstanding.
+Updater App setup remains deferred and automation remains disabled.
