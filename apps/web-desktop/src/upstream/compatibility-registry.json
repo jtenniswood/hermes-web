@@ -1587,5 +1587,27 @@
     "sourceHash": "c55ffcbde9c0557e0718ae9c8e5601053a33e9254162c54ddd49ac6300eda80a",
     "inputHash": "b64efb692d3d22a4971f36a5ad76d49acdd368bf7a8079b8286c6925d14fd560",
     "outputHash": "f33ac2ffc38955e3dd2fed2964b83604956ef6a3626582b9587aae853ccabf42"
+  },
+  {
+    "name": "browser-workspace-route-lifetime",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/contrib/surfaces.tsx",
+    "handlers": [
+      "keepBrowserWorkspaceRoute"
+    ],
+    "reason": "Keep the conversation route mounted behind browser tool pages and upstream overlays so unsent attachments and composer state survive.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "tool modals retain the mounted composer and unsent attachments"
+      }
+    ],
+    "removal": "Remove when upstream workspace routes preserve the mounted conversation and attachments while browser tools or overlays are open.",
+    "sourceRoot": "renderer",
+    "sourceHash": "cf9e1f226651f9e6da21a3c223b92bc63cfb5f9c47038d3ace72997c5654eee5",
+    "inputHash": "cf9e1f226651f9e6da21a3c223b92bc63cfb5f9c47038d3ace72997c5654eee5",
+    "outputHash": "359e84c36034bafaa5b1cf5deeb92d4f307cef447b2e514e323f6cc72bf6c438"
   }
 ]

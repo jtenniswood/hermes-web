@@ -28,7 +28,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
-| 5. Shared interaction surfaces | Profile and navigation controls merged; settings controls under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
+| 5. Shared interaction surfaces | Profile and navigation merged; settings and mounted tool workspaces under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
 The user explicitly deferred updater App setup. Continue independent code and
@@ -454,9 +454,49 @@ and scales, draft preservation, Tab wrapping, toolbar focus restoration, and an
 explicit composer focus shortcut. Required CI for the committed image is pending.
 
 Stage 5 remains incomplete. Bots action surfaces still need migration. The
-full-page Capabilities, Messaging, and Artifacts modal routes currently unmount
-the workspace; preserving composer DOM identity and unsent attachments across
-those routes needs a separate ownership change and real-composer tests. Do not
+full-page Capabilities, Messaging, and Artifacts modal routes unmounted the
+workspace when this settings slice began. The following slice addresses composer
+DOM identity and unsent attachments with separate ownership and real-composer
+tests. Do not
 infer composer-lifetime proof from text-draft restoration alone. Physical-device
 touch verification remains pending. Updater App setup is deferred and scheduling
 and stable promotion remain disabled.
+
+## Mounted composer behind browser tools
+
+The workspace now remains mounted behind Capabilities, Messaging, and Artifacts.
+A browser route adapter keeps the previous workspace location beneath browser
+and upstream overlays, while the tool page receives the current route in its own
+context. The background workspace is inert while covered. This preserves one
+conversation instance, contributed panels, text, attachments, and recording state
+without copying the upstream conversation into a second store.
+
+The tool-modal component owns its return path outside the shell, including query
+and fragment state. The sidebar and modal share the tool route definitions.
+A reviewed compatibility-registry entry replaces only the workspace surface's
+route component; existing source/output fingerprints and the renderer pin remain
+unchanged.
+
+The previous image reproduced a detached composer on both phone and desktop.
+The candidate passed all four 390px/1440px, 100%/150% lifetime journeys through
+Capabilities, Messaging, Artifacts, Settings, and Command Center. These assert
+actual DOM identity, one composer, an unsent file, inert background content, and
+keyboard focus restoration. A fake-device recording journey verified that the
+same microphone stream stays live until explicit stop, then produces a transcript
+and releases its tracks. This is browser-API evidence, not a physical-device test.
+
+Typechecking, the production build, and 76 adapter/registry/composition checks
+passed. Nine route/conversation regressions passed, including complete-URL
+history, a cold tool entry, delayed Bot/profile selection, reconnect, fresh chat,
+Command Center selection, and contributed panels. Existing settings focus and
+full-page return journeys also passed. The first previous-image upgrade run
+passed the conflicting-draft refusal but postponed activation in the successful
+upgrade journey; its trace contains initial `ERR_NETWORK_CHANGED` asset errors.
+The unchanged candidate is being checked again. Committed-image CI remains pending
+for this slice.
+
+PR #50's initial preview failed because the approval-menu test had accidentally
+received the new settings-group selector. Restoring its existing upstream label
+selector passed the focused approval journey against the settings image. The
+correction is `9ded4fc`; required CI is running on that new head. The failure did
+not justify changing the approval behavior or weakening its assertion.
