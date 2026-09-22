@@ -661,6 +661,31 @@ Local verification: three readiness checks and four Chromium image journeys
 passed, including both affected scenarios, delayed Bot selection, and two-tab
 rollback. These development-image results do not replace native arm64 evidence.
 
+## Preserve update-handshake evidence across reloads
+
+PR #56 passed required compatibility, policy, and preview checks at `2cbc26c`
+and merged as `dc92321`. PR #57 passed those checks at `488b2c4` and merged as
+`1e88875`. Native release verification containing the readiness fix is pending.
+
+Release runs `35743272526` and `35745406364` stalled at the final rollback
+activation after active work and attachments were resolved. Run `35747697284`
+instead postponed the initial upgrade in the round-trip journey. Their browser
+checks failed and promotion was skipped. These are unresolved observations:
+three local round trips against a release-style Docker build passed, but do not
+establish the cause of the CI failures.
+
+The real-image upgrade fixture now attaches a bounded `update-protocol` report
+with tab identifiers, notices, worker states, lock state, requests, and readiness
+acknowledgments. The report lives outside page documents and survives activation
+and reload. It omits composer text, credentials, and URLs. Existing safety
+assertions and application behavior are unchanged.
+
+All three upgrade journeys passed locally with diagnostics and network readiness
+against `hermes-web:rollback-verification` (wrapper `dc92321`, pinned renderer,
+synthetic gateway). Report inspection confirmed both tabs, conflict abort, and
+both round-trip verifications, with no dropped events or draft/URL fields.
+Committed-image CI and diagnosis of any recurring activation stall remain open.
+
 ## Touch access to sidebar visibility and explicit styling hooks
 
 Pinned-section visibility now uses one browser command model shared by the
