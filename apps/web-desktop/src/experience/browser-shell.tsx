@@ -1,3 +1,4 @@
+import { BrowserModal } from './ui/modal'
 import { BrowserToolbarButton } from './ui/toolbar-button'
 import { BrowserNavigationTabs, BrowserNavigationResizer, useBrowserNavigation } from './navigation'
 import { BrowserProfileNavigation } from './profile-navigation'
@@ -8,7 +9,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
 import { SettingsMenu, toolRouteLabel } from './settings-menu'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, SessionTileCloseConfirm, BrowserWorkspace, OverlayView, Dialog, DialogContent, DialogTitle, SessionActionsMenu } from '../upstream/browser-api'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, SessionTileCloseConfirm, BrowserWorkspace, OverlayView, SessionActionsMenu } from '../upstream/browser-api'
 import { useBrowserConversation } from '../upstream/conversation'
 import { useBrowserSessionActions } from '../upstream/conversation-actions'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
@@ -36,7 +37,6 @@ function BrowserLayout() {
   const { tab } = navigation
   const [gatewayDialogOpen, setGatewayDialogOpen] = useState(false)
   const settingsTrigger = useRef<HTMLButtonElement>(null)
-  const gatewayHeading = useRef<HTMLHeadingElement>(null)
   const [updateNotice, setUpdateNotice] = useState<PwaUpdateNotice | null>(() => currentPwaUpdate())
   const [updateDismissed, setUpdateDismissed] = useState(false)
   const browserModalReturnPath = useRef('/')
@@ -86,20 +86,15 @@ function BrowserLayout() {
               <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" size="0.75rem" /></BrowserToolbarButton>
             </SessionActionsMenu>}
             <span className="browser-approval-control" ref={setApprovalTarget} />
-            <SettingsMenu gatewayDialogOpen={gatewayDialogOpen} onOpenGateway={() => { navigation.closeDrawer(); setGatewayDialogOpen(true) }} onOpenPanel={() => main.current?.focus()} onOpenRoute={openRoute} panelPanes={panelPanes}>
-              <BrowserToolbarButton ref={settingsTrigger} tooltip="Settings" type="button" aria-label="Open settings menu"><Codicon name="settings-gear" size="0.75rem" /></BrowserToolbarButton>
-            </SettingsMenu>
+            <SettingsMenu triggerRef={settingsTrigger} onOpenGateway={() => { navigation.closeDrawer(); setGatewayDialogOpen(true) }} onOpenPanel={() => main.current?.focus()} onOpenRoute={openRoute} panelPanes={panelPanes} />
           </div>
         </div>
         {!browserModalRoute && <BrowserWorkspace />}
         <div className="browser-status"><WiredPane part="statusbar" /></div>
       </main>
-      <Dialog open={gatewayDialogOpen} onOpenChange={setGatewayDialogOpen}>
-        <DialogContent className="browser-gateway-dialog" bodyClassName="gap-0 p-0" aria-describedby={undefined} onOpenAutoFocus={event => { event.preventDefault(); gatewayHeading.current?.focus() }} onCloseAutoFocus={event => { event.preventDefault(); settingsTrigger.current?.focus() }}>
-          <DialogTitle ref={gatewayHeading} tabIndex={-1} className="browser-gateway-dialog-title">Gateway</DialogTitle>
-          <BrowserGatewayPanel status={gatewayStatus} onClose={() => setGatewayDialogOpen(false)} onOpenSystem={() => { setGatewayDialogOpen(false); openRoute('/command-center?section=system') }} />
-        </DialogContent>
-      </Dialog>
+      <BrowserModal title="Gateway" open={gatewayDialogOpen} onOpenChange={setGatewayDialogOpen} returnFocus={settingsTrigger} className="browser-gateway-dialog">
+        <BrowserGatewayPanel status={gatewayStatus} onClose={() => setGatewayDialogOpen(false)} onOpenSystem={() => { setGatewayDialogOpen(false); openRoute('/command-center?section=system') }} />
+      </BrowserModal>
       {browserModalRoute && <OverlayView closeLabel={`Close ${toolRouteLabel(location.pathname.slice(1))}`} onClose={closeBrowserModal}>
         <WiredPane part="chatRoutes" />
       </OverlayView>}

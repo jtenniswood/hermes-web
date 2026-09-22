@@ -1540,5 +1540,52 @@
     "sourceHash": "3af574166200de556c8053c4d2e7ab0e3a742aafcff28ea3e3bc4ed8363ee544",
     "inputHash": "3af574166200de556c8053c4d2e7ab0e3a742aafcff28ea3e3bc4ed8363ee544",
     "outputHash": "daa3539a65f934abc97c9adb0f29dff754cb725d3b4f047d7afa19eb48ff4397"
+  },
+  {
+    "name": "browser-overlay-focus-owner",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/overlays/overlay-view.tsx",
+    "handlers": [
+      "useBrowserOverlayFocusOwner"
+    ],
+    "reason": "Own focus entry, tab containment, and focus return at each mounted browser workspace overlay.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "settings actions retain drafts and transfer modal focus"
+      }
+    ],
+    "removal": "Remove when upstream workspace overlays own focus entry, nested-surface-aware tab containment, and focus restoration in the browser.",
+    "sourceRoot": "renderer",
+    "sourceHash": "98a36f95e194817923c07bc360b4ffde0faed2aaa00bcecb6164b247211d73ad",
+    "inputHash": "98a36f95e194817923c07bc360b4ffde0faed2aaa00bcecb6164b247211d73ad",
+    "outputHash": "e3f8bcab0283276a5db9c3c8869708acb9ab81414fee8a4fa637ba6c3b61e0b9"
+  },
+  {
+    "name": "browser-overlay-return-focus",
+    "kind": "browser-transform",
+    "order": 40,
+    "module": "app/chat/composer/hooks/use-composer-draft.ts",
+    "handlers": [
+      "respectBrowserOverlayFocusReturn"
+    ],
+    "after": [
+      "browser-flush-all-composers"
+    ],
+    "reason": "Keep automatic composer visibility changes from stealing an overlay return target while preserving explicit focus requests.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "settings actions retain drafts and transfer modal focus"
+      }
+    ],
+    "removal": "Remove when upstream automatic composer focus respects focus restored by closing browser overlays.",
+    "sourceRoot": "renderer",
+    "sourceHash": "c55ffcbde9c0557e0718ae9c8e5601053a33e9254162c54ddd49ac6300eda80a",
+    "inputHash": "b64efb692d3d22a4971f36a5ad76d49acdd368bf7a8079b8286c6925d14fd560",
+    "outputHash": "f33ac2ffc38955e3dd2fed2964b83604956ef6a3626582b9587aae853ccabf42"
   }
 ]

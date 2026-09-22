@@ -99,6 +99,23 @@ export function useBrowserFreshSessionOwner(source: string, root: string): strin
     .replace(end, end.replace('    },', '    }),'))
 }
 
+export function useBrowserOverlayFocusOwner(source: string, root: string): string {
+  const start = '}: OverlayViewProps) {', element = '    <div\n      className={cn('
+  if (source.split(start).length !== 2 || source.split(element).length !== 2) throw new Error('Browser overlay focus owner changed')
+  const owner = JSON.stringify(path.join(root, 'src/experience/ui/overlay-focus'))
+  return `import { useBrowserOverlayFocus } from ${owner}\n` + source
+    .replace(start, start + '\n  const browserOverlayRef = useBrowserOverlayFocus()')
+    .replace(element, '    <div\n      ref={browserOverlayRef}\n      tabIndex={-1}\n      className={cn(')
+}
+
+export function respectBrowserOverlayFocusReturn(source: string, root: string): string {
+  const target = '    if (!inputDisabled && paneVisible && !floating) {'
+  if (source.split(target).length !== 2) throw new Error('Browser composer autofocus owner changed')
+  const owner = JSON.stringify(path.join(root, 'src/experience/ui/overlay-focus'))
+  return `import { browserOverlayOwnsReturnedFocus } from ${owner}\n` + source
+    .replace(target, '    if (!inputDisabled && paneVisible && !floating && !browserOverlayOwnsReturnedFocus()) {')
+}
+
 export function useBrowserDirectResumeOwner(source: string): string {
   const target = '    resumeStoredSession: resumeSession,'
   if (source.split(target).length !== 2) throw new Error('Browser direct resume owner changed')
@@ -232,11 +249,11 @@ export function removeBrowserOpenBotChatAction(source: string): string {
 }
 
 // Run after renderer compatibility has validated and transformed this module.
-export function browserActivityNotificationsPlugin(): Plugin {
+export function browserActivityNotificationsPlugin(root: string): Plugin {
   return {
     name: 'hermes:browser-activity-notifications', enforce: 'pre',
     transform(code, id) {
-      return applyBrowserTransform(code, id, '', 40)
+      return applyBrowserTransform(code, id, root, 40)
     }
   }
 }
@@ -499,6 +516,8 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
   if (digest(code) === entry.outputHash) return { code, map: null }
   if (digest(code) !== entry.inputHash) throw new Error(`Browser compatibility changed: ${entry.name} (${entry.module}). Review this registry entry.`)
   const handlers: Record<string, (source: string) => string> = {
+    respectBrowserOverlayFocusReturn: source => respectBrowserOverlayFocusReturn(source, root),
+    useBrowserOverlayFocusOwner: source => useBrowserOverlayFocusOwner(source, root),
     useBrowserPinWrites: source => useBrowserPinWrites(source, root),
     useBrowserOpenSessionOwner: source => useBrowserOpenSessionOwner(source, root),
     useBrowserFreshSessionOwner: source => useBrowserFreshSessionOwner(source, root),

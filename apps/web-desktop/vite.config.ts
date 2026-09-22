@@ -289,7 +289,7 @@ export default defineConfig(({ command, mode }) => {
     emojibaseAssets(),
     hermesPluginsAssets(),
     rendererCompatibilityPlugin(path.resolve(__dirname, '../desktop/src')),
-    browserActivityNotificationsPlugin()
+    browserActivityNotificationsPlugin(__dirname)
   ],
   css: {
     postcss: { plugins: [] }

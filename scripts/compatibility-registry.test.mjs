@@ -62,8 +62,8 @@ for (const entry of registry.filter(entry => entry.kind === 'browser-transform')
   test(`registered browser pipeline: ${entry.name}`, () => {
     const filename = path.join(root, '../desktop/src', entry.module)
     let input = readFileSync(filename, 'utf8')
-    if (entry.after?.includes('bot-roster-opening')) input = transformRenderer(input, filename).code
-    const plugin = entry.order === 40 ? browserActivityNotificationsPlugin() : browserPlugin(root)
+    if (entry.after?.some(name => registry.find(item => item.name === name)?.kind === 'renderer-transform')) input = transformRenderer(input, filename).code
+    const plugin = entry.order === 40 ? browserActivityNotificationsPlugin(root) : browserPlugin(root)
     const output = plugin.transform(input, filename).code
     assert.notEqual(output, input)
     assert.equal(plugin.transform(output, filename).code, output)
