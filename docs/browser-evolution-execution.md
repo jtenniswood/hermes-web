@@ -584,3 +584,33 @@ that the browser actually moved focus before returning. Existing navigation
 viewport tests retain their focus assertions. All eight navigation/roster
 viewport journeys, typechecking, and the production build passed after the fix;
 fresh CI must verify the corrected head.
+
+
+## Release configuration and rollback evidence
+
+The read-only setup audit found that `renderer-update-policy` existed in CI but
+was not required by branch protection. After inspecting the additive ruleset,
+`configure-repository.mjs --automation --apply` added that strict Actions check
+and preserved existing protection. Readback confirms both `compatibility` and
+`renderer-update-policy` are required. App ID/login/private key remain missing
+by the user's deferral; scheduling and promotion remain disabled.
+
+Release run `35734286692` at wrapper `af70a27` passed compatibility and native
+amd64/arm64 candidate browser jobs. The registry's combined manifest was read
+back and verified to contain each tested platform manifest. The immutable
+candidate and baseline identities are recorded in
+[the release evidence](release-evidence/2026-09-22-candidate-rollback.json).
+A new real-image round trip passed locally: previous image to candidate, then
+back to the previous tested image with two live tabs. Active responses and unsent
+attachments postponed rollback; candidate-edited drafts and selected sessions
+survived activation and reload. The gateway was synthetic-preview-v1.
+
+Publication now retains a machine-readable combined-digest record, including
+whether stable promotion completed. CLI tests exercise disabled promotion,
+verified stable tags, partial tag-verification failure, stale main, and missing
+architecture evidence. These changes improve the release evidence but do not
+complete live renderer proposal/merge demonstrations, real-gateway smoke, or
+physical-device verification. All three real-image upgrade/rollback journeys
+passed against the published amd64 digest, and 14 release-policy/updater/evidence
+checks passed. Required committed-image CI remains pending. No running deployment
+was changed.
