@@ -286,9 +286,15 @@ real-gateway smoke test are additional rollout gates.
 
 See [release setup and rollback](docs/releases.md) for the repository-scoped
 GitHub App, required checks, separate enablement switches, image promotion and
-rollback by digest. Daily renderer proposals use the exact upstream commit and
+rollback by digest. Scheduled renderer proposals use the exact upstream commit and
 can change only renderer lock metadata. `release.yml` is the single publisher;
 a release publishes an image without restarting the production deployment.
+
+The [automatic upstream update runbook](docs/upstream-updates.md) describes setup
+auditing, automatic branch refresh, compatibility reports, and repairing blocked
+updates. Run `node scripts/check-update-setup.mjs` to inspect readiness without
+changing repository settings, or `pnpm check:upstream` to report local source
+contract changes before a full build.
 
 ### Browser-focused preview
 

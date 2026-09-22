@@ -10,6 +10,8 @@
     "deploy": "bash apps/web-desktop/scripts/deploy.sh",
     "prepare:renderer": "node scripts/renderer.mjs",
     "check:renderer": "node scripts/renderer.mjs --check",
+    "check:upstream": "node scripts/renderer-compatibility-report.mjs",
+    "check:update-setup": "node scripts/check-update-setup.mjs",
     "test:foundation": "node --test scripts/*.test.mjs"
   },
   "packageManager": "pnpm@11.20.0",
