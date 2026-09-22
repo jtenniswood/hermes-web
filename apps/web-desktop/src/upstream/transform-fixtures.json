@@ -18,7 +18,7 @@
     "name": "browser-profile-selection",
     "reason": "Select a profile without starting a desktop backend",
     "sourceHash": "ef162f7cef5ebde1224c68328a663351594cfe63224e274b6450bd8ec0fcac6e",
-    "outputHash": "f0de161d8f6a14e0248ec11adf8a11ec2a6911e4ffb17ae654a2675c9b23c18e"
+    "outputHash": "0586d4440c6d2ad6ae8717398509765b04e8e1cdf75d899a01f0142a2ed30d38"
   },
   {
     "module": "plugins/hermes-bots/roster-actions.ts",
@@ -61,5 +61,12 @@
     "reason": "Offer configured-gateway settings and soft retry without native backend or log actions",
     "sourceHash": "43d0c90ed67d36fd54bf61df9f1182539d0754db045b968c25d9e4a793350078",
     "outputHash": "2ea2f51f9ab1608bb0c09344dcb4221c9c597ed2ae7f5231819ab347d55f6b12"
+  },
+  {
+    "module": "app/gateway/hooks/use-gateway-boot.ts",
+    "name": "browser-profile-commit",
+    "reason": "Keep background Bot route readiness from replacing an explicit browser profile choice",
+    "sourceHash": "d1ad3da260464a4e83038a178b41b72ddf7766ae5919be3d5346607802b47a22",
+    "outputHash": "b74280a56e054101d79bc8f0396322bad2afe089101bd9383caba267d87e4d36"
   }
 ]

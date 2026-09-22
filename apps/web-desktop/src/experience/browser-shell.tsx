@@ -1,3 +1,4 @@
+import { BrowserActionError, reportActionFailure } from './action-errors'
 import { useStore } from '@nanostores/react'
 import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProperties, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
@@ -91,21 +92,21 @@ function BrowserLayout() {
   }
   const toggleSelectedUnread = () => {
     if (!selected || !selectedSession) return
-    void markSessionUnread(selected, selectedSession.unread !== true).catch(() => undefined)
+    void markSessionUnread(selected, selectedSession.unread !== true).catch(() => reportActionFailure('Could not change unread status.'))
   }
   const archiveSelectedSession = () => {
     if (!selected) return
     void setSessionArchived(selected, true, selectedSessionProfile).then(() => {
       setSessions(rows => rows.filter(row => row.id !== selected))
-      navigate('/')
-    }).catch(() => undefined)
+      if ($selectedStoredSessionId.get() === selected) navigate('/')
+    }).catch(() => reportActionFailure('Could not archive conversation.'))
   }
   const deleteSelectedSession = () => {
     if (!selected) return
     void deleteSession(selected, selectedSessionProfile).then(() => {
       setSessions(rows => rows.filter(row => row.id !== selected))
-      navigate('/')
-    }).catch(() => undefined)
+      if ($selectedStoredSessionId.get() === selected) navigate('/')
+    }).catch(() => reportActionFailure('Could not delete conversation.'))
   }
   const previous = useRef({ selected, bot, path: location.pathname })
   useEffect(() => {
@@ -329,6 +330,7 @@ function BrowserLayout() {
     })
   }
   return <ApprovalToolbarTarget value={approvalTarget}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
+    <BrowserActionError />
     <div className="browser-workspace">
       {drawerOpen && <button className="browser-scrim" aria-label="Close navigation" onClick={() => { setDrawerOpen(false); menu.current?.focus() }} />}
       <aside id="browser-navigation" ref={drawer} hidden={!compactNavigation && navigationCollapsed} className={`browser-navigation ${drawerOpen ? 'is-open' : ''}`} aria-label="Sessions, Bots and tools" style={{ '--browser-navigation-width': `${navigationWidth}px` } as CSSProperties}>

@@ -196,3 +196,6 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-settings-menu :is([role="menuitem"],[role="menuitemcheckbox"]) > .codicon { color:var(--ui-text-tertiary); }
 .browser-gateway-dialog { width:24rem; max-width:calc(100vw / var(--web-ui-scale,1) - 2rem); max-height:calc(100dvh / var(--web-ui-scale,1) - 2rem); overflow:auto; gap:0; padding:0; }
 .browser-gateway-dialog-title { padding:.85rem 2.5rem .65rem .75rem; font-size:.875rem; outline:none; }
+
+.browser-action-error { position:fixed; z-index:200; top:1rem; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:1rem; max-width:calc(100% - 2rem); padding:.75rem 1rem; border:1px solid var(--border); border-radius:.5rem; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 .5rem 1.5rem #0005; }
+.browser-action-error button { flex-shrink:0; padding:.25rem .5rem; border:1px solid var(--border); border-radius:.25rem; background:transparent; color:inherit; cursor:pointer; }

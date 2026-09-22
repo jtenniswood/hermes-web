@@ -1,3 +1,4 @@
+import { reportActionFailure } from './action-errors'
 import { useStore } from '@nanostores/react'
 import { useEffect, useMemo } from 'react'
 
@@ -31,7 +32,7 @@ export function useApprovalModeStatusbarItem(profile: string, requestGateway: Ap
     menuClassName: 'w-72 p-1',
     menuContent: <>
       <DropdownMenuLabel>{copy.title}</DropdownMenuLabel>
-      <DropdownMenuRadioGroup onValueChange={value => { void setApprovalModeForProfile(requestGateway, profile, value as ApprovalMode).catch(() => undefined) }} value={mode}>
+      <DropdownMenuRadioGroup onValueChange={value => { void setApprovalModeForProfile(requestGateway, profile, value as ApprovalMode).catch(() => reportActionFailure('Could not change approval mode.')) }} value={mode}>
         {(['manual', 'smart', 'off'] as const).map(value => <DropdownMenuRadioItem className="items-start gap-2" key={value} value={value}>
           <ApprovalModeIcon mode={value} />
           <span className="flex min-w-0 flex-col gap-0.5">

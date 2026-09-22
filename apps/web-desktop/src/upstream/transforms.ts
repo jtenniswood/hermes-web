@@ -7,6 +7,18 @@ import fixtures from './transform-fixtures.json'
 function rewrite(code: string, id: string): { code: string; map: null } | null {
 
     const normalizedId = id.replaceAll('\\', '/').split('?')[0]
+    if (normalizedId.endsWith('/desktop/src/app/gateway/hooks/use-gateway-boot.ts')) {
+      // Browser profile selection scopes the sidebar; a background Bot socket
+      // becoming ready must not replace an explicit user choice.
+      const target = `onActiveRouteChanged: profile => {
+        const key = normalizeProfileKey(profile)`
+      const patched = code.replace(target, `${target}
+        if (window.__HERMES_WEB_BRIDGE__ && window.__HERMES_WEB_ACTIVE_PROFILE__) {
+          return
+        }`)
+      if (patched === code) throw new Error('Browser profile commit guard no longer matches gateway boot')
+      return { code: patched, map: null }
+    }
     if (normalizedId.endsWith('/desktop/src/components/boot-failure-overlay.tsx')) {
       let patched = code.replace("  if (view === 'connect') {", `
   if (window.__HERMES_WEB_BRIDGE__) {
@@ -139,7 +151,13 @@ ${code.slice(targetEnd)}`
         throw new Error('Web profile selection scope no longer matches the renderer source')
       }
 
-      return { code: patched, map: null }
+      const commits = patched.split('\n    batch(() => {')
+      if (commits.length !== 3) throw new Error('Browser profile publication guards no longer match profile activation')
+      return { code: commits.join(`
+    if (window.__HERMES_WEB_BRIDGE__ && window.__HERMES_WEB_ACTIVE_PROFILE__ && window.__HERMES_WEB_ACTIVE_PROFILE__ !== target) {
+      return
+    }
+    batch(() => {`), map: null }
     }
 
     if (
