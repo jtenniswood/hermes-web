@@ -15,6 +15,49 @@ function assertBrowserRoot(root: string): void {
     throw new Error('Browser build root is not the browser-only shell')
   }
 }
+export function useBrowserPinWrites(source: string, root: string): string {
+  const start = source.indexOf('function writePin(')
+  const end = source.indexOf('\n/**', start)
+  if (start < 0 || end < 0) throw new Error('Browser pin write owner changed')
+  const imports = JSON.stringify(path.join(root, 'src/upstream/browser-pin-writes'))
+  const write = `function writePin(id: string, pinned: boolean, profile?: null | string): void {
+  const confirmed = unconfirmed.get(id)?.value ?? loadedRowFor(id)?.pinned ?? !pinned
+  unconfirmed.set(id, { at: Date.now(), value: pinned })
+  queueBrowserPinWrite(id, pinned, profile, confirmed, (value, failed) => {
+    // Keep the confirmed value ahead of session pages issued before this write.
+    unconfirmed.set(id, { at: Date.now(), value })
+    if (failed) {
+      pending.delete(id)
+      if (value) mirrored.add(id)
+      else mirrored.delete(id)
+      // Mirror bookkeeping is settled before notifying the reconciliation owner.
+      if (value) pinSession(id)
+      else unpinSession(id)
+    }
+    publishUnconfirmed()
+  })
+}
+`
+  const replacements = [
+    ["import { setSessionPinnedRemote } from '@/hermes'", `import { hasBrowserPinWrite, queueBrowserPinWrite, resetBrowserPinWrites } from ${imports}`],
+    [source.slice(start, end), write],
+    ['    if (guard && guardKey) {', '    if (hasBrowserPinWrite(pinId) || hasBrowserPinWrite(row.id)) continue\n\n    if (guard && guardKey) {'],
+    ['void writePin(id, false, profileFor(id)).catch(() => {})', 'writePin(id, false, profileFor(id))'],
+    [`void writePin(id, true, row.profile).catch(() => {
+      // Let a later reconcile retry the mirror.
+      mirrored.delete(id)
+      pending.add(id)
+    })`, 'writePin(id, true, row.profile)'],
+    ['export function resetSessionPinMirror(): void {', 'export function resetSessionPinMirror(): void {\n  resetBrowserPinWrites()']
+  ]
+  let output = source
+  for (const [before, after] of replacements) {
+    if (output.split(before).length !== 2) throw new Error('Browser pin reconciliation contract changed')
+    output = output.replace(before, after)
+  }
+  return output
+}
+
 export function scopeBrowserStorage(source: string): string {
   const original = source.split(storageScope).join('')
   const contract = contracts.find(item => item.module === 'lib/storage.ts')!
@@ -407,6 +450,7 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
   if (digest(code) === entry.outputHash) return { code, map: null }
   if (digest(code) !== entry.inputHash) throw new Error(`Browser compatibility changed: ${entry.name} (${entry.module}). Review this registry entry.`)
   const handlers: Record<string, (source: string) => string> = {
+    useBrowserPinWrites: source => useBrowserPinWrites(source, root),
     scopeBrowserStorage, filterBrowserNarrowNavigation, closeBrowserWorkspacePanels,
     exportBrowserStatusbarItem, filterBrowserActivityToasts, removeBrowserNewSessionShortcut,
     removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction, fixBrowserTooltipBoundary,
