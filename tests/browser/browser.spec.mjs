@@ -348,7 +348,7 @@ test('approval mode keeps the selected profile mode and toolbar icon synchronize
   await expect(menu.getByText('Approval mode', { exact: true })).toBeVisible()
   await expect(menu.getByText('Ask when needed', { exact: true })).toBeVisible()
   await expect(menu.getByRole('menuitemradio', { name: /Smart/ })).toHaveAttribute('aria-checked', 'true')
-  const heading = menu.locator('.browser-action-group-label')
+  const heading = menu.locator('[data-slot="dropdown-menu-label"]')
   await expect(heading).toHaveCount(1)
   await expect(heading.locator('xpath=following-sibling::*[1]')).not.toHaveAttribute('data-slot', 'dropdown-menu-separator')
   await menu.getByRole('menuitemradio', { name: /Manual/ }).click()
