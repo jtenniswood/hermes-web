@@ -7,7 +7,9 @@ export function restoreBrowserControlFocus(target: HTMLElement | null, fallback:
   for (const candidate of [target, replacement, fallback]) {
     if (candidate?.isConnected && candidate.getClientRects().length && !candidate.closest('[hidden],[inert],[aria-hidden="true"]')) {
       candidate.focus()
-      return
+      // Context-menu anchors can be non-focusable wrappers. Continue to the
+      // explicit control fallback unless the browser actually moved focus.
+      if (document.activeElement === candidate) return
     }
   }
 }
