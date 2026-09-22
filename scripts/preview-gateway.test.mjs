@@ -107,3 +107,26 @@ test('disconnect closes active sockets without destroying stored conversations',
   await closed
   assert.equal(gateway.sessions.get('preview-week').title, 'Plan a calmer working week')
 })
+
+test('slash completion accepts a slash query and leaves malformed operations strict', async t => {
+  const gateway = await fixture(t)
+  assert.deepEqual((await gateway.request('complete.slash', { text: '/resume' })).result, { items: [], replace_from: 1 })
+  gateway.controls.assertExpected()
+  assert.equal((await gateway.request('complete.slash', { text: false })).error.code, -32601)
+  assert.throws(() => gateway.controls.assertExpected(), /complete.slash/)
+})
+
+test('command center catalogs are explicit reads and archived sessions stay separate', async t => {
+  const gateway = await fixture(t)
+  assert.deepEqual((await gateway.request('plugins.manage', { action: 'list' })).result, { plugins: [] })
+  assert.deepEqual(await (await fetch(gateway.origin + '/api/config/schema')).json(), { fields: {} })
+  assert.deepEqual(await (await fetch(gateway.origin + '/api/env')).json(), {})
+  gateway.sessions.get('preview-idea').archived = true
+  const sessions = async archived => (await (await fetch(gateway.origin + '/api/profiles/sessions?archived=' + archived)).json()).sessions.map(row => row.id)
+  assert.deepEqual(await sessions('only'), ['preview-idea'])
+  assert.deepEqual(await sessions('exclude'), ['preview-week'])
+  assert.deepEqual(await sessions('include'), ['preview-week', 'preview-idea'])
+  gateway.controls.assertExpected()
+  assert.equal((await gateway.request('plugins.manage', { action: 'install', name: 'unrequested' })).error.code, -32601)
+  assert.throws(() => gateway.controls.assertExpected(), /plugins.manage/)
+})

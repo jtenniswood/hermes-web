@@ -389,17 +389,22 @@
       {
         "file": "scripts/selection.test.mjs",
         "scenario": "session commands preserve the clicked owner for identical IDs in different profiles"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "a direct resume command supersedes delayed Bot activation"
       }
     ],
     "removal": "Upstream wiring accepts a single-conversation capability.",
     "handlers": [
       "disableBrowserSessionTabs",
-      "useBrowserSessionSelection"
+      "useBrowserSessionSelection",
+      "useBrowserDirectResumeOwner"
     ],
     "sourceHash": "816669c25c0fab0f2388768eb142bbce5e1435d0b9d62326170f0f4b1adc4e8d",
     "sourceRoot": "renderer",
     "inputHash": "816669c25c0fab0f2388768eb142bbce5e1435d0b9d62326170f0f4b1adc4e8d",
-    "outputHash": "58fc6addf84f47dd77964ff47596950fda14dcfd542e247f0dda97270f9baa2b"
+    "outputHash": "18bfe310193b93bfac09a39e55cf238ca78857e105efb4d3d55e8b352f5173eb"
   },
   {
     "name": "single-conversation-controller",
@@ -1487,5 +1492,53 @@
     "sourceHash": "af6c0060e829d3af9910f44e77019a08ec8b9704f00ea7d6635657df827449ac",
     "inputHash": "af6c0060e829d3af9910f44e77019a08ec8b9704f00ea7d6635657df827449ac",
     "outputHash": "473c0c651c97acda064a57cc30a2126d344125d2eb59b746a311d62c6d0ef590"
+  },
+  {
+    "name": "browser-session-open-owner",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/open-session.ts",
+    "handlers": [
+      "useBrowserOpenSessionOwner"
+    ],
+    "reason": "Apply browser selection ownership at shared session entry points so older Bot activations cannot replace a newer choice.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "the session picker supersedes a delayed Bot selection"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "the command center opens a session in the browser conversation view"
+      }
+    ],
+    "removal": "Remove when upstream shared session entry points supersede older Bot selections and release group identity.",
+    "sourceRoot": "renderer",
+    "sourceHash": "164eeda70811329c669bc46f7589e376a67e1cb841a4c359b5e3bd1a1560c651",
+    "inputHash": "164eeda70811329c669bc46f7589e376a67e1cb841a4c359b5e3bd1a1560c651",
+    "outputHash": "a4825ce1fdfc04873c03095f7b633f157b772eec7b4845ef78be81fc0d0b83d0"
+  },
+  {
+    "name": "browser-fresh-session-owner",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/session/hooks/use-session-actions/index.ts",
+    "handlers": [
+      "useBrowserFreshSessionOwner"
+    ],
+    "reason": "Apply browser selection ownership at shared session entry points so older Bot activations cannot replace a newer choice.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "a fresh chat supersedes delayed Bot activation and keeps its draft"
+      }
+    ],
+    "removal": "Remove when upstream shared session entry points supersede older Bot selections and release group identity.",
+    "sourceRoot": "renderer",
+    "sourceHash": "3af574166200de556c8053c4d2e7ab0e3a742aafcff28ea3e3bc4ed8363ee544",
+    "inputHash": "3af574166200de556c8053c4d2e7ab0e3a742aafcff28ea3e3bc4ed8363ee544",
+    "outputHash": "daa3539a65f934abc97c9adb0f29dff754cb725d3b4f047d7afa19eb48ff4397"
   }
 ]

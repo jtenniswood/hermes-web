@@ -29,8 +29,8 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
   addSession('preview-research', 'Bot Chat', 'research', 'I can help you investigate a question, compare approaches, and organize your findings. What are you curious about?')
   addSession('preview-writer', 'Bot Chat', 'writer', 'Bring a rough outline or a first draft. We can work on its structure, clarity, and voice together.')
   const roster = () => profiles.map(profile => ({ ...profile, running: false, session_count: 1, canonical_session: profile.name === 'default' ? null : sessions.get(`preview-${profile.name}`), last_session: profile.name === 'default' ? sessions.get('preview-week') : sessions.get(`preview-${profile.name}`) }))
-  const page = (profile = 'all', all = false) => {
-    const rows = [...sessions.values()].filter(row => !row.archived && (all || !row.hidden) && (profile === 'all' || row.profile === profile))
+  const page = (profile = 'all', all = false, archived = 'exclude') => {
+    const rows = [...sessions.values()].filter(row => (archived === 'include' || Boolean(row.archived) === (archived === 'only')) && (all || !row.hidden) && (profile === 'all' || row.profile === profile))
     return { sessions: rows, total: rows.length, has_more: false, limit: 40, offset: 0 }
   }
   function event(type, id, payload = {}) {
@@ -58,6 +58,7 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
     if (method === 'setup.runtime_check') return { ok: true, provider: 'custom', model: info.model, source: 'config' }
     if (method === 'session.active_list') return { sessions: [...sessions.values()].filter(s => s.is_active) }
     if (method === 'commands.catalog') return { commands: [] }
+    if (method === 'plugins.manage' && params.action === 'list') return { plugins: [] }
     if (method === 'ping') return { pong: true }
     // Explicit optional startup probes from the pinned renderer. These have no
     // provider, running process, local pet, or speech service in the fixture.
@@ -67,6 +68,7 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
     if (method === 'subagent.list') return { subagents: [] }
     if (method === 'process.list') return { processes: [] }
     if (method === 'complete.path') return { items: [] }
+    if (method === 'complete.slash' && typeof params.text === 'string' && params.text.startsWith('/')) return { items: [], replace_from: 1 }
     if (method === 'profiles.set_asset' && params.asset === 'avatar') return { ok: true }
     if (method === 'image.generate') throw new Error('Image generation is unavailable in the synthetic gateway')
     if (method === 'config.get' && params.key === 'approvals.mode') return { value: approvalModes.get(profile) || 'smart' }
@@ -142,6 +144,8 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
       if (pathname === '/api/status') return send({ status: 'ok', auth_required: false, version: info.version, profile: 'default', desktop_contract: info.desktop_contract })
       if (pathname === '/api/hermes/update/check') return send({ install_method: 'synthetic', current_version: info.version, behind: 0, update_available: false, can_apply: false, update_command: null, message: null, commits: [] })
       if (pathname === '/api/config/defaults') return send({ model: { default: info.model, provider: 'custom' }, display: {} })
+      if (req.method === 'GET' && pathname === '/api/config/schema') return send({ fields: {} })
+      if (req.method === 'GET' && pathname === '/api/env') return send({})
       if (pathname === '/api/audio/voice-live/status') return send({ mode: 'chained', available: false, reason: 'Synthetic fixture has no voice service', model: '', voice: '' })
       if (pathname === '/api/fs/default-cwd') return send({ branch: '', cwd: '/workspace' })
       if (pathname === '/api/git/worktrees') return send({ worktrees: [] })
@@ -154,7 +158,7 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
       if (pathname === '/auth/logout') return send({ ok: true })
       if (pathname === '/login') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<p>Synthetic gateway: signed in. You can close this window.</p>') }
       if (pathname === '/api/profiles/sessions/sidebar') return send({ recents: page(url.searchParams.get('recents_profile') || 'all'), cron: page('none'), messaging: page('none') })
-      if (pathname === '/api/sessions' || pathname === '/api/profiles/sessions') return send(page(url.searchParams.get('profile') || 'all'))
+      if (pathname === '/api/sessions' || pathname === '/api/profiles/sessions') return send(page(url.searchParams.get('profile') || 'all', false, url.searchParams.get('archived') || 'exclude'))
       const match = /^\/api\/sessions\/([^/]+)(\/messages)?$/.exec(pathname)
       if (match) {
         const id = decodeURIComponent(match[1])
