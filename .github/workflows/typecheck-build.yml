@@ -33,6 +33,14 @@ jobs:
       - run: corepack enable
       - name: Prepare exact renderer
         run: node scripts/renderer.mjs
+      - name: Report upstream contract changes
+        run: node scripts/renderer-compatibility-report.mjs
+      - name: Preserve upstream compatibility report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-compatibility-${{ github.sha }}
+          path: test-results/upstream
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:renderer
       - run: pnpm typecheck

@@ -56,13 +56,17 @@ separately from frontend build metadata. These are initial rollout gates; do not
 set the switches merely because unit tests pass.
 
 After those gates and required-check setup, set `HERMES_PROMOTION_ENABLED=true`,
-then `HERMES_RENDERER_UPDATES_ENABLED=true`. The updater runs daily at 04:00 UTC.
+then `HERMES_RENDERER_UPDATES_ENABLED=true`. The updater runs every six hours
+and after changes to `main`. Use `node scripts/check-update-setup.mjs` to audit
+configuration without changing it. See the [upstream update runbook](upstream-updates.md)
+for branch refresh, compatibility reports, and the repair process.
 No workflow restarts a running deployment.
 
 ## Failure handling and promotion
 
 One updater proposal is open at a time. A pending or passing proposal remains
-open. A failed proposal may be closed when a later revision is proposed on a new
+open; a branch behind `main` receives a history-preserving merge and fresh checks.
+A failed proposal may be closed after a later revision is proposed on a new
 branch; no branch is force-pushed or rebased. No automated dependency changes,
 adapter fixes, transform-fixture updates or diagnostic-baseline updates are
 allowed. The required policy check validates both filenames and the semantic

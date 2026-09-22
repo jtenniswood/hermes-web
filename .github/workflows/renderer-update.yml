@@ -1,7 +1,9 @@
 name: renderer-update
 on:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 */6 * * *'
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,10 +13,26 @@ concurrency:
   group: renderer-update-proposal
   cancel-in-progress: false
 jobs:
+  disabled:
+    if: vars.HERMES_RENDERER_UPDATES_ENABLED != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain setup requirements
+        run: echo 'Renderer proposals are disabled. Run node scripts/check-update-setup.mjs and follow docs/upstream-updates.md to configure and verify automation.' >> "$GITHUB_STEP_SUMMARY"
   propose:
     if: vars.HERMES_RENDERER_UPDATES_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Validate updater configuration
+        env:
+          APP_ID: ${{ vars.HERMES_UPDATER_APP_ID }}
+          APP_KEY: ${{ secrets.HERMES_UPDATER_PRIVATE_KEY }}
+          UPDATER_LOGIN: ${{ vars.HERMES_UPDATER_LOGIN }}
+        run: |
+          if [ -z "$APP_ID" ] || [ -z "$APP_KEY" ] || [ -z "$UPDATER_LOGIN" ]; then
+            echo 'Updater App configuration is incomplete. Follow docs/upstream-updates.md.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - uses: actions/create-github-app-token@v2
         id: app
         with:
