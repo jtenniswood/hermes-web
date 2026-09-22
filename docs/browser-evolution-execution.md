@@ -28,7 +28,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Models, commands, ordered writes, and shared session entry points merged | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
-| 5. Shared interaction surfaces | Profile and navigation merged; settings and mounted tool workspaces under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
+| 5. Shared interaction surfaces | Profile, navigation, settings, and mounted tool workspaces merged; Bots controls under verification | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
 The user explicitly deferred updater App setup. Continue independent code and
@@ -494,10 +494,47 @@ passed the conflicting-draft refusal but postponed activation in the successful
 upgrade journey; its trace contains initial `ERR_NETWORK_CHANGED` asset errors.
 Both real-composer upgrade journeys then passed on the unchanged candidate,
 including blocked activation during work/attachments, two-tab draft preservation,
-and conflicting-draft refusal. Committed-image CI remains pending for this slice.
+and conflicting-draft refusal. PR #51 passed all required checks on refreshed
+head `c945f06` and merged as `af70a27`.
 
 PR #50's initial preview failed because the approval-menu test had accidentally
 received the new settings-group selector. Restoring its existing upstream label
 selector passed the focused approval journey against the settings image. The
-correction is `9ded4fc`; required CI is running on that new head. The failure did
-not justify changing the approval behavior or weakening its assertion.
+correction `9ded4fc` passed all required checks and PR #50 merged as `6d1e0a8`.
+The failure did not justify changing approval behavior or weakening its assertion.
+PR #51 was retargeted to main and refreshed with that ancestry as `c945f06`; its
+required checks passed before merge `af70a27`.
+
+
+## Shared Bots toolbar actions
+
+The Bots toolbar defines filters and creation actions once for desktop menus and
+phone sheets. Single-choice action groups expose radio semantics and phone
+keyboard navigation; filters remain open for combined changes and clear through
+the existing roster callbacks. Hidden-Bot visibility retains its session-only
+upstream store. The new Bot/group/section actions wait for the old surface to
+release focus before opening their upstream dialogs. Browser-owned toolbar CSS
+provides touch targets while retaining the filter/add ordering.
+
+Validation exposed controlled upstream creation dialogs that did not restore the
+opening button on cancellation. Browser focus ownership is added at the Bot/group
+creation and section-dialog boundaries through reviewed registry entries. Their
+form behavior and commands remain upstream-owned. Viewport checks additionally
+reproduced creation dialogs extending offscreen at 150% scale. Owned attributes
+now cap normal and advanced dialog sizes in scaled viewport coordinates, retaining
+the upstream inner scroll box and popover portal.
+
+Validation: all 78 adapter/registry/composition checks, typechecking, and the build
+passed. Eight Bots journeys passed for toolbar ordering, filter state, keyboard
+selection, creation-dialog focus, retained drafts/routes, touch taps, and hidden
+visibility across navigation/reload. Thirteen existing settings, navigation, and
+profile surface journeys passed. All four final matrix cases passed normal and
+advanced creation-dialog bounds checks; one passed on retry after startup
+`ERR_NETWORK_CHANGED` errors with unchanged assertions. The four remaining
+final-image control journeys passed. Committed-image CI is pending.
+
+This toolbar slice does not complete all Bots interactions. Bot/group row and
+section context menus still need an accessible touch entry point and shared
+browser action surfaces. Physical-device validation and stage-6 live rollout
+evidence remain outstanding; updater App setup is deferred and automation stays
+disabled.

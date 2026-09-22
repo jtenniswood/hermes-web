@@ -219,3 +219,17 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-action-group + .browser-action-group { margin-top:.3rem; padding-top:.3rem; border-top:1px solid var(--border); }
 .browser-action-group-label { margin:0; padding:.45rem .65rem .2rem; color:var(--muted-foreground); font-size:.7rem; font-weight:600; }
 .browser-action-icon { display:inline-flex; align-items:center; justify-content:center; flex:0 0 1rem; margin-right:.5rem; }
+
+.browser-bots-heading { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.625rem .625rem .375rem; }
+.browser-bots-heading > span { font-size:.6875rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--ui-text-quaternary); }
+.browser-bots-actions { display:flex; align-items:center; gap:.125rem; }
+.browser-bots-control { display:inline-flex; align-items:center; justify-content:center; width:1.5rem; height:1.5rem; flex-shrink:0; border:0; border-radius:.375rem; background:transparent; color:var(--ui-text-tertiary); cursor:pointer; }
+.browser-bots-control:hover,.browser-bots-control:focus-visible { color:var(--foreground); background:var(--browser-hover-fill); }
+.browser-bots-control[data-active] { color:var(--ui-accent); }
+.browser-bots-search { display:flex; min-width:0; align-items:center; gap:.25rem; padding:0 .625rem .375rem; }
+@media (max-width:47.999rem) { .browser-bots-control { width:2.75rem; height:2.75rem; } }
+
+/* Keep the upstream inner scroll box and popover portal intact at browser zoom. */
+[data-browser-bot-dialog] { max-width:min(var(--browser-bot-dialog-width,28rem),calc(100vw / var(--web-ui-scale,1) - 2rem)) !important; max-height:calc(85dvh / var(--web-ui-scale,1)) !important; }
+[data-browser-bot-dialog="section"] { --browser-bot-dialog-width:24rem; }
+[data-browser-bot-dialog="advanced"] { --browser-bot-dialog-width:48rem; min-width:min(26.25rem,calc(100vw / var(--web-ui-scale,1) - 2rem)) !important; min-height:min(22.5rem,calc(85dvh / var(--web-ui-scale,1))) !important; }
