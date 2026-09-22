@@ -381,9 +381,9 @@ export function browserPlugin(root: string): Plugin {
       if (virtual) return path.join(sourceRoot, virtual.module!)
       const replacements = registry.filter(entry => entry.kind === 'replacement' && entry.owner.endsWith('/browser-plugin.ts'))
       if (replacements.some(entry => entry.bypassImporters?.some(suffix => importer?.replaceAll('\\', '/').endsWith(suffix)))) return null
-      const stem = source.replace(/\.tsx$/, '')
+      const stem = source.replace(/\.tsx?$/, '')
       if (!replacements.some(entry => {
-        const parts = entry.module!.replace(/\.tsx$/, '').split('/')
+        const parts = entry.module!.replace(/\.tsx?$/, '').split('/')
         const names = parts.at(-1) === 'index' ? [parts.at(-2)!, parts.slice(-2).join('/')] : [parts.at(-1)!]
         return names.some(name => stem === name || stem.endsWith('/' + name))
       })) return null

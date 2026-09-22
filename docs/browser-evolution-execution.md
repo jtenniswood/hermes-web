@@ -27,7 +27,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
-| 4. Behavioral contracts | Action, profile, and remaining model slices merged; session selection merged; Bot/group commands under verification | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
+| 4. Behavioral contracts | Action, profile, and remaining model slices merged; session selection merged; Bot/group commands merged; remaining action races under review | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
@@ -256,10 +256,33 @@ creating a group through the real dialog, and navigation/draft checks at 390px
 and 1440px. Adjacent panel, modal, rejected
 Bot activation, and Bot-to-session journeys passed on the preceding candidate.
 Local startup failures were traced to `ERR_NETWORK_CHANGED` while fetching React;
-those failed runs are not full-suite passing evidence. Required CI must verify
-the exact committed image before merge.
+those failed runs are not full-suite passing evidence. Required compatibility,
+preview, and update-policy CI passed on `4b5b856`; PR #44 merged as `dc09019`.
 
 The registry now has 67 owned entries, including two reviewed group callback
 integrations. Renderer revision and existing source fingerprints remain fixed.
 Other session entry points and concurrent persisted-action writes still need
 stale-operation review before stage 4 is complete.
+
+## Ordered unread writes
+
+A browser regression reproduced an older failed unread request rolling the UI
+back after newer toggles had succeeded on the gateway. The browser adapter now
+serializes backend writes per session/profile, shares the queue with automatic
+read-on-open, and lets only the latest intent commit rollback or report failure.
+A latest failure restores the last confirmed value; a negative acknowledgment
+is a failure. The browser action model retains pending intent through stale list
+refreshes, while the engine's session rows and unread guard remain authoritative.
+
+The replacement is registered with the reviewed upstream module fingerprint.
+Both relative and aliased imports resolve to this one owner. Existing renderer
+revision and source fingerprints remain fixed.
+
+Validation: 37 unread and registry checks passed, along with typechecking and
+the production build. Six targeted Chromium journeys passed against the local
+candidate image, including manual overlap, delayed backend writes, negative
+acknowledgments, and automatic read-on-open. The automatic-read journey initially
+used an incorrect exact button locator; it passed after using the established
+session-title locator. Required CI must verify the committed production image
+before merge. Pin persistence and remaining selection entry points still need
+review before stage 4 is complete.

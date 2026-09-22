@@ -82,3 +82,11 @@ for (const entry of registry.filter(entry => entry.kind === 'replacement')) {
     for (const importer of entry.bypassImporters || []) assert.equal(await plugin.resolveId.call(context, '@/' + entry.module, root + '/src' + importer), null)
   })
 }
+
+test('unread replacement resolves relative, aliased, and explicit TypeScript imports to one module', async () => {
+  const plugin = browserPlugin(root)
+  const context = { resolve: async () => ({ id: path.join(root, '../desktop/src/store/session-unread-remote.ts') }) }
+  for (const source of ['./session-unread-remote', '@/store/session-unread-remote', '@/store/session-unread-remote.ts']) {
+    assert.equal(await plugin.resolveId.call(context, source, path.join(root, '../desktop/src/store/session.ts')), path.join(root, 'src/upstream/browser-unread.ts'))
+  }
+})

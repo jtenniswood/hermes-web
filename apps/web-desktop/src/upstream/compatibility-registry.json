@@ -1423,5 +1423,35 @@
     "sourceRoot": "renderer",
     "inputHash": "d1d364b0a5c0bff8ce15af4812ce821298918e207cd53a0e8759571df6783150",
     "outputHash": "7d3725f485e3e716f4a0982d116c861bbad392e902d0d34022dd7cff0ac0138e"
+  },
+  {
+    "name": "ordered-browser-unread-writes",
+    "kind": "replacement",
+    "order": 10,
+    "module": "store/session-unread-remote.ts",
+    "reason": "Serialize persisted unread writes and prevent obsolete failures from rolling back newer browser intent.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "an older unread failure cannot undo newer toggles"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "delayed unread writes preserve the final choice on the gateway"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "unconfirmed unread writes restore the confirmed choice and explain the failure"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "opening a session queues its automatic read behind a pending unread write"
+      }
+    ],
+    "removal": "Remove when upstream unread writes serialize per owner, preserve newer intent, and reject unconfirmed acknowledgments.",
+    "replacement": "src/upstream/browser-unread.ts",
+    "sourceHash": "6bde1275a47ec93d6fe68885536bbfa774bdc3f18883d3a1100dc04fc034d0f6",
+    "sourceRoot": "renderer"
   }
 ]

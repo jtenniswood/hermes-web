@@ -4,7 +4,7 @@ import { $selectedStoredSessionId, $sessions, sessionPinId, setSessions } from '
 import { $activeGatewayProfile } from '@/store/profile'
 import { $pinnedSessionIds, pinSession, unpinSession } from '@/store/layout'
 import { deleteSession, setSessionArchived } from '@/api/sessions'
-import { markSessionUnread } from '@/store/session-unread-remote'
+import { $unreadWriteGuard, markSessionUnread, pendingUnreadValue } from './browser-unread'
 import { reportActionFailure } from '../experience/action-errors'
 import type { BrowserSessionActions } from '../experience/contracts/actions'
 
@@ -14,6 +14,7 @@ export function useBrowserSessionActions(): BrowserSessionActions {
   const sessions = useStore($sessions)
   const activeProfile = useStore($activeGatewayProfile)
   const pins = useStore($pinnedSessionIds)
+  useStore($unreadWriteGuard)
   const navigate = useNavigate()
   const session = sessions.find(row => String(row.id) === selected)
   const profile = session?.profile || activeProfile
@@ -38,7 +39,7 @@ export function useBrowserSessionActions(): BrowserSessionActions {
   return {
     profile,
     pinned,
-    unread: session?.unread === true,
+    unread: pendingUnreadValue(selected, session?.profile) ?? session?.unread === true,
     togglePin() {
       if (!pinId) return
       if ($pinnedSessionIds.get().includes(pinId)) unpinSession(pinId)
@@ -48,7 +49,7 @@ export function useBrowserSessionActions(): BrowserSessionActions {
       if (!selected) return
       const current = $sessions.get().find(row => row.id === selected)
       if (!current) return
-      try { await markSessionUnread(selected, current.unread !== true) }
+      try { await markSessionUnread(selected, !(pendingUnreadValue(selected, current.profile) ?? current.unread === true)) }
       catch { reportActionFailure('Could not change unread status.') }
     },
     archive: () => remove('archive'),
