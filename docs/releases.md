@@ -109,3 +109,38 @@ summary, set the deployment's image to
 procedure. Pulling a digest or publishing an image does not restart production.
 Do not rebuild an old commit and call it the same artifact. Keep the current
 configuration and volumes; the state migration retains legacy browser records.
+
+## Previous-image upgrade gate
+
+Compatibility and candidate-image jobs run `tests/browser/upgrades.spec.mjs`
+alongside the existing protocol tests. The tests boot the immutable previous
+image in `tests/fixtures/upgrade-baseline.json`, open the real composers in two
+browser tabs, and switch a stable local origin to the candidate nginx image.
+They verify that an active response, unsent file, or conflicting same-session
+drafts prevents activation. Once work is safe, both tabs must activate the new
+worker, load the candidate's actual entry asset, and retain independent drafts
+and conversation selections.
+
+The initial baseline is the tested PR #36 image, immediately preceding the
+browser interruption work. Its digest, wrapper and renderer revisions, and
+verification run are recorded together. Baseline changes require review of the
+published image's existing test evidence; never replace the baseline with the
+candidate under test or a moving tag. The fixture rejects identical wrapper
+revisions and image IDs. `scripts/prepare-upgrade-baseline.mjs` fetches the fixed
+digest before CI tests, and Playwright records both image IDs and build metadata.
+
+The initial baseline is an amd64 image. On arm64 release runners QEMU runs that
+previous nginx binary while the candidate runs natively. This tests the same
+previous browser assets against the native candidate image; it does not claim a
+previous native arm64 baseline exists. Record that distinction when reviewing
+cross-architecture release evidence.
+
+To reproduce locally with a built candidate:
+
+```sh
+node scripts/prepare-upgrade-baseline.mjs
+HERMES_TEST_IMAGE=hermes-web:verification pnpm exec playwright test tests/browser/upgrades.spec.mjs --project=chromium
+```
+
+The tests use a synthetic gateway and do not deploy either image. The separate
+real-gateway smoke test and physical-device checks remain release requirements.

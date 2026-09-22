@@ -57,6 +57,8 @@ jobs:
         run: pnpm --filter web-desktop test:gateway
         env:
           HERMES_TEST_IMAGE: hermes-web:verification
+      - name: Fetch the reviewed previous-image upgrade baseline
+        run: node scripts/prepare-upgrade-baseline.mjs
       - name: Install browsers for production-image tests
         run: pnpm exec playwright install --with-deps chromium webkit
       - name: Verify browser state and update safety through nginx

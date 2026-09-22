@@ -79,6 +79,13 @@ jobs:
         run: pnpm --filter web-desktop test:gateway
         env:
           HERMES_TEST_IMAGE: ${{ steps.identity.outputs.image }}@${{ steps.build.outputs.digest }}
+      - name: Run the existing amd64 baseline on the arm64 test runner
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: amd64
+      - name: Fetch the reviewed previous-image upgrade baseline
+        run: node scripts/prepare-upgrade-baseline.mjs
       - run: pnpm exec playwright install --with-deps chromium webkit
       - name: Verify browser behavior on this architecture
         run: pnpm exec playwright test

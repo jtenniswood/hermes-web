@@ -104,6 +104,10 @@ export function createPreviewGateway({ log = () => {}, delay = 95, strict = fals
       return { status: 'accepted', session_id: id }
     }
     if (/cancel|interrupt/.test(method)) { complete(id, 'interrupted', 'Response cancelled.'); return { ok: true } }
+    if (method === 'file.attach') {
+      if (!sessions.has(id) || !params.name || !params.data_url) throw new Error('File attachment requires a session, name, and bytes')
+      return { attached: true, ref_text: `@file:/workspace/${params.name}`, path: `/workspace/${params.name}` }
+    }
     if (method === 'session.attach') return { ok: true, path: `/workspace/${params.filename || 'attachment'}` }
     if (method === 'session.rename' && sessions.has(id)) { sessions.get(id).title = params.title; return { ok: true, title: params.title } }
     if (method === 'session.close') return { ok: true }
