@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import type { Plugin } from 'vite'
-import fixtures from './transform-fixtures.json'
+import registry from './compatibility-registry.json'
+const fixtures = registry.filter(entry => entry.kind === 'renderer-transform')
 
 function rewrite(code: string, id: string): { code: string; map: null } | null {
 
@@ -364,7 +365,7 @@ export function rendererCompatibilityPlugin(root: string): Plugin {
     name: 'hermes:renderer-compatibility',
     enforce: 'pre',
     buildStart() {
-      for (const fixture of fixtures) transformRenderer(readFileSync(path.join(root, fixture.module), 'utf8'), path.join(root, fixture.module))
+      for (const fixture of fixtures) transformRenderer(readFileSync(path.join(root, fixture.module!), 'utf8'), path.join(root, fixture.module!))
     },
     transform: transformRenderer
   }

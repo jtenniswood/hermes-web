@@ -153,3 +153,24 @@ test('Vite resolves shared subpaths and wildcard-to-single-file aliases', async 
     assert.equal(resolved.id, path.resolve(root, expected))
   }
 })
+
+test('Vite resolves compatibility aliases to one React runtime and the raw tour asset', async t => {
+  const { compatibilityAliases, compatibilitySingletons } = await import('./aliases.mjs')
+  const declared = compatibilityAliases(root)
+  const aliases = [...declared.filter(alias => alias.find === '@/debug/dev-only'), ...rendererAliases(), ...declared.filter(alias => alias.find !== '@/debug/dev-only')]
+  const server = await createServer({ configFile: false, root, logLevel: 'silent', resolve: { alias: aliases, dedupe: compatibilitySingletons(root), preserveSymlinks: true }, optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true } })
+  t.after(() => server.close())
+  const resolver = server.environments.client.pluginContainer
+  for (const specifier of ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'react-dom']) {
+    const wrapper = await resolver.resolveId(specifier, path.join(root, 'src/entry.ts'))
+    const renderer = await resolver.resolveId(specifier, path.join(root, '../desktop/src/sdk/index.ts'))
+    assert.ok(wrapper?.id)
+    assert.equal(wrapper.id, renderer.id, `${specifier} must use the same runtime`)
+  }
+  const tour = await resolver.resolveId('driver.js/dist/driver.js.iife.js?raw', path.join(root, '../desktop/src/sdk/index.ts'))
+  assert.equal(tour.id, path.resolve(root, '../../node_modules/driver.js/dist/driver.js.iife.js') + '?raw')
+  assert.ok(readFileSync(tour.id.split('?')[0], 'utf8').length > 0)
+  const debug = await resolver.resolveId('@/debug/dev-only', path.join(root, 'src/entry.ts'))
+  assert.equal(debug.id, path.resolve(root, '../desktop/src/debug/dev-only.noop.ts'))
+  assert.equal(compatibilityAliases(root, { VITE_PERF_PROBE: '1' }).find(alias => alias.find === '@/debug/dev-only').replacement, path.resolve(root, '../desktop/src/debug/dev-only.ts'))
+})

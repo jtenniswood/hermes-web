@@ -25,8 +25,8 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | --- | --- | --- |
 | 1. Update foundation | PR #36 merged; activation prerequisites inventoried | Required compatibility and preview checks passed on `57b6854`; merge `c282dc0`. Read-only audit identifies outstanding App and repository setup. |
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
-| 2b. Real upgrades | Implemented locally; CI pending | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
-| 3. Compatibility registry | Outstanding | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
+| 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
+| 3. Compatibility registry | Implemented; verification in progress | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
 | 4. Behavioral contracts | Outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
@@ -100,9 +100,9 @@ The fixture launches its browser after both Docker containers are ready, switche
 a stable origin between images, and records image IDs, platforms, wrapper and
 renderer revisions, and synthetic gateway version. It checks the candidate's
 actual entry asset after reload. The existing lower-level protocol suite remains
-in the required jobs. Exact-commit CI evidence and native release-candidate
-validation remain pending; these local tests do not establish a real-gateway or
-physical-device result. See [release setup](releases.md#previous-image-upgrade-gate)
+in the required jobs. Required compatibility and preview CI passed on `b26bee0`; merge `52cf968`.
+Native release-candidate validation remains pending; these tests do not establish
+a real-gateway or physical-device result. See [release setup](releases.md#previous-image-upgrade-gate)
 for baseline maintenance and the initial arm64 emulation distinction.
 
 ## Activation checklist
@@ -119,3 +119,22 @@ for baseline maintenance and the initial arm64 emulation distinction.
 
 The implementation and goal remain incomplete while any required item lacks
 authoritative evidence, even if all currently implemented tests pass.
+
+## Compatibility registry evidence
+
+The unified registry declares 65 compatibility entries and 52 distinct input
+fingerprints. It drives browser transform sequences, module replacements,
+renderer/Vite aliases, and dependency workarounds. Each entry identifies an owner,
+purpose, order, behavioral verification path, and removal condition. Source
+contracts also cover the shared renderer modules and installed dependencies.
+
+`docs:compatibility` generates the inventory and TypeScript aliases without
+changing reviewed fingerprints. The extended preflight emits the affected owners
+and interventions plus a declared verification coverage report. Missing
+install-time dependencies are identified separately from missing renderer files;
+the build requires every dependency fingerprint after installation.
+
+Local verification: 100 foundation tests, typechecking with no upstream baseline,
+a production Vite build, all 52 input contracts, seven interruption journeys,
+and both previous-image real-composer upgrades passed. Broader browser surface
+checks and exact-commit CI remain pending. The renderer pin remains unchanged.

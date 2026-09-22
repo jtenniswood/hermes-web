@@ -2,7 +2,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import type { Plugin } from 'vite'
-import contracts from './browser-contracts.json'
+import registry from './compatibility-registry.json'
+const contracts = registry.filter(entry => entry.sourceRoot === 'renderer' && entry.module && entry.sourceHash)
 const storageScope = `\n  if (/^hermes\\.desktop\\.(?:layout|pane|sidebar|fileBrowser|rightRail|profileRail|terminal|statusbar|hiddenStrip|dismissedPanes|userPlaced)/.test(key)) key = 'hermes-web.browser.' + key\n`
 const browserRootPath = (root: string): string => path.join(root, 'src/upstream/browser-root.tsx')
 
@@ -43,7 +44,7 @@ export function filterBrowserNarrowNavigation(source: string): string {
   ]
   let original = source
   for (const [target, replacement] of replacements) original = original.replace(replacement, target)
-  const contract = contracts.find(item => item.module.endsWith('/narrow-overlays.tsx'))!
+  const contract = contracts.find(item => item.module?.endsWith('/narrow-overlays.tsx'))!
   if (createHash('sha256').update(original).digest('hex') !== contract.sourceHash) throw new Error('Browser narrow tool overlay contract changed')
   let output = original
   for (const [target, replacement] of replacements) {
@@ -143,10 +144,7 @@ export function browserActivityNotificationsPlugin(): Plugin {
   return {
     name: 'hermes:browser-activity-notifications', enforce: 'pre',
     transform(code, id) {
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/plugins/hermes-bots/roster-actions.ts')) {
-        return { code: filterBrowserActivityToasts(code), map: null }
-      }
-      return null
+      return applyBrowserTransform(code, id, '', 40)
     }
   }
 }
@@ -329,67 +327,58 @@ export function browserPlugin(root: string): Plugin {
     name: 'hermes:browser-shell', enforce: 'pre',
     buildStart() {
       for (const contract of contracts) {
-        const source = readFileSync(path.join(sourceRoot, contract.module), 'utf8')
+        const source = readFileSync(path.join(sourceRoot, contract.module!), 'utf8')
         if (createHash('sha256').update(source).digest('hex') !== contract.sourceHash) throw new Error(`Browser integration changed: ${contract.module}. Review the shell contract.`)
       }
       assertBrowserRoot(root)
     },
     async resolveId(source, importer) {
-      if (source === 'hermes:statusbar-item') return path.join(sourceRoot, 'app/shell/statusbar-controls.tsx')
-      if (/\/upstream\/browser-(?:titlebar|statusbar)\.tsx$/.test(importer?.replaceAll('\\', '/') || '')) return null
-      if (!/(?:^|\/)(?:app(?:\/index)?|titlebar-controls|statusbar-controls)(?:\.tsx)?$/.test(source)) return null
+      const virtual = registry.find(entry => entry.kind === 'virtual-module' && entry.specifier === source)
+      if (virtual) return path.join(sourceRoot, virtual.module!)
+      const replacements = registry.filter(entry => entry.kind === 'replacement' && entry.owner.endsWith('/browser-plugin.ts'))
+      if (replacements.some(entry => entry.bypassImporters?.some(suffix => importer?.replaceAll('\\', '/').endsWith(suffix)))) return null
+      const stem = source.replace(/\.tsx$/, '')
+      if (!replacements.some(entry => {
+        const parts = entry.module!.replace(/\.tsx$/, '').split('/')
+        const names = parts.at(-1) === 'index' ? [parts.at(-2)!, parts.slice(-2).join('/')] : [parts.at(-1)!]
+        return names.some(name => stem === name || stem.endsWith('/' + name))
+      })) return null
       const resolved = await this.resolve(source, importer, { skipSelf: true })
       const id = resolved?.id.replaceAll('\\', '/')
-      if (id?.endsWith('/desktop/src/app/index.tsx')) return browserRootPath(root)
-      if (id?.endsWith('/desktop/src/app/shell/titlebar-controls.tsx')) return path.join(root, 'src/upstream/browser-titlebar.tsx')
-      if (id?.endsWith('/desktop/src/app/shell/statusbar-controls.tsx')) return path.join(root, 'src/upstream/browser-statusbar.tsx')
+      const replacement = registry.find(entry => entry.kind === 'replacement' && entry.owner.endsWith('/browser-plugin.ts') && id?.endsWith('/desktop/src/' + entry.module))
+      if (replacement) return path.join(root, replacement.replacement!)
       return null
     },
     transform(code, id) {
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/store/layout.ts')) {
-        return { code: enableBrowserUngroupedSessions(code, 'store'), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/chat/sidebar/filter-menu.tsx')) {
-        return { code: enableBrowserUngroupedSessions(filterBrowserSessionMenu(code), 'menu'), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/plugins/hermes-bots/roster-pane-derivation.ts')) {
-        return { code: showHiddenBotsInBrowserRoster(code), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/chat/composer/hooks/use-mic-recorder.ts')) {
-        return { code: useBrowserMicrophoneCapture(code), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/chat/composer/hooks/use-composer-metrics.ts')) {
-        return { code: useBrowserComposerLayoutWidth(code), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/components/ui/tooltip.tsx')) {
-        return { code: fixBrowserTooltipBoundary(code), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/chat/sidebar/index.tsx')) {
-        return { code: removeBrowserNewSessionShortcut(enableBrowserUngroupedSessions(useBrowserSearchLabel(code, root), 'sidebar')), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/contrib/wiring.tsx')) {
-        return { code: disableBrowserSessionTabs(code), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/contrib/controller.tsx')) {
-        return { code: disableBrowserSessionTileMirrors(code), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/chat/sidebar/session-row.tsx')) {
-        return { code: disableBrowserSessionRowTabs(code), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/chat/sidebar/session-actions-menu.tsx')) {
-        return { code: disableBrowserSessionOpenActions(code), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/plugins/hermes-bots/bot-row.tsx')) {
-        return { code: removeBrowserNewBotChatAction(removeBrowserOpenBotChatAction(code)), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/settings/keybind-settings.tsx')) {
-        return { code: filterBrowserKeybinds(code), map: null }
-      }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/app/shell/statusbar-controls.tsx')) return { code: exportBrowserStatusbarItem(code), map: null }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/components/pane-shell/tree/store.ts')) return { code: closeBrowserWorkspacePanels(code), map: null }
-      if (id.replaceAll('\\', '/').endsWith('/desktop/src/components/pane-shell/tree/renderer/narrow-overlays.tsx')) return { code: filterBrowserNarrowNavigation(code), map: null }
-      if (!id.replaceAll('\\', '/').endsWith('/desktop/src/lib/storage.ts')) return null
-      return { code: scopeBrowserStorage(code), map: null }
+      return applyBrowserTransform(code, id, root, 20)
     }
   }
+}
+
+function applyBrowserTransform(code: string, id: string, root: string, order: number): { code: string; map: null } | null {
+  const normalized = id.replaceAll('\\', '/').split('?')[0]
+  const entry = registry.find(item => item.kind === 'browser-transform' && item.order === order && normalized.endsWith('/desktop/src/' + item.module))
+  if (!entry) return null
+  const digest = (value: string) => createHash('sha256').update(root ? value.replaceAll(root, '<web-root>') : value).digest('hex')
+  if (digest(code) === entry.outputHash) return { code, map: null }
+  if (digest(code) !== entry.inputHash) throw new Error(`Browser compatibility changed: ${entry.name} (${entry.module}). Review this registry entry.`)
+  const handlers: Record<string, (source: string) => string> = {
+    scopeBrowserStorage, filterBrowserNarrowNavigation, closeBrowserWorkspacePanels,
+    exportBrowserStatusbarItem, filterBrowserActivityToasts, removeBrowserNewSessionShortcut,
+    removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction, fixBrowserTooltipBoundary,
+    useBrowserMicrophoneCapture, useBrowserComposerLayoutWidth, filterBrowserSessionMenu,
+    showHiddenBotsInBrowserRoster, disableBrowserSessionTabs, disableBrowserSessionTileMirrors,
+    disableBrowserSessionRowTabs, disableBrowserSessionOpenActions, filterBrowserKeybinds,
+    useBrowserSearchLabel: source => useBrowserSearchLabel(source, root),
+    ungroupedStore: source => enableBrowserUngroupedSessions(source, 'store'),
+    ungroupedMenu: source => enableBrowserUngroupedSessions(source, 'menu'),
+    ungroupedSidebar: source => enableBrowserUngroupedSessions(source, 'sidebar')
+  }
+  let output = code
+  for (const handler of entry.handlers || []) {
+    if (!handlers[handler]) throw new Error(`Unknown browser compatibility handler: ${handler}`)
+    output = handlers[handler](output)
+  }
+  if (output === code || digest(output) !== entry.outputHash) throw new Error(`Incomplete browser compatibility transform: ${entry.name}`)
+  return { code: output, map: null }
 }
