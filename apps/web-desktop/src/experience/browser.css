@@ -56,7 +56,7 @@
 .browser-more-list button { width:100%; height:1.75rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.8125rem; font-weight:500; text-align:left; cursor:pointer; }
 .browser-more-list button > .codicon { color:color-mix(in srgb,currentColor 72%,transparent); }
 .browser-more-list button:hover,.browser-more-list button:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
-.browser-profile-footer { position:relative; display:flex; align-items:center; gap:.45rem; flex-shrink:0; padding:.6rem .75rem .7rem; background:var(--browser-navigation-background); }
+.browser-profile-footer { position:relative; display:flex; flex-direction:column; align-items:stretch; gap:0; flex-shrink:0; padding:.6rem .75rem .7rem; background:var(--browser-navigation-background); }
 .browser-profile-footer[hidden] { display:none; }
 .browser-profile-rail { min-width:0; width:100%; display:flex; align-items:center; gap:.4rem; overflow-x:auto; scrollbar-width:none; }
 .browser-profile-slot { position:relative; display:flex; align-items:center; flex:0 0 2.5rem; }
@@ -74,10 +74,6 @@
 .browser-profile-choice[aria-pressed="true"] { border-color:var(--primary,#4d86ff); background:color-mix(in srgb,var(--primary,#4d86ff) 16%,transparent); color:var(--foreground); }
 .browser-profile-choice > :is(img,span) { width:2.25rem !important; height:2.25rem !important; }
 .browser-profile-all { color:var(--muted-foreground); }
-.browser-profile-context-menu { position:fixed; z-index:110; min-width:8.5rem; padding:.3rem; border:1px solid var(--border); border-radius:.45rem; background:var(--popover,var(--background)); box-shadow:0 .5rem 1.5rem #0005; }
-.browser-profile-context-menu button { width:100%; display:flex; align-items:center; padding:.4rem .55rem; border:0; border-radius:.3rem; color:var(--foreground); background:transparent; font:inherit; font-size:.75rem; line-height:1.35; text-align:left; white-space:nowrap; cursor:pointer; }
-.browser-profile-context-menu button:hover,.browser-profile-context-menu button:focus-visible { background:var(--browser-hover-fill); outline:none; }
-.browser-profile-context-menu button:disabled { color:var(--muted-foreground); cursor:not-allowed; opacity:.65; }
 .browser-update-panel { flex-shrink:0; margin:.55rem .65rem 0; padding:.6rem; border:1px solid var(--border); border-radius:.55rem; background:var(--background); color:var(--foreground); box-shadow:0 .25rem .8rem #0002; }
 .browser-update-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:.5rem; font-size:.75rem; }
 .browser-update-panel-heading strong { font-weight:600; }
@@ -200,3 +196,23 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 
 .browser-action-error { position:fixed; z-index:200; top:1rem; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:1rem; max-width:calc(100% - 2rem); padding:.75rem 1rem; border:1px solid var(--border); border-radius:.5rem; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 .5rem 1.5rem #0005; }
 .browser-action-error button { flex-shrink:0; padding:.25rem .5rem; border:1px solid var(--border); border-radius:.25rem; background:transparent; color:inherit; cursor:pointer; }
+
+/* Browser-owned actions share commands and focus behavior across viewports. */
+.browser-profile-actions-trigger { display:inline-flex; align-items:center; justify-content:center; width:2.75rem; height:2.75rem; flex:0 0 2.75rem; border:0; border-radius:.6rem; background:transparent; color:var(--muted-foreground); cursor:pointer; }
+.browser-profile-actions-trigger:hover,.browser-profile-actions-trigger:focus-visible { background:var(--browser-hover-fill); color:var(--foreground); }
+.browser-action-anchor { position:fixed; width:0; height:0; padding:0; border:0; pointer-events:none; }
+.browser-action-menu { z-index:110; min-width:10rem; max-width:var(--radix-dropdown-menu-content-available-width); max-height:var(--radix-dropdown-menu-content-available-height); overflow:auto; padding:.3rem; border:1px solid var(--border); border-radius:.45rem; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 .5rem 1.5rem #0005; }
+.browser-action-item { display:flex; align-items:center; width:100%; padding:.5rem .65rem; border:0; border-radius:.3rem; background:transparent; color:inherit; font:inherit; font-size:.8rem; line-height:1.4; text-align:left; cursor:pointer; }
+.browser-action-item:hover,.browser-action-item:focus-visible,.browser-action-item[data-highlighted] { outline:none; background:var(--browser-hover-fill); }
+.browser-action-item:disabled,.browser-action-item[data-disabled] { color:var(--muted-foreground); opacity:.65; cursor:default; background:transparent; }
+.browser-action-backdrop { position:fixed; inset:0; z-index:110; background:#0006; }
+.browser-action-sheet { position:fixed; z-index:111; bottom:0; left:0; width:calc(100vw / var(--web-ui-scale,1)); max-height:calc(90dvh / var(--web-ui-scale,1)); display:flex; flex-direction:column; padding:.75rem .75rem max(.75rem,env(safe-area-inset-bottom)); border:1px solid var(--border); border-radius:1rem 1rem 0 0; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 -.5rem 2rem #0004; }
+.browser-action-title { margin:0; padding:.5rem .65rem; font-size:1rem; font-weight:600; }
+.browser-action-list { min-height:0; overflow-y:auto; }
+.browser-action-sheet .browser-action-item { min-height:2.75rem; }
+.browser-action-close { flex-shrink:0; margin-top:.5rem; border-top:1px solid var(--border); justify-content:center; }
+
+.browser-profile-heading { display:flex; align-items:center; justify-content:space-between; color:var(--muted-foreground); font-size:.75rem; }
+@media (min-width:48rem) { .browser-profile-actions-trigger { height:1.75rem; } }
+
+.browser-action-menu,.browser-action-sheet { --browser-hover-fill:color-mix(in srgb,var(--primary,#4d86ff) 20%,var(--background)); }
