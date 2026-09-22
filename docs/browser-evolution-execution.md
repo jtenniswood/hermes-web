@@ -27,7 +27,7 @@ deployment remain separate. Never rewrite branch history or build Nix on the VPS
 | 2a. Interruptions | [PR #37](https://github.com/jtenniswood/hermes-web/pull/37) merged; required CI passed | Strict fixture operations, controllable delay/rejection/disconnection; Bot A/B out-of-order completion, profile changes during Bot activation, reconnect, rejected archive/delete/approval, and draft isolation exercised in the real UI. |
 | 2b. Real upgrades | [PR #38](https://github.com/jtenniswood/hermes-web/pull/38) merged; required CI passed | Previous supported image to candidate with the real composer, multiple tabs, active responses, unsent attachments, retained protocol tests, and preserved drafts. |
 | 3. Compatibility registry | [PR #39](https://github.com/jtenniswood/hermes-web/pull/39) merged; required CI passed | Every transform, replacement, and dependency workaround records ownership, purpose, ordering, fingerprints where applicable, behavioral test, and removal condition; inventory and coverage generated from the registry. |
-| 4. Behavioral contracts | Action slice PR #40 merged; profile slice under verification; remaining selection and models outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
+| 4. Behavioral contracts | Action and profile slices merged; remaining models under verification; selection commands outstanding | Session/Bot/group/profile commands and archive/delete/pin/unread/approval actions owned by adapters; authoritative upstream state; stale writes prevented at commit ownership; visible action failures; corrective effects removed only after race coverage passes. |
 | 5. Shared interaction surfaces | Outstanding | Shared action definitions for desktop menus and phone sheets; profile/navigation/settings/Bots migration; mobile reorder disabled, desktop order retained; shell decomposition; brittle selectors removed with owned surfaces; viewport/scale, focus, and draft evidence. |
 | 6. Enforcement and activation | Outstanding | No new raw store dependencies in browser features; existing image gates retained; compatible and incompatible update demonstrations, branch refresh/retry/rollback evidence, real-gateway smoke and real-device touch verification; activation only after evidence is recorded. |
 
@@ -183,4 +183,27 @@ still stage 5 work; these browser tests are not physical-device evidence.
 The final extracted-component build and typecheck passed. Two final browser
 journeys verified scope/draft reload and hidden-profile state across navigation
 with preference writes deliberately unavailable. Twenty-three startup/composition
-checks also passed. Exact-commit CI is pending for the profile slice.
+checks also passed. Required compatibility and preview CI passed on `581b394`; PR #41 merged as `5b0d98e`.
+
+
+## Remaining browser model boundary
+
+The shell now consumes conversation identity/selection, session action, profile,
+and gateway-status models. The workspace adapter owns restoration of desktop
+session-tile layouts and empty pin-section behavior. Gateway polling remains
+mounted for the shell lifetime. The Bots toolbar uses a visibility command
+instead of mutating its raw store. No raw store symbols are exported from the
+feature-facing UI compatibility module.
+
+The required adapter tests reject raw store imports (including renamed imports),
+namespace/dynamic access to upstream modules from features, and raw store exports
+from the UI module. Local application error state remains browser-owned. This is
+an early stage-6 boundary gate; live updater activation and rollout evidence are
+still outstanding. Session/Bot/group selection commands remain stage-4 work.
+
+Local validation: 16 adapter checks, 23 browser composition checks, final
+typechecking with no baselined diagnostics, and the production Vite build passed.
+Twelve targeted browser journeys passed for pins, panels, navigation, Bots,
+gateway dialogs, delayed selection, reconnect, and hidden-Bot visibility across
+navigation and reload. The renderer pin and compatibility fingerprints are
+unchanged. Required CI on the committed image remains pending.

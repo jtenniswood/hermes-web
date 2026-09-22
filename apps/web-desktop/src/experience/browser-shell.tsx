@@ -1,12 +1,13 @@
 import { BrowserProfileNavigation } from './profile-navigation'
+import { BrowserGatewayPanel, useBrowserGatewayStatus } from '../upstream/browser-gateway-panel'
+import { revealBrowserWorkspace } from '../upstream/browser-workspace'
 import { BrowserActionError } from './action-errors'
-import { useStore } from '@nanostores/react'
 import { useEffect, useRef, useState, type ComponentPropsWithRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { BrowserSidebarNavigation } from './sidebar-extras'
 import { BrowserSessionsPane } from './sidebar-sections'
 import { SettingsMenu, toolRouteLabel } from './settings-menu'
-import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, $selectedBot, $gatewayState, SessionTileCloseConfirm, BrowserWorkspace, removeTreePane, revealTreePane, $activeGatewayProfile, $layoutTree, $pinnedSessionIds, $sidebarPinsOpen, setSidebarPinsOpen, OverlayView, $activeConnectionId, useGatewayRequest, useStatusSnapshot, GatewayMenuPanel, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu } from '../upstream/browser-api'
+import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, ContribBoundary, useContributions, navigateToWorkspacePage, SessionTileCloseConfirm, BrowserWorkspace, OverlayView, Tip, Dialog, DialogContent, DialogTitle, SessionActionsMenu } from '../upstream/browser-api'
 import { useBrowserConversation } from '../upstream/conversation'
 import { useBrowserSessionActions } from '../upstream/conversation-actions'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
@@ -16,20 +17,6 @@ import { clampNavigationWidth, DEFAULT_NAVIGATION_WIDTH, MAX_NAVIGATION_WIDTH, M
 // Settings and Command Center are owned by the upstream ContribWiring overlay
 // router. Only the full-page workspace routes need the browser modal shell.
 const BROWSER_MODAL_ROUTES = new Set(['/skills', '/messaging', '/artifacts'])
-function sessionTileIds(node: unknown): string[] {
-  const ids: string[] = []
-  const visit = (value: unknown) => {
-    if (!value || typeof value !== 'object') return
-    const record = value as { children?: unknown; panes?: unknown }
-    if (Array.isArray(record.panes)) {
-      for (const pane of record.panes) if (typeof pane === 'string' && pane.startsWith('session-tile:')) ids.push(pane)
-    }
-    if (Array.isArray(record.children)) for (const child of record.children) visit(child)
-  }
-  visit(node)
-  return ids
-}
-
 function BrowserToolbarButton({ tooltip, ...props }: ComponentPropsWithRef<'button'> & { tooltip: string }) {
   return <Tip label={tooltip} placement="toolbar" boundary="viewport"><button {...props} /></Tip>
 }
@@ -42,17 +29,11 @@ export function BrowserShell() {
 function BrowserLayout() {
   const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
   const navigate = useNavigate(), location = useLocation()
-  const bot = useStore($selectedBot)
   const conversation = useBrowserConversation()
   const selected = conversation.sessionId
   const sessionActions = useBrowserSessionActions()
-  const gatewayState = useStore($gatewayState)
-  const activeConnectionId = useStore($activeConnectionId), activeGatewayProfile = useStore($activeGatewayProfile)
-  const { requestGateway } = useGatewayRequest()
-  const { inferenceStatus, statusSnapshot } = useStatusSnapshot(gatewayState, requestGateway, `${activeConnectionId ?? ''}\0${activeGatewayProfile}`)
-  const pinnedSessionIds = useStore($pinnedSessionIds), pinsOpen = useStore($sidebarPinsOpen)
+  const gatewayStatus = useBrowserGatewayStatus()
   const chatTitle = conversation.displayName || ''
-  const tree = useStore($layoutTree)
   const panes = useContributions('panes')
   const main = useRef<HTMLElement>(null), menu = useRef<HTMLButtonElement>(null), drawer = useRef<HTMLElement>(null), navigationTabsMenu = useRef<HTMLDivElement>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -72,7 +53,7 @@ function BrowserLayout() {
   const browserModalReturnPath = useRef('/')
   const browserModalRoute = BROWSER_MODAL_ROUTES.has(location.pathname)
   const bots = panes.find(pane => pane.id === 'hermes-bots:pane')
-  const previous = useRef({ selected, bot, path: location.pathname })
+  const previous = useRef({ selection: conversation.selectionKey, path: location.pathname })
   useEffect(() => {
     const media = window.matchMedia('(max-width:47.999rem)')
     const update = () => {
@@ -84,26 +65,18 @@ function BrowserLayout() {
   }, [])
   // Selection closes the mobile drawer without changing desktop visibility.
   useEffect(() => {
-    if (previous.current.selected !== selected || previous.current.bot !== bot || previous.current.path !== location.pathname) {
-      setDrawerOpen(false); revealTreePane('workspace')
+    if (previous.current.selection !== conversation.selectionKey || previous.current.path !== location.pathname) {
+      setDrawerOpen(false); revealBrowserWorkspace()
       if (drawerOpen) requestAnimationFrame(() => main.current?.focus())
     }
-    previous.current = { selected, bot, path: location.pathname }
-  }, [selected, bot, location.pathname])
-  useEffect(() => {
-    // Clear session-tile panes restored from a desktop layout. Browser chat
-    // navigation is single-view, so these stale panes must not become tabs.
-    for (const paneId of sessionTileIds(tree)) removeTreePane(paneId)
-  }, [tree])
+    previous.current = { selection: conversation.selectionKey, path: location.pathname }
+  }, [conversation.selectionKey, location.pathname])
   useEffect(() => { writeBrowserPreference('activeTab', tab) }, [tab])
   useEffect(() => { writeBrowserPreference('navigationTabs', JSON.stringify(visibleNavigationTabs)) }, [visibleNavigationTabs])
   useEffect(() => {
     if (!visibleNavigationTabs.includes(tab)) setTab(visibleNavigationTabs[0])
   }, [tab, visibleNavigationTabs])
   useEffect(() => { writeBrowserPreference('navigationWidth', String(navigationWidth)) }, [navigationWidth])
-  useEffect(() => {
-    if (pinnedSessionIds.length === 0 && pinsOpen) setSidebarPinsOpen(false)
-  }, [pinnedSessionIds, pinsOpen])
   useEffect(() => subscribePwaUpdate(notice => {
     setUpdateNotice(notice)
     if (notice) setUpdateDismissed(false)
@@ -241,7 +214,7 @@ function BrowserLayout() {
       <Dialog open={gatewayDialogOpen} onOpenChange={setGatewayDialogOpen}>
         <DialogContent className="browser-gateway-dialog" bodyClassName="gap-0 p-0" aria-describedby={undefined} onOpenAutoFocus={event => { event.preventDefault(); gatewayHeading.current?.focus() }} onCloseAutoFocus={event => { event.preventDefault(); settingsTrigger.current?.focus() }}>
           <DialogTitle ref={gatewayHeading} tabIndex={-1} className="browser-gateway-dialog-title">Gateway</DialogTitle>
-          <GatewayMenuPanel gatewayState={gatewayState} inferenceStatus={inferenceStatus} statusSnapshot={statusSnapshot} onClose={() => setGatewayDialogOpen(false)} onOpenSystem={() => { setGatewayDialogOpen(false); openRoute('/command-center?section=system') }} />
+          <BrowserGatewayPanel status={gatewayStatus} onClose={() => setGatewayDialogOpen(false)} onOpenSystem={() => { setGatewayDialogOpen(false); openRoute('/command-center?section=system') }} />
         </DialogContent>
       </Dialog>
       {browserModalRoute && <OverlayView closeLabel={`Close ${toolRouteLabel(location.pathname.slice(1))}`} onClose={closeBrowserModal}>

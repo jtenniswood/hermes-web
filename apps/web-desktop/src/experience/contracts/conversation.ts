@@ -17,6 +17,11 @@ export interface BrowserConversation {
   connectionId: string | null
 }
 
+/** Selection changes can precede identity hydration; views use this opaque key. */
+export interface BrowserConversationModel extends BrowserConversation {
+  selectionKey: string
+}
+
 export interface ConversationSession {
   id?: unknown
   title?: unknown

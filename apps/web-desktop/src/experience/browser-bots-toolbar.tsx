@@ -1,4 +1,5 @@
-import { $showHiddenBots, Button, cn, Codicon, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger, GatewayKindGlyph, rosterGatewayOptions, SearchField, Tip, useValue, type RosterActivityFilter, type RosterKindFilter, type RosterRow, type useBots } from '../upstream/browser-api'
+import { useBrowserBotVisibility } from '../upstream/bots'
+import { Button, cn, Codicon, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger, GatewayKindGlyph, rosterGatewayOptions, SearchField, Tip, type RosterActivityFilter, type RosterKindFilter, type RosterRow, type useBots } from '../upstream/browser-api'
 
 type RenderRosterToolbarProps = {
   b: ReturnType<typeof useBots>
@@ -25,7 +26,7 @@ type RenderRosterToolbarProps = {
 type BotsFilterMenuProps = Pick<RenderRosterToolbarProps, 'b' | 'activeFilterCount' | 'gatewayOptions' | 'rowKindFilter' | 'setRowKindFilter' | 'activityFilter' | 'setActivityFilter' | 'gatewayFilter' | 'setGatewayFilter'>
 
 function BotsFilterMenu({ b, activeFilterCount, gatewayOptions, rowKindFilter, setRowKindFilter, activityFilter, setActivityFilter, gatewayFilter, setGatewayFilter }: BotsFilterMenuProps) {
-  const showHiddenBots = useValue($showHiddenBots)
+  const { showHidden: showHiddenBots, toggleHidden } = useBrowserBotVisibility()
   return <DropdownMenu>
     <Tip label={activeFilterCount ? `Filters (${activeFilterCount} active)` : 'Filter roster'}>
       <DropdownMenuTrigger asChild>
@@ -47,7 +48,7 @@ function BotsFilterMenu({ b, activeFilterCount, gatewayOptions, rowKindFilter, s
       </>}
       {activeFilterCount > 0 && <><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => { setRowKindFilter('all'); setActivityFilter('all'); setGatewayFilter('all') }}>{b.roster.clearFilters}</DropdownMenuItem></>}
       <DropdownMenuSeparator />
-      <DropdownMenuItem onSelect={() => $showHiddenBots.set(!$showHiddenBots.get())}><span className="min-w-0 flex-1">Show hidden bots</span>{showHiddenBots ? <Codicon name="check" /> : null}</DropdownMenuItem>
+      <DropdownMenuItem onSelect={toggleHidden}><span className="min-w-0 flex-1">Show hidden bots</span>{showHiddenBots ? <Codicon name="check" /> : null}</DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
 }

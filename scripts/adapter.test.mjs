@@ -174,3 +174,44 @@ test('Vite resolves compatibility aliases to one React runtime and the raw tour 
   assert.equal(debug.id, path.resolve(root, '../desktop/src/debug/dev-only.noop.ts'))
   assert.equal(compatibilityAliases(root, { VITE_PERF_PROBE: '1' }).find(alias => alias.find === '@/debug/dev-only').replacement, path.resolve(root, '../desktop/src/debug/dev-only.ts'))
 })
+
+function assertBrowserModelBoundary(source, filename) {
+  const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true)
+  const walk = node => {
+    const module = ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier
+      : ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0] : null
+    if (module && ts.isStringLiteral(module) && /(?:^|\/)upstream(?:\/|$)/.test(module.text)) {
+      const bindings = ts.isImportDeclaration(node) ? node.importClause?.namedBindings
+        : ts.isExportDeclaration(node) ? node.exportClause : null
+      assert.ok(bindings && (ts.isNamedImports(bindings) || ts.isNamedExports(bindings)), `${filename}: use explicit browser model imports`)
+      for (const binding of bindings.elements) assert.ok(!(binding.propertyName || binding.name).text.startsWith('$'), `${filename}: raw upstream store import`)
+    }
+    ts.forEachChild(node, walk)
+  }
+  walk(tree)
+}
+
+test('browser features cannot acquire raw upstream stores through aliases or namespaces', () => {
+  for (const source of [
+    "import { $sessions as rows } from '../upstream/browser-api'",
+    "import * as runtime from '../upstream/browser-api'",
+    "export { $sessions as rows } from '../upstream/browser-api'",
+    "export * from '../upstream/browser-api'",
+    "const runtime = await import('../upstream/browser-api')"
+  ]) assert.throws(() => assertBrowserModelBoundary(source, 'feature.ts'))
+  assertBrowserModelBoundary("import { useBrowserConversation as useConversation } from '../upstream/conversation'", 'feature.ts')
+  const visit = directory => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const filename = path.join(directory, entry.name)
+      if (entry.isDirectory()) visit(filename)
+      else if (/\.tsx?$/.test(filename)) assertBrowserModelBoundary(readFileSync(filename, 'utf8'), filename)
+    }
+  }
+  for (const directory of ['experience', 'overrides']) visit(path.join(root, 'src', directory))
+  const barrel = ts.createSourceFile('browser-api.tsx', readFileSync(path.join(root, 'src/upstream/browser-api.tsx'), 'utf8'), ts.ScriptTarget.Latest, true)
+  for (const statement of barrel.statements) {
+    if (!ts.isExportDeclaration(statement)) continue
+    assert.ok(statement.exportClause && ts.isNamedExports(statement.exportClause), 'UI compatibility exports must be explicit')
+    for (const entry of statement.exportClause.elements) assert.ok(!(entry.propertyName || entry.name).text.startsWith('$'), 'UI compatibility barrel must not expose raw stores')
+  }
+})
