@@ -828,3 +828,32 @@ sessions and Bots while preserving both session drafts. Temporary diagnostic
 logging and CPU throttling were removed. Committed-image CI remains required;
 physical-device acceptance and the separate update activation investigation are
 still outstanding.
+
+### Bounded retry after older-client verification refusal
+
+PR #62 merged after 121 compatibility tests and 77 preview tests passed without
+skips or retries. The separate main release for `1079c7f` (run `35766557634`)
+passed 119 browser cases but stopped during the initial previous-image upgrade:
+both tabs flushed, one refused verification, and both received an abort. Worker
+diagnostics show no `skipWaiting()` call and no pending worker promises. This is
+a conservative refusal by the immutable older client, distinct from the earlier
+all-replies-successful activation stall.
+
+The coordinator now retries a verification refusal once with a new transaction
+and another complete all-tab handshake. It retains the first attempt's draft
+union: a missing or changed original draft prevents activation even if the new
+snapshot would otherwise pass. Every tab must still flush and verify, and the
+client set is checked again immediately before activation. Busy tabs, unsent
+files, conflicts, new tabs, and repeated refusals continue to block the update.
+
+A real-image regression injects one refused verification reply before the old
+client loads, then uses the actual client for subsequent replies. It fails on
+the earlier coordinator and passes with the retry; both real composers retain
+their drafts through activation and another reload. Final local validation
+passed all five upgrade/rollback journeys without retries, 185 foundation
+checks, typechecking, and the production build. These local images contain the
+uncommitted change on `bb89381`; exact committed-image CI is still required.
+
+This change does not establish a correction for the separate all-replies-successful
+activation stall. That investigation, native release validation, deferred App
+setup, real-gateway testing, and physical-device acceptance remain outstanding.
