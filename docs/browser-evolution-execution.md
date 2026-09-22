@@ -781,6 +781,32 @@ indefinite-checking observations are not all explained by this diagnosed write r
 App setup remains deferred. Live updater demonstrations, real-gateway smoke tests,
 physical-device acceptance, and automation activation remain outstanding.
 
+### Remaining activation failure evidence
+
+The main release for `a63d241` (run `35760920922`) passed 119 browser cases
+and failed the two-tab rollback journey. Both tabs acknowledged flush and
+verification, but the waiting service worker did not activate. This differs
+from the earlier draft-persistence refusal fixed in PR #59. The native image
+jobs and publication were skipped; this release is not accepted evidence.
+
+Upgrade fixtures now also attach bounded worker diagnostics: whether
+`skipWaiting()` was called or settled, pending event/response promises, and
+worker states. They preserve the original promise return values and omit
+request URLs, drafts, message payloads, and exception text. Closed workers are
+explicitly unavailable; these snapshots supplement the existing page protocol
+journal rather than providing complete worker history. They are test-only
+instrumentation, not an activation fix.
+
+Twelve focused local rollback repetitions (six at normal speed and six with
+2x CPU slowdown) did not reproduce the activation stall. All four upgrade and
+rollback journeys also passed with the worker instrumentation. CI reproduction
+and a verified correction remain outstanding, alongside the deferred App,
+real-gateway smoke test, and physical-device acceptance gates.
+
+PR #61 merged after 120 compatibility tests and 77 preview tests passed without
+skips or retries. Its worker reports contain no dropped observations. The
+activation stall did not recur in that run; native release validation is pending.
+
 ### Stable conversation selection for mobile navigation
 
 The mobile drawer could close immediately after opening because the browser
