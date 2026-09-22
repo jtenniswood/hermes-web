@@ -469,6 +469,45 @@ for (const width of [390, 1440]) {
   })
 }
 
+for (const width of [390, 1440]) {
+  test(`section headers preserve disclosure and browser styling at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 960 })
+    // A populated schedule exercises the real upstream Cron section too.
+    await page.route(/\/api\/cron\/jobs(?:\?|$)/, route => route.fulfill({ json: [{ id: 'preview-header-job', name: 'Header verification job', prompt: 'Check navigation', enabled: true }] }))
+    await open(page)
+    await editor(page).fill('Draft retained through section disclosure')
+    if (width === 390) await openNavigation(page)
+    const pane = page.locator('.browser-sessions-pane')
+    for (const scale of [100, 150]) {
+      await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), scale)
+      const heights = []
+      for (const name of ['Sessions', 'Cron jobs']) {
+        const label = pane.locator('[data-browser-section-label]').filter({ hasText: new RegExp(`^${name}$`) })
+        await expect(label).toBeVisible()
+        const section = label.locator('xpath=ancestor::*[@data-sidebar="group"][1]')
+        const content = section.locator(':scope > [data-sidebar="group-content"]')
+        const wasOpen = await content.isVisible()
+        await label.click()
+        if (wasOpen) await expect(content).toBeHidden()
+        else await expect(content).toBeVisible()
+        await expect(label).toBeFocused()
+        await label.click()
+        if (wasOpen) await expect(content).toBeVisible()
+        else await expect(content).toBeHidden()
+        const header = section.locator(':scope > [data-browser-section-header]')
+        heights.push((await header.boundingBox()).height)
+        const box = await header.boundingBox()
+        expect(box.x).toBeGreaterThanOrEqual(0)
+        expect(box.x + box.width).toBeLessThanOrEqual(width)
+      }
+      expect(Math.abs(heights[0] - heights[1])).toBeLessThan(1)
+      if (scale === 150) await page.screenshot({ path: testInfo.outputPath('section-headers-150.png') })
+    }
+    if (width === 390) await page.keyboard.press('Escape')
+    await expect(editor(page)).toHaveText('Draft retained through section disclosure')
+  })
+}
+
 test('None grouping shows all sessions without subheaders and survives reload', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 })
   await page.route(/\/api\/(?:profiles\/)?sessions(?:\/sidebar)?(?:\?|$)/, async route => {
@@ -734,6 +773,13 @@ for (const width of [390, 1440]) {
       await editor(page).fill('Keep this draft while arranging navigation')
       if (width === 390) await openNavigation(page)
       const trigger = page.getByRole('button', { name: 'Navigation tabs', exact: true })
+      if (width === 390) {
+        const drawerBox = await page.locator('.browser-navigation').boundingBox()
+        expect(drawerBox.x).toBeGreaterThanOrEqual(0)
+        expect(drawerBox.x + drawerBox.width).toBeLessThanOrEqual(width * .88 + 1)
+        const triggerBox = await trigger.boundingBox()
+        expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(width)
+      }
       const surface = page.getByRole(width === 390 ? 'dialog' : 'menu', { name: 'Navigation tabs', exact: true })
       const check = name => surface.getByRole(width === 390 ? 'checkbox' : 'menuitemcheckbox', { name, exact: true })
       if (width === 1440) await page.getByRole('tablist', { name: 'Navigation', exact: true }).click({ button: 'right' })

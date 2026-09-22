@@ -375,6 +375,18 @@ function useBrowserComposerLayoutWidth(source: string): string {
     const width = composer.offsetWidth`)
 }
 
+export function useBrowserSectionStyleHooks(source: string): string {
+  const hooks = [
+    ['<div className="group/section ', '<div data-browser-section-header="" className="group/section '],
+    ['className="group/section-label ', 'data-browser-section-label="" className="group/section-label ']
+  ]
+  for (const [before, after] of hooks) {
+    if (source.split(before).length !== 2) throw new Error('Browser section styling target changed')
+    source = source.replace(before, after)
+  }
+  return source
+}
+
 export function useBrowserSearchLabel(source: string, root: string): string {
   const ariaTarget = 'aria-label={s.searchAria}'
   const placeholderTarget = 'placeholder={s.searchPlaceholder}'
@@ -612,7 +624,7 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
     useBrowserOpenSessionOwner: source => useBrowserOpenSessionOwner(source, root),
     useBrowserFreshSessionOwner: source => useBrowserFreshSessionOwner(source, root),
     useBrowserDirectResumeOwner: source => useBrowserDirectResumeOwner(source),
-    scopeBrowserStorage, filterBrowserNarrowNavigation, closeBrowserWorkspacePanels,
+    useBrowserSectionStyleHooks, scopeBrowserStorage, filterBrowserNarrowNavigation, closeBrowserWorkspacePanels,
     exportBrowserStatusbarItem, filterBrowserActivityToasts, removeBrowserNewSessionShortcut,
     removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction, fixBrowserTooltipBoundary,
     useBrowserMicrophoneCapture, useBrowserComposerLayoutWidth, filterBrowserSessionMenu,
