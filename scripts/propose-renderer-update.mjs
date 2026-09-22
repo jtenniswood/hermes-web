@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs'
 import { assertRendererOnlyChange } from './release-policy.mjs'
-import { proposalAction, requiredUpdateChecks } from './upstream-update-state.mjs'
+import { proposalAction, requiredUpdateChecks, rendererUpdateRequest } from './upstream-update-state.mjs'
 
 const run = (command, args) => execFileSync(command, args, { encoding: 'utf8' }).trim()
 const gh = (...args) => run('gh', args)
@@ -25,6 +25,9 @@ function inspectProposal(pr, before) {
 }
 
 function main() {
+  const request = rendererUpdateRequest({ eventName: process.env.GITHUB_EVENT_NAME, ref: process.env.GITHUB_REF, enabled: process.env.HERMES_RENDERER_UPDATES_ENABLED, revision: process.env.HERMES_RENDERER_REVISION })
+  if (!request.allowed) { summary('Recurring renderer proposals are disabled. No proposal was changed.'); return }
+  if (process.env.GITHUB_EVENT_NAME === 'workflow_dispatch') summary('One-off renderer validation. Scheduling and stable-promotion settings are unchanged.')
   if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !/^[\w-]+\[bot\]$/.test(actor || '')) throw new Error('Configure the repository-scoped updater App first')
   if (!process.env.HERMES_STATUS_TOKEN) throw new Error('A read-only status token is required')
   const settings = JSON.parse(statusGh('api', `repos/${repository}`))
@@ -34,7 +37,7 @@ function main() {
   for (const context of requiredUpdateChecks) {
     if (!required.some(check => check.context === context && check.integration_id === 15368)) throw new Error(`Enable the required GitHub Actions check before scheduling: ${context}`)
   }
-  const revision = run('git', ['ls-remote', 'https://github.com/NousResearch/hermes-agent.git', 'refs/heads/main']).split(/\s/)[0]
+  const revision = request.revision || run('git', ['ls-remote', 'https://github.com/NousResearch/hermes-agent.git', 'refs/heads/main']).split(/\s/)[0]
   if (!/^[a-f0-9]{40}$/.test(revision)) throw new Error('Cannot resolve upstream main')
   const before = JSON.parse(readFileSync('flake.lock', 'utf8'))
   if (before.nodes.hermes.locked.rev === revision) { summary(`Renderer is current: ${revision}.`); return }
@@ -44,6 +47,10 @@ function main() {
   for (const pr of open) {
     const detail = inspectProposal(pr, before)
     const decision = proposalAction(detail, revision)
+    if (request.revision && detail.renderer !== revision && decision.action !== 'replace') {
+      summary(`Requested ${revision}, but [proposal #${pr.number}](${pr.html_url}) targets ${detail.renderer}. Finish or retire that proposal before validating another exact revision. No proposal was changed.`)
+      return
+    }
     summary(`[Proposal #${pr.number}](${pr.html_url}): ${decision.reason}`)
     if (decision.action === 'refresh') {
       // GitHub merges main into the branch; expected_head_sha protects concurrent edits.

@@ -39,13 +39,17 @@ completed with a normal repository token alone:
    read-only workflow token inspects check results.
 5. Keep `HERMES_RENDERER_UPDATES_ENABLED` and `HERMES_PROMOTION_ENABLED` unset
    while validating the initial release. The schedule and stable promotion are
-   independent switches. A manual release run can still build/test candidates.
+   independent switches. A manual release run can still build/test candidates;
+   a manual renderer-update dispatch from `main` can validate a proposal without
+   enabling recurring triggers. The App remains required.
 
 The App token lets PR creation trigger ordinary checks automatically; using
 `GITHUB_TOKEN` can require manual approval of those workflows. See GitHub's
 [workflow-trigger guidance](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)
 and [auto-merge documentation](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/automatically-merging-a-pull-request).
 
+Use [one-off validation](upstream-updates.md#one-off-validation-before-activation)
+to exercise the real App-driven proposal path while both switches remain disabled.
 Before enabling either switch, record a passing candidate and a deliberately
 incompatible candidate, verify the failing candidate cannot move stable tags,
 exercise storage/update tests through the image, and smoke-test a real configured

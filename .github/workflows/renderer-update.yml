@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      renderer_revision:
+        description: Exact upstream commit for one-off validation; empty resolves upstream main
+        required: false
+        type: string
 permissions:
   contents: read
   pull-requests: read
@@ -14,15 +19,20 @@ concurrency:
   cancel-in-progress: false
 jobs:
   disabled:
-    if: vars.HERMES_RENDERER_UPDATES_ENABLED != 'true'
+    if: github.event_name != 'workflow_dispatch' && vars.HERMES_RENDERER_UPDATES_ENABLED != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Explain setup requirements
         run: echo 'Renderer proposals are disabled. Run node scripts/check-update-setup.mjs and follow docs/upstream-updates.md to configure and verify automation.' >> "$GITHUB_STEP_SUMMARY"
   propose:
-    if: vars.HERMES_RENDERER_UPDATES_ENABLED == 'true'
+    if: github.event_name == 'workflow_dispatch' || vars.HERMES_RENDERER_UPDATES_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Require the main workflow for a one-off validation
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo 'Dispatch renderer-update.yml from main. No proposal was created.' >> "$GITHUB_STEP_SUMMARY"
+          exit 1
       - name: Validate updater configuration
         env:
           APP_ID: ${{ vars.HERMES_UPDATER_APP_ID }}
@@ -53,6 +63,8 @@ jobs:
       - name: Propose one exact renderer update
         run: node scripts/propose-renderer-update.mjs
         env:
+          HERMES_RENDERER_UPDATES_ENABLED: ${{ vars.HERMES_RENDERER_UPDATES_ENABLED }}
+          HERMES_RENDERER_REVISION: ${{ inputs.renderer_revision }}
           HERMES_STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ steps.app.outputs.token }}
           HERMES_UPDATER_LOGIN: ${{ vars.HERMES_UPDATER_LOGIN }}
