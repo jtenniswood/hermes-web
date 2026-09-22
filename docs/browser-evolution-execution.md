@@ -780,3 +780,25 @@ indefinite-checking observations are not all explained by this diagnosed write r
 
 App setup remains deferred. Live updater demonstrations, real-gateway smoke tests,
 physical-device acceptance, and automation activation remain outstanding.
+
+### Stable conversation selection for mobile navigation
+
+The mobile drawer could close immediately after opening because the browser
+model included background Bot metadata in its selection key. A traced local
+reproduction showed `web-single::default` becoming `default` while the selected
+session and route stayed unchanged. The navigation effect treated that metadata
+refresh as a conversation switch.
+
+The key now follows the visible session or group. It remains stable while titles,
+Bot identity, or unrelated roster state hydrate, and changes when the actual
+conversation changes. Upstream stores remain authoritative. A regression against
+the actual adapter failed on the earlier implementation and passes with this
+change, including background session changes while a group remains selected.
+
+Validation passed: 180 foundation checks, typechecking, the production build,
+six repeated affected mobile flows with 2x CPU slowdown and no retries, eleven
+existing navigation/profile interaction cases, and a new phone journey switching
+sessions and Bots while preserving both session drafts. Temporary diagnostic
+logging and CPU throttling were removed. Committed-image CI remains required;
+physical-device acceptance and the separate update activation investigation are
+still outstanding.

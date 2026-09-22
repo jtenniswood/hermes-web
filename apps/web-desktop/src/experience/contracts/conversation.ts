@@ -17,7 +17,7 @@ export interface BrowserConversation {
   connectionId: string | null
 }
 
-/** Selection changes can precede identity hydration; views use this opaque key. */
+/** Stable across identity hydration; changes when the visible session/group changes. */
 export interface BrowserConversationModel extends BrowserConversation {
   selectionKey: string
 }
