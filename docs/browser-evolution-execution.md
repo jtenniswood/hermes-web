@@ -614,3 +614,27 @@ physical-device verification. All three real-image upgrade/rollback journeys
 passed against the published amd64 digest, and 14 release-policy/updater/evidence
 checks passed. Required committed-image CI remains pending. No running deployment
 was changed.
+
+## Browser fixture network readiness
+
+The release audit found that run `35736691937` at wrapper `72bae0f` passed the
+required compatibility job and native amd64 candidate, but its arm64 candidate
+failed two of 109 browser journeys. The traces show `ERR_NETWORK_CHANGED` before
+the affected assertions: an authentication-ticket request failed during unread
+fixture startup, and the previous image's `index.html` precache request failed
+before the conflicting-draft upgrade test. Promotion was skipped. This is failed
+release evidence, not a passing native candidate.
+
+Launching Chromium after Docker reports nginx ready did not fully settle delayed
+interface notifications. Interruption and upgrade fixtures now require two
+seconds of uninterrupted browser requests to uncached build metadata, within a
+15-second limit, before creating the clean application context. A disposable
+context blocks service workers. Only `ERR_NETWORK_CHANGED` restarts the readiness
+window; HTTP/identity errors, unrelated network failures, and continuing churn
+fail setup. Probe counts and network changes are attached to the test report.
+Application navigation and behavioral assertions are unchanged. Native arm64
+verification remains required after this fixture change.
+
+Local verification: three readiness checks and four Chromium image journeys
+passed, including both affected scenarios, delayed Bot selection, and two-tab
+rollback. These development-image results do not replace native arm64 evidence.
