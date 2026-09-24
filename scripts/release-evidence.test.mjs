@@ -10,9 +10,9 @@ const source = ts.transpileModule(readFileSync(new URL('./promote-image.mjs', im
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText
 
-function publish({ enabled = false, current = wrapper, mismatchedTag = false, missingArchitecture = false } = {}) {
+function publish({ enabled = false, current = wrapper, mismatchedTag = false, missingCandidate = false } = {}) {
   const commands = [], records = []
-  const evidence = ['amd64', 'arm64'].map(arch => ({ arch, wrapper, renderer, digest: 'sha256:' + (arch === 'amd64' ? 'd' : 'e').repeat(64), tested: true }))
+  const evidence = [{ arch: 'amd64', wrapper, renderer, digest: 'sha256:' + 'd'.repeat(64), tested: true }]
   const stopped = Symbol('exit')
   let error
   try {
@@ -23,7 +23,7 @@ function publish({ enabled = false, current = wrapper, mismatchedTag = false, mi
         if (name === './release-policy.mjs') return policy
         if (name === './renderer.mjs') return { rendererLock: () => ({ rev: renderer }) }
         if (name === 'node:fs') return {
-          readdirSync: () => (missingArchitecture ? ['candidate-amd64.json'] : ['candidate-amd64.json', 'candidate-arm64.json']),
+          readdirSync: () => (missingCandidate ? [] : ['candidate-amd64.json']),
           readFileSync: file => JSON.stringify(evidence.find(item => file.includes(item.arch))),
           writeFileSync: (file, data) => { assert.equal(file, 'release-evidence.json'); records.push(JSON.parse(data)) },
           appendFileSync() {}
@@ -69,13 +69,13 @@ test('release evidence declares promotion only after every stable tag is verifie
   assert.deepEqual(failed.records.at(-1).promotion, { status: 'not-completed', verifiedTags: [] })
 })
 
-test('stale publication retains immutable evidence and missing architecture produces none', () => {
+test('stale publication retains immutable evidence and missing amd64 candidate produces none', () => {
   const stale = publish({ enabled: true, current: 'f'.repeat(40) })
   assert.match(stale.error.message, /Stale release/)
   assert.equal(stale.records[0].promotion.status, 'not-completed')
   assert.deepEqual(stableWrites(stale), [])
-  const missing = publish({ missingArchitecture: true })
-  assert.match(missing.error.message, /Missing tested arm64/)
+  const missing = publish({ missingCandidate: true })
+  assert.match(missing.error.message, /Missing tested amd64/)
   assert.deepEqual(missing.records, [])
   assert.deepEqual(missing.commands.filter(command => command[0] === 'docker'), [])
 })

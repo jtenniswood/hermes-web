@@ -11,7 +11,7 @@ assertCandidateEvidence(evidence, wrapper, renderer)
 const candidate = `${image}:candidate-${wrapper}-${renderer}-${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`
 run('docker', ['buildx', 'imagetools', 'create', '--tag', candidate, ...evidence.map(item => `${image}@${item.digest}`)])
 const digest = run('docker', ['buildx', 'imagetools', 'inspect', candidate, '--format', '{{.Manifest.Digest}}'])
-if (!/^sha256:[a-f0-9]{64}$/.test(digest)) throw new Error('Cannot identify the tested multi-architecture candidate')
+if (!/^sha256:[a-f0-9]{64}$/.test(digest)) throw new Error('Cannot identify the tested amd64 candidate')
 const release = {
   schemaVersion: 1,
   wrapperRevision: wrapper,
