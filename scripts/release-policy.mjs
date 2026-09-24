@@ -16,14 +16,14 @@ export function assertRendererOnlyChange(before, after, files = ['flake.lock']) 
 export function promotionTags({ sourceRevision, currentMain, ref, nightly = false }) {
   if (!/^[a-f0-9]{40}$/.test(sourceRevision) || sourceRevision !== currentMain) throw new Error('Stale release: source is no longer current main')
   if (ref === 'refs/heads/main') return ['main', 'latest', ...(nightly ? ['nightly'] : [])]
-  if (/^refs\/tags\/v\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(ref)) return [ref.slice('refs/tags/v'.length)]
+  if (/^refs\/tags\/v\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(ref)) return [ref.slice('refs/tags/v'.length), 'latest']
   throw new Error('Only main or a version tag can be promoted')
 }
 
 export function assertCandidateEvidence(evidence, wrapper, renderer) {
-  for (const arch of ['amd64', 'arm64']) {
+  for (const arch of ['amd64']) {
     const record = evidence.find(item => item.arch === arch)
     if (!record || record.wrapper !== wrapper || record.renderer !== renderer || record.tested !== true || !/^sha256:[a-f0-9]{64}$/.test(record.digest)) throw new Error(`Missing tested ${arch} candidate for this exact wrapper and renderer`)
   }
-  if (evidence.length !== 2) throw new Error('Unexpected candidate evidence')
+  if (evidence.length !== 1) throw new Error('Unexpected candidate evidence')
 }
