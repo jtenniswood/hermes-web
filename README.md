@@ -218,6 +218,11 @@ and that the gateway accepts the host’s forwarded HTTP/WebSocket requests. A
 gateway that is reachable from the host but blocked from Docker’s network will
 still appear unavailable in Hermes Web.
 
+When placing Hermes Web behind Cloudflare or another TLS-terminating proxy,
+enable WebSocket proxying and preserve the original `X-Forwarded-Proto` header.
+The bundled nginx forwards the original `http` or `https` scheme to the gateway
+so OAuth redirects and secure session cookies use the browser-facing scheme.
+
 The nginx image includes Node only for the shared configuration generator at
 startup; nginx handles all requests. The same generator and route contract are
 used by development and the Nix service.
