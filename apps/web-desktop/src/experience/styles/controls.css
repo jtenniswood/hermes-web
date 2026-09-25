@@ -22,7 +22,7 @@
   height: var(--web-control-compact);
 }
 
-:is([data-browser-toolbar-button], :where(.browser-approval-control > button), .browser-roster-action-trigger, :where(.browser-sessions-pane [data-browser-section-header] button[data-size='icon-xs'])):is(:hover, :focus-visible, [aria-expanded='true']):not(:disabled) {
+:is([data-browser-toolbar-button], :where(.browser-approval-control > button), .browser-roster-action-trigger, :where(.browser-sessions-pane [data-browser-section-header] button[data-size='icon-xs'])):is(:hover, :focus-visible, [aria-expanded='true']:not(.browser-menu)):not(:disabled) {
   background: var(--web-hover);
   color: var(--web-text);
 }
