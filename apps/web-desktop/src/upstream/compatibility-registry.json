@@ -391,7 +391,7 @@
     "kind": "browser-transform",
     "order": 20,
     "module": "app/contrib/wiring.tsx",
-    "reason": "Keep browser session selection behind an owner-preserving command and disable chat tab creation.",
+    "reason": "Keep browser session selection owner-preserving, route New session into the visible draft, and disable chat tab creation.",
     "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
     "tests": [
       {
@@ -420,7 +420,7 @@
     "sourceHash": "816669c25c0fab0f2388768eb142bbce5e1435d0b9d62326170f0f4b1adc4e8d",
     "sourceRoot": "renderer",
     "inputHash": "816669c25c0fab0f2388768eb142bbce5e1435d0b9d62326170f0f4b1adc4e8d",
-    "outputHash": "18bfe310193b93bfac09a39e55cf238ca78857e105efb4d3d55e8b352f5173eb"
+    "outputHash": "be07ea946f25898feec6a4b6f652a7340666a399ee310441ec5fcc263aa90ced"
   },
   {
     "name": "single-conversation-controller",
