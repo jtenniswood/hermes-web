@@ -172,7 +172,18 @@ interface ProxyServerLike {
 }
 
 function attachDynamicProxy(server: ProxyServerLike): void {
-  const proxy: ProxyServer = createProxyServer({ changeOrigin: false, secure: true, ws: true })
+  // Route HTTPS hostname-based gateways correctly (including Cloudflare
+  // Tunnel) while retaining the app origin in forwarded metadata.
+  const proxy: ProxyServer = createProxyServer({ changeOrigin: true, secure: true, ws: true })
+
+  const preserveBrowserOrigin = (proxyReq: import('node:http').ClientRequest, req: IncomingMessage): void => {
+    if (req.headers.host) {proxyReq.setHeader('X-Forwarded-Host', req.headers.host)}
+    const encrypted = (req.socket as import('node:tls').TLSSocket).encrypted
+    proxyReq.setHeader('X-Forwarded-Proto', req.headers['x-forwarded-proto'] ?? (encrypted ? 'https' : 'http'))
+  }
+
+  proxy.on('proxyReq', preserveBrowserOrigin)
+  proxy.on('proxyReqWs', preserveBrowserOrigin)
 
   proxy.on('error', (err, _req, resOrSocket) => {
     server.config.logger.error(`[hermes-proxy] ${err.message}`, { timestamp: true })
