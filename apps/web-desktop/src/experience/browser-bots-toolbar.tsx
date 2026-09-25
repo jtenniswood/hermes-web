@@ -27,8 +27,8 @@ type RenderRosterToolbarProps = {
   setGatewayFilter: (value: string) => void
 }
 
-function BotsActionControl({ title, label = title, icon, active = false, groups, closeLabel = 'Cancel' }: {
-  title: string; label?: string; icon: string; active?: boolean; groups: BrowserActionGroup[]; closeLabel?: string
+function BotsActionControl({ title, label = title, icon, active = false, groups }: {
+  title: string; label?: string; icon: string; active?: boolean; groups: BrowserActionGroup[]
 }) {
   const compact = useCompactBrowser()
   const trigger = useRef<HTMLButtonElement>(null)
@@ -38,7 +38,7 @@ function BotsActionControl({ title, label = title, icon, active = false, groups,
       const bounds = event.currentTarget.getBoundingClientRect()
       setAnchor({ x: bounds.right, y: bounds.bottom, returnFocus: event.currentTarget })
     }}><Codicon name={icon} size="0.75rem" /></BrowserToolbarButton>
-    <BrowserActionSurface title={title} groups={groups} anchor={anchor} compact={compact} fallbackFocus={trigger} closeLabel={closeLabel} onClose={() => setAnchor(null)} />
+    <BrowserActionSurface title={title} groups={groups} anchor={anchor} compact={compact} fallbackFocus={trigger} onClose={() => setAnchor(null)} />
   </>
 }
 
@@ -56,7 +56,7 @@ function BotsFilterMenu({ b, activeFilterCount, gatewayOptions, rowKindFilter, s
     { key: 'visibility', actions: [{ key: 'hidden', label: 'Show hidden bots', checked: showHidden, keepOpen: true, run: toggleHidden }] },
     { key: 'reset', actions: activeFilterCount ? [{ key: 'clear', label: b.roster.clearFilters, keepOpen: true, run: () => { setRowKindFilter('all'); setActivityFilter('all'); setGatewayFilter('all') } }] : [] }
   ]
-  return <BotsActionControl title="Filter Bots" label={activeFilterCount ? `Filter roster, ${activeFilterCount} active` : 'Filter roster'} icon="list-filter" active={activeFilterCount > 0} groups={groups} closeLabel="Done" />
+  return <BotsActionControl title="Filter Bots" label={activeFilterCount ? `Filter roster, ${activeFilterCount} active` : 'Filter roster'} icon="list-filter" active={activeFilterCount > 0} groups={groups} />
 }
 
 export function renderRosterToolbar(props: RenderRosterToolbarProps) {

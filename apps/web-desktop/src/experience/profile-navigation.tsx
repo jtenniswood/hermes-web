@@ -38,11 +38,6 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
       : [...current, profileName])
     if (!isHidden && model.active === profileName) model.select(null)
   }
-  const showHiddenProfiles = () => {
-    setHiddenProfiles([])
-    setHideAllProfilesButton(false)
-    setProfileContextMenuPosition(null)
-  }
   const beginProfileDrag = (event: ReactDragEvent<HTMLButtonElement>, name: string) => {
     if (compact) { event.preventDefault(); return }
     draggedProfile.current = name
@@ -113,19 +108,21 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
         {
           key: 'profiles',
           label: 'Profiles',
-          actions: profileItems.map(item => ({
-            key: `profile-${item.key}`,
-            label: item.label,
-            checked: !hiddenProfiles.includes(item.key),
-            keepOpen: true,
-            run: () => toggleProfile(item.key)
-          }))
-        },
-        {
-          key: 'controls',
           actions: [
-            { key: 'toggle-all-profiles', label: `${hideAllProfilesButton ? 'Show' : 'Hide'} All profiles button`, run: () => { setHideAllProfilesButton(value => !value); setProfileContextMenuPosition(null) } },
-            { key: 'show-hidden', label: 'Show hidden', disabled: !hiddenProfiles.length && !hideAllProfilesButton, run: showHiddenProfiles }
+            {
+              key: 'add-profiles',
+              label: 'Add Profiles',
+              checked: !hideAllProfilesButton,
+              keepOpen: true,
+              run: () => setHideAllProfilesButton(value => !value)
+            },
+            ...profileItems.map(item => ({
+              key: `profile-${item.key}`,
+              label: item.label,
+              checked: !hiddenProfiles.includes(item.key),
+              keepOpen: true,
+              run: () => toggleProfile(item.key)
+            }))
           ]
         }
       ]}
