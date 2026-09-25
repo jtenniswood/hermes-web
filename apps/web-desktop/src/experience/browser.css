@@ -52,7 +52,7 @@
 .browser-profile-choice[draggable="true"]:active,.browser-profile-choice.is-dragging { cursor:grabbing; opacity:.55; }
 .browser-profile-choice:hover,.browser-profile-choice:focus-visible { background:var(--web-hover); color:var(--web-text); }
 .browser-profile-choice.is-drop-target { background:var(--web-hover); box-shadow:inset 0 0 0 1px var(--web-accent); }
-.browser-profile-choice[aria-pressed="true"] { border-width:3px; border-color:var(--web-accent); background:color-mix(in srgb,var(--web-accent) 16%,transparent); color:var(--web-text); }
+.browser-profile-choice[aria-pressed="true"] { border-width:2px; border-color:var(--web-accent); background:color-mix(in srgb,var(--web-accent) 16%,transparent); color:var(--web-text); }
 .browser-profile-choice > :is(img,span) { width:2.25rem !important; height:2.25rem !important; }
 .browser-profile-all { color:var(--web-text-subtle); }
 .browser-update-panel { flex-shrink:0; margin:var(--web-space-2) var(--web-space-3) 0; padding:var(--web-space-2); border:1px solid var(--web-border); border-radius:var(--web-radius-panel); background:var(--web-bg); color:var(--web-text); box-shadow:0 .25rem .8rem #0002; }
