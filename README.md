@@ -266,14 +266,32 @@ ambiguous records remain untouched and require sign-in. Theme, zoom, desktop
 layout and upstream text-draft keys remain unchanged. When storage is blocked,
 sign-in remains in memory and the connection screen explains the limitation.
 
-A waiting service worker shows **Update when safe**. It flushes upstream text
-drafts and checks all open app tabs before activation. Active responses, file
+The app checks for updates when you return to its tab or reconnect, and every
+minute while visible and online. A waiting service worker shows **Update when
+safe**. It flushes upstream text drafts and checks all open app tabs before
+activation. Active responses, file
 selection/uploads, recording, unsent attachments, unsaved text, conflicting
 cross-tab drafts and unresponsive older tabs postpone the update. Finish that
 work or close older tabs, then retry. This does not add offline chat: cached
 application assets still need the configured gateway for chat and sign-in.
 Runtime configuration, authentication, API responses and plugin files are not
 part of the application precache.
+
+If an HTTPS hostname shows an older UI than the direct HTTP address, its
+browser may still be running a cached app shell. Use **Update when safe**, or
+close all tabs and installed app windows for that hostname and reopen it. A
+fresh private window can confirm whether the difference is browser-local.
+For an older client that cannot update, unregister that hostname's service
+worker and remove its Cache Storage entries in browser developer tools, then
+close its tabs and reopen it. Save any unfinished work first; leave Local
+Storage and cookies intact to preserve saved drafts, settings, and sign-in.
+
+nginx prevents HTTP caching of the app shell, service-worker scripts, and build
+metadata while keeping content-hashed assets cacheable. This does not forcibly
+replace an already active service worker. Cloudflare Access callback paths and
+`/build-info.json` bypass the service worker's navigation fallback. If using
+custom Cloudflare cache rules, keep these mutable and authentication routes
+out of any Cache Everything rule.
 
 Run browser checks against a built image:
 
