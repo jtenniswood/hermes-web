@@ -9,7 +9,10 @@ import './experience/styles/menus.css'
 import './web-overrides.css'
 import { runtimeConfig } from './platform/runtime'
 import { registerPwa } from './pwa/register'
+import { trackVisualViewport } from './platform/viewport'
 
+const stopTrackingViewport = trackVisualViewport()
+if (import.meta.hot) import.meta.hot.dispose(stopTrackingViewport)
 registerPwa()
 
 async function start(): Promise<void> {

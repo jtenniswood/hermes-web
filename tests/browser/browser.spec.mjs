@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { createPreviewGateway } from '../../scripts/preview/gateway.mjs'
 import { getBrowserTarget } from './test-target.mjs'
 import { installBrowserErrorCollector } from './error-collector.mjs'
+import { viewportChecks } from './viewport-checks.mjs'
 
 // This suite exercises the browser shell only. The old desktop/browser
 // selector was removed, so every test must start through the same production
@@ -68,6 +69,8 @@ const open = async (page, session = 'preview-week') => {
   }
   await expect(page.getByText('Help me make a thoughtful plan.', { exact: true }).first()).toBeVisible({ timeout: 30000 })
 }
+
+viewportChecks(test, open)
 
 test.describe('browser microphone', () => {
   test('records once permission is granted and releases the mic after transcription', async ({ page }) => {
