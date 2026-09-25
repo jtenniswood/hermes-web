@@ -38,7 +38,7 @@ export function readVisibleNavigationTabs(): NavigationTab[] {
   try {
     const saved = JSON.parse(read(KEYS.navigationTabs) || 'null')
     if (Array.isArray(saved)) {
-      const visible = NAVIGATION_TABS.filter(value => saved.includes(value))
+      const visible = [...new Set(saved.filter((value): value is NavigationTab => NAVIGATION_TABS.includes(value)))]
       if (visible.length) return visible
     }
   } catch { /* Malformed or unavailable preference uses the safe default. */ }

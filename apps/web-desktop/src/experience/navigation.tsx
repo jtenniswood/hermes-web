@@ -66,7 +66,17 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
     toggleTab(value: NavigationTab) {
       setVisibleTabs(current => {
         if (current.includes(value)) return current.length === 1 ? current : current.filter(item => item !== value)
-        return NAVIGATION_TABS.filter(item => current.includes(item) || item === value)
+        return [...current, value]
+      })
+    },
+    reorderTabs(source: NavigationTab, target: NavigationTab, after: boolean) {
+      setVisibleTabs(current => {
+        if (source === target) return current
+        const next = current.filter(value => value !== source)
+        const targetIndex = next.indexOf(target)
+        if (targetIndex < 0) return current
+        next.splice(targetIndex + (after ? 1 : 0), 0, source)
+        return next
       })
     }
   }
@@ -76,6 +86,7 @@ type Navigation = ReturnType<typeof useBrowserNavigation>
 
 export function BrowserNavigationTabs({ navigation }: { navigation: Navigation }) {
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
+  const [draggedTab, setDraggedTab] = useState<NavigationTab | null>(null)
   const actionsTrigger = useRef<HTMLButtonElement>(null)
   const { tab, setTab, visibleTabs, open } = navigation
   const compact = useMobileBrowser()
@@ -89,7 +100,22 @@ export function BrowserNavigationTabs({ navigation }: { navigation: Navigation }
   return <>
     <div className="browser-navigation-heading">
       <div className="browser-navigation-tabs" role="tablist" aria-label="Navigation" onContextMenu={showActions}>
-        {visibleTabs.map((value, index) => <button key={value} type="button" role="tab" tabIndex={tab === value ? 0 : -1} aria-selected={tab === value} onKeyDown={event => {
+        {visibleTabs.map((value, index) => <button key={value} type="button" role="tab" tabIndex={tab === value ? 0 : -1} aria-selected={tab === value} draggable={visibleTabs.length > 1} data-dragging={draggedTab === value || undefined} onDragStart={event => {
+          setDraggedTab(value)
+          event.dataTransfer.effectAllowed = 'move'
+          event.dataTransfer.setData('text/plain', value)
+        }} onDragOver={event => {
+          if (!draggedTab || draggedTab === value) return
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'move'
+        }} onDrop={event => {
+          event.preventDefault()
+          const source = draggedTab || NAVIGATION_TABS.find(item => item === event.dataTransfer.getData('text/plain'))
+          if (!source) return
+          const bounds = event.currentTarget.getBoundingClientRect()
+          navigation.reorderTabs(source, value, event.clientX >= bounds.left + bounds.width / 2)
+          setDraggedTab(null)
+        }} onDragEnd={() => setDraggedTab(null)} onKeyDown={event => {
           const next = event.key === 'ArrowRight' ? visibleTabs[(index + 1) % visibleTabs.length] : event.key === 'ArrowLeft' ? visibleTabs[(index + visibleTabs.length - 1) % visibleTabs.length] : null
           if (next) {
             event.preventDefault()
