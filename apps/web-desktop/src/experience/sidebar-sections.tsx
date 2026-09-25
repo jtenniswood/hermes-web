@@ -38,16 +38,12 @@ export function useBrowserSidebarSections() {
   useEffect(() => {
     try { localStorage.setItem(HIDDEN_SECTIONS_KEY, JSON.stringify(hiddenSections)) } catch { /* Optional preference. */ }
   }, [hiddenSections])
-  const actions: BrowserAction[] = availableSections.map(section => ({
+  const actions: BrowserAction[] = availableSections.filter(section => section.key !== 'sessions').map(section => ({
     key: section.key,
     label: section.label,
-    checked: section.key === 'sessions' || !hiddenSections.includes(section.key),
-    disabled: section.key === 'sessions',
+    checked: !hiddenSections.includes(section.key),
     keepOpen: true,
-    run: () => {
-      if (section.key === 'sessions') return
-      setHiddenSections(current => current.includes(section.key) ? current.filter(key => key !== section.key) : [...current, section.key])
-    }
+    run: () => setHiddenSections(current => current.includes(section.key) ? current.filter(key => key !== section.key) : [...current, section.key])
   }))
   return { hiddenSections, setAvailableSections, actions }
 }
