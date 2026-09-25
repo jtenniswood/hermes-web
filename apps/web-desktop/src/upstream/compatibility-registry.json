@@ -662,6 +662,10 @@
       {
         "file": "tests/browser/safety.spec.mjs",
         "scenario": "nginx serves the built app and uncached identity; API stays available for recovery"
+      },
+      {
+        "file": "tests/browser/gateway-setup.spec.mjs",
+        "scenario": "remote gateway sign-in stays reachable with the keyboard"
       }
     ],
     "removal": "Keep browser ownership until upstream offers an equivalent public composition point.",

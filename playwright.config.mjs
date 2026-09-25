@@ -6,7 +6,7 @@ export default defineConfig({
   use: { headless: true, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   projects: [
     { name: 'chromium', testIgnore: /webkit\.spec\.mjs$/, use: { browserName: 'chromium' } },
-    { name: 'webkit', testMatch: /webkit\.spec\.mjs$/, use: { browserName: 'webkit' } }
+    { name: 'webkit', testMatch: /(?:webkit|gateway-setup)\.spec\.mjs$/, use: { browserName: 'webkit' } }
   ],
   reporter: [
     ['list'],
