@@ -82,20 +82,20 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
   const lastVisibleProfile = visibleProfileAvatars.at(-1)?.key
   return <>
     <div className="browser-profile-footer" hidden={hidden}>
-      <div className="browser-profile-heading"><span>Profiles</span><BrowserToolbarButton tooltip="Profile actions" ref={actionsTrigger} className="browser-profile-actions-trigger" type="button" aria-label="Profile actions" aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(profileContextMenuPosition)} onClick={event => openProfileContextMenu(event)}><Codicon name="ellipsis" size="1rem" /></BrowserToolbarButton></div>
-          <div className="browser-profile-rail" role="radiogroup" aria-label="Profiles" onContextMenu={event => openProfileContextMenu(event)} onDragOver={hoverProfileDrop} onDrop={reorderProfiles} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTargetProfile(null) }}>
-            {model.items.length > 1 && <Tip label="All profiles"><button className="browser-profile-choice browser-profile-all" type="button" aria-label="All profiles" aria-pressed={model.all} onClick={() => model.select(null)} onContextMenu={event => openProfileContextMenu(event)}><Codicon name="symbol-misc" size="1rem" /></button></Tip>}
-            {model.fallback && <Tip label={model.fallback.label}><button className="browser-profile-choice" type="button" aria-label={model.fallback.label} aria-pressed onClick={() => model.select(model.active)} onContextMenu={event => openProfileContextMenu(event, model.active)}><BotFace color={avatarColor(model.fallback.appearance.color, model.fallback.botName)} name={model.fallback.botName} image={model.fallback.appearance.image} shape={model.fallback.appearance.shape} size={28} /></button></Tip>}
-            {visibleProfileAvatars.map(item => <div className="browser-profile-slot" key={item.key}>
-              {draggingProfile && dropTargetProfile?.key === item.key && !dropTargetProfile.after && draggingProfile !== item.key && <span className="browser-profile-drop-indicator" aria-hidden="true" />}
-              <Tip label={item.label}><button className={`browser-profile-choice${draggingProfile === item.key ? ' is-dragging' : ''}${dropTargetProfile?.key === item.key && draggingProfile !== item.key ? ' is-drop-target' : ''}`} draggable={!compact} data-profile-key={item.key} type="button" aria-label={item.label} aria-pressed={!model.all && model.active === item.key} onClick={() => model.select(item.key)} onContextMenu={event => openProfileContextMenu(event, item.key)} onDragStart={event => beginProfileDrag(event, item.key)} onDragEnd={finishProfileDrag}><BotFace color={avatarColor(item.appearance.color, item.botName)} image={item.appearance.image} name={item.botName} shape={item.appearance.shape} size={28} /></button></Tip>
-            </div>)}
-            {lastVisibleProfile && <div className="browser-profile-drop-end" aria-hidden="true">
-              {draggingProfile && dropTargetProfile?.key === lastVisibleProfile && dropTargetProfile.after && draggingProfile !== lastVisibleProfile && <span className="browser-profile-drop-indicator" />}
-            </div>}
-          </div>
+      <div className="browser-profile-rail" role="radiogroup" aria-label="Profiles" onContextMenu={event => openProfileContextMenu(event)} onDragOver={hoverProfileDrop} onDrop={reorderProfiles} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTargetProfile(null) }}>
+        {model.items.length > 1 && <Tip label="All profiles"><button className="browser-profile-choice browser-profile-all" type="button" aria-label="All profiles" aria-pressed={model.all} onClick={() => model.select(null)} onContextMenu={event => openProfileContextMenu(event)}><Codicon name="symbol-misc" size="1rem" /></button></Tip>}
+        {model.fallback && <Tip label={model.fallback.label}><button className="browser-profile-choice" type="button" aria-label={model.fallback.label} aria-pressed onClick={() => model.select(model.active)} onContextMenu={event => openProfileContextMenu(event, model.active)}><BotFace color={avatarColor(model.fallback.appearance.color, model.fallback.botName)} name={model.fallback.botName} image={model.fallback.appearance.image} shape={model.fallback.appearance.shape} size={28} /></button></Tip>}
+        {visibleProfileAvatars.map(item => <div className="browser-profile-slot" key={item.key}>
+          {draggingProfile && dropTargetProfile?.key === item.key && !dropTargetProfile.after && draggingProfile !== item.key && <span className="browser-profile-drop-indicator" aria-hidden="true" />}
+          <Tip label={item.label}><button className={`browser-profile-choice${draggingProfile === item.key ? ' is-dragging' : ''}${dropTargetProfile?.key === item.key && draggingProfile !== item.key ? ' is-drop-target' : ''}`} draggable={!compact} data-profile-key={item.key} type="button" aria-label={item.label} aria-pressed={!model.all && model.active === item.key} onClick={() => model.select(item.key)} onContextMenu={event => openProfileContextMenu(event, item.key)} onDragStart={event => beginProfileDrag(event, item.key)} onDragEnd={finishProfileDrag}><BotFace color={avatarColor(item.appearance.color, item.botName)} image={item.appearance.image} name={item.botName} shape={item.appearance.shape} size={28} /></button></Tip>
+        </div>)}
+        {lastVisibleProfile && <div className="browser-profile-drop-end" aria-hidden="true">
+          {draggingProfile && dropTargetProfile?.key === lastVisibleProfile && dropTargetProfile.after && draggingProfile !== lastVisibleProfile && <span className="browser-profile-drop-indicator" />}
+        </div>}
 
-        </div>
+      </div>
+      <BrowserToolbarButton tooltip="Profile actions" ref={actionsTrigger} className="browser-profile-actions-trigger" type="button" aria-label="Profile actions" aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(profileContextMenuPosition)} onClick={event => openProfileContextMenu(event)}><Codicon name="ellipsis" size="1rem" /></BrowserToolbarButton>
+    </div>
     <BrowserActionSurface
       title="Profile actions"
       anchor={profileContextMenuPosition}
