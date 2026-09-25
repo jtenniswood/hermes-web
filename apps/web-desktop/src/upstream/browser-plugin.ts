@@ -447,8 +447,11 @@ export function enableBrowserUngroupedSessions(source: string, surface: 'store' 
   const replacements: Record<typeof surface, [string, string][]> = {
     store: [
       ["export type SidebarGrouping = 'date' | 'profile' | 'project' | 'status'", "export type SidebarGrouping = 'none' | 'date' | 'profile' | 'project' | 'status'"],
-      ["oneOf(['date', 'status'], 'date')", "oneOf(['none', 'date', 'status'], 'date')"],
-      ["oneOf(['date', 'profile', 'status'], 'date')", "oneOf(['none', 'date', 'profile', 'status'], 'date')"]
+      ["SIDEBAR_GROUPING_STORAGE_KEY,\n  'date',", "SIDEBAR_GROUPING_STORAGE_KEY,\n  'none',"],
+      ["oneOf(['date', 'status'], 'date')", "oneOf(['none', 'date', 'status'], 'none')"],
+      ["SIDEBAR_ALL_PROFILES_GROUPING_STORAGE_KEY,\n  'date',", "SIDEBAR_ALL_PROFILES_GROUPING_STORAGE_KEY,\n  'none',"],
+      ["oneOf(['date', 'profile', 'status'], 'date')", "oneOf(['none', 'date', 'profile', 'status'], 'none')"],
+      ["const SIDEBAR_DEFAULT_GROUPING: SidebarGrouping = 'date'", "const SIDEBAR_DEFAULT_GROUPING: SidebarGrouping = 'none'"]
     ],
     menu: [["const GROUPINGS: Option<SidebarGrouping>[] = [", "const GROUPINGS: Option<SidebarGrouping>[] = [\n  { icon: 'list-unordered', id: 'none', label: 'None' },"]],
     sidebar: [["grouping={showArchived || rankedGlobally ? 'none'", "grouping={grouping === 'none' || showArchived || rankedGlobally ? 'none'"]]
