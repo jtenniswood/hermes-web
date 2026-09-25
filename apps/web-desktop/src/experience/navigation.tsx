@@ -36,13 +36,13 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
   useEffect(() => { writeBrowserPreference('navigationWidth', String(width)) }, [width])
   useEffect(() => {
     if (!drawerOpen) return
-    drawer.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    drawer.current?.querySelector<HTMLButtonElement>('[data-browser-navigation-close]')?.focus()
     const keydown = (event: KeyboardEvent) => {
       // Portaled controls own focus and Escape until they are dismissed.
       if (event.defaultPrevented || (event.target instanceof Element && event.target.closest('[role="menu"], [data-browser-action-surface]'))) return
-      if (event.key === 'Escape') { setDrawerOpen(false); trigger.current?.focus() }
+      if (event.key === 'Escape') { setDrawerOpen(false); requestAnimationFrame(() => trigger.current?.focus()) }
       if (event.key !== 'Tab') return
-      const items = [trigger.current, ...Array.from(drawer.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input,select,[tabindex="0"]') || [])].filter((el): el is HTMLElement => Boolean(el?.getClientRects().length))
+      const items = Array.from(drawer.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input,select,[tabindex="0"]') || []).filter(el => Boolean(el.getClientRects().length))
       const first = items[0], last = items.at(-1)
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
@@ -55,7 +55,7 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
     open: compact ? drawerOpen : !collapsed,
     toggle: () => compact ? setDrawerOpen(open => !open) : setCollapsed(value => !value),
     closeDrawer: () => setDrawerOpen(false),
-    dismissDrawer: () => { setDrawerOpen(false); trigger.current?.focus() },
+    dismissDrawer: () => { setDrawerOpen(false); requestAnimationFrame(() => trigger.current?.focus()) },
     toggleTab(value: NavigationTab) {
       setVisibleTabs(current => {
         if (current.includes(value)) return current.length === 1 ? current : current.filter(item => item !== value)
@@ -80,6 +80,7 @@ export function BrowserNavigationTabs({ navigation }: { navigation: Navigation }
   }
   return <>
     <div className="browser-navigation-heading">
+      <BrowserToolbarButton tooltip="Back to chat" className="browser-navigation-back" data-browser-navigation-close="" aria-label="Back to chat" onClick={navigation.dismissDrawer}><Codicon name="arrow-left" size="1rem" /></BrowserToolbarButton>
       <div className="browser-navigation-tabs" role="tablist" aria-label="Navigation" onContextMenu={showActions}>
         {visibleTabs.map((value, index) => <button key={value} type="button" role="tab" tabIndex={tab === value ? 0 : -1} aria-selected={tab === value} onKeyDown={event => {
           const next = event.key === 'ArrowRight' ? visibleTabs[(index + 1) % visibleTabs.length] : event.key === 'ArrowLeft' ? visibleTabs[(index + visibleTabs.length - 1) % visibleTabs.length] : null
