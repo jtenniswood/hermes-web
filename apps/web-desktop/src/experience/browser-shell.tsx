@@ -1,6 +1,7 @@
 import { BrowserToolModal } from './tool-modal'
 import { BrowserModal } from './ui/modal'
 import { BrowserToolbarButton } from './ui/toolbar-button'
+import { useMobileSubmenus } from './ui/use-mobile-submenus'
 import { BrowserNavigationTabs, BrowserNavigationResizer, useBrowserNavigation } from './navigation'
 import { BrowserProfileNavigation } from './profile-navigation'
 import { BrowserGatewayPanel, useBrowserGatewayStatus } from '../upstream/browser-gateway-panel'
@@ -22,6 +23,7 @@ export function BrowserShell() {
   </SidebarProvider>
 }
 function BrowserLayout() {
+  useMobileSubmenus()
   const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
   const [versionTarget, setVersionTarget] = useState<HTMLDivElement | null>(null)
   const navigate = useNavigate(), location = useLocation()

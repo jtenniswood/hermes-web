@@ -100,6 +100,7 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
     </div>
     <BrowserActionSurface
       title="Profile actions"
+      hideTitle
       anchor={profileContextMenuPosition}
       compact={compact}
       fallbackFocus={actionsTrigger}
@@ -110,8 +111,8 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
           label: 'Profiles',
           actions: [
             {
-              key: 'add-profiles',
-              label: 'Add Profiles',
+              key: 'all-profiles',
+              label: 'All Profiles',
               checked: !hideAllProfilesButton,
               keepOpen: true,
               run: () => setHideAllProfilesButton(value => !value)

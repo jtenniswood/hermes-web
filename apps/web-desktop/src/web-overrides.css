@@ -93,8 +93,23 @@ body > [data-radix-popper-content-wrapper] > :is(
 
 /* Upstream session/action menus use Radix poppers. On phones, present their
    complete action lists as bottom sheets so the menu remains usable by touch
-   and retains upstream commands, labels, and submenu behavior. */
+   and retains upstream commands and labels. */
 @media (max-width: 47.999rem), (pointer: coarse) and (max-height: 27rem) {
+  /* Keep ancestors mounted for Radix's selection and dismissal handling, but
+     show only the active sheet. Submenus are portaled outside their parents. */
+  body > [data-radix-popper-content-wrapper]:has(> :is(
+    [data-slot='dropdown-menu-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-sub-content']
+  ) :is(
+    [data-slot='dropdown-menu-sub-trigger'],
+    [data-slot='context-menu-sub-trigger']
+  )[data-state='open']) {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   body > [data-radix-popper-content-wrapper]:has(> [data-slot='dropdown-menu-content']),
   body > [data-radix-popper-content-wrapper]:has(> [data-slot='context-menu-content']),
   body > [data-radix-popper-content-wrapper]:has(> [data-slot='dropdown-menu-sub-content']),
