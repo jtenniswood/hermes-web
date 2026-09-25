@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Conversation scroll fixture</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px sans-serif; }
+  [data-browser-shell] { height: calc(100vh / var(--scale, 1)); zoom: var(--scale, 1); }
+  [data-slot="aui_thread-viewport"] { height: 100%; overflow: auto; overflow-anchor: none; }
+  [data-slot="aui_thread-viewport"][data-following="false"] { overflow-anchor: auto; }
+  [data-slot="aui_thread-content"] { min-height: 100%; display: flex; flex-direction: column; padding: 12px 20px 0; }
+  [data-slot="aui_message-group"] { display: flex; flex-direction: column; padding-bottom: 20px; }
+  [data-slot="aui_turn-pair"] { position: relative; display: flex; flex-direction: column; gap: 20px; }
+  [data-slot="aui_user-message-root"] { position: sticky; top: 0; background: #ddd; padding: 12px; }
+  [data-slot="aui_composer-clearance"] { height: 100px; flex-shrink: 0; }
+  form { position: absolute; bottom: 0; left: 20px; right: 20px; height: 90px; background: white; border: 1px solid; }
+  [contenteditable] { min-height: 40px; }
+</style>
+<div id="root"></div>
+<script type="module">
+  import React, { useState, useEffect } from 'react'
+  import { createRoot } from 'react-dom/client'
+  import { useStickToBottom } from 'use-stick-to-bottom'
+  import { installConversationSubmitScroll } from '../../../apps/web-desktop/src/experience/ui/submit-scroll.ts'
+
+  const h = React.createElement
+  function Chat() {
+    const [turns, setTurns] = useState([{ id: 0, text: 'Earlier question', height: 200 }])
+    const [conversation, setConversation] = useState('initial')
+    const { scrollRef, contentRef, scrollToBottom, isAtBottom } = useStickToBottom({ initial: 'instant', resize: 'instant' })
+    useEffect(() => installConversationSubmitScroll(), [])
+    const submit = event => {
+      event.preventDefault()
+      const input = document.querySelector('[contenteditable]')
+      if (!input.textContent.trim()) return
+      const text = input.textContent
+      setTurns(previous => [...previous, { id: previous.at(-1).id + 1, text, height: 0 }])
+      input.textContent = ''
+      void scrollToBottom()
+    }
+    window.growReply = height => setTurns(previous => previous.map((turn, i) => i === previous.length - 1 ? { ...turn, height } : turn))
+    window.completeReply = () => setTurns(previous => previous.map(turn => ({ ...turn, id: `saved-${turn.id}` })))
+    window.switchConversation = () => {
+      setConversation('other')
+      setTurns(previous => [{ id: 99, text: previous.at(-1).text, height: 50 }])
+    }
+    return h('div', { 'data-browser-shell': '', 'data-browser-conversation-id': conversation },
+      h('div', { 'data-slot': 'aui_thread-viewport', 'data-following': String(isAtBottom), ref: scrollRef },
+        h('div', { 'data-slot': 'aui_thread-content', ref: contentRef },
+          ...turns.map(turn => h('div', { key: turn.id, 'data-slot': 'aui_message-group' },
+            h('div', { 'data-slot': 'aui_turn-pair' },
+              h('div', { 'data-slot': 'aui_user-message-root', 'data-message-id': String(turn.id) }, turn.text),
+              h('div', { 'data-reply': '', style: { minHeight: turn.height } }, turn.height ? 'Generated response' : null)))),
+          h('div', { 'data-slot': 'aui_composer-clearance' }))),
+      h('form', { 'data-slot': 'composer-root', onSubmit: submit },
+        h('div', { contentEditable: true, 'data-slot': 'composer-rich-input', onKeyDown: event => {
+          if (event.key === 'Enter' && !event.shiftKey) submit(event)
+        } }),
+        h('button', { type: 'submit' }, 'Send')))
+  }
+  createRoot(document.getElementById('root')).render(h(Chat))
+</script>
+</html>
