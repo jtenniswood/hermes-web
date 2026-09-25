@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
-import { useCompactBrowser } from './use-compact-browser'
+import { useMobileBrowser } from './use-compact-browser'
 
 const subTrigger = '[data-slot="dropdown-menu-sub-trigger"], [data-slot="context-menu-sub-trigger"]'
 const subContent = '[data-slot="dropdown-menu-sub-content"], [data-slot="context-menu-sub-content"]'
 
 /** Adapt renderer-owned Radix submenus to the browser's single mobile sheet. */
 export function useMobileSubmenus() {
-  const compact = useCompactBrowser()
+  const compact = useMobileBrowser()
   useEffect(() => {
     if (!compact) return
     let focusFrame = 0

@@ -3,7 +3,7 @@ import { APP_ROUTES, Codicon, type StatusbarItem } from '../upstream/browser-api
 import { useBrowserSettings } from '../upstream/settings'
 import { BrowserActionSurface, type BrowserActionAnchor, type BrowserActionGroup } from './ui/action-surface'
 import { BrowserToolbarButton } from './ui/toolbar-button'
-import { useCompactBrowser } from './ui/use-compact-browser'
+import { useMobileBrowser } from './ui/use-compact-browser'
 
 const TOOL_ROUTE_META: Record<string, { label: string; icon: string }> = {
   'command-center': { label: 'Command center', icon: 'symbol-misc' },
@@ -43,7 +43,7 @@ type SettingsMenuProps = {
 }
 
 export function SettingsMenu({ triggerRef, backendVersion, onOpenGateway, onOpenPanel, onOpenRoute, panelPanes }: SettingsMenuProps) {
-  const compact = useCompactBrowser()
+  const compact = useMobileBrowser()
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
   const model = useBrowserSettings(panelPanes.map(pane => ({ id: pane.id, collapsible: Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible) })))
   const groups: BrowserActionGroup[] = [

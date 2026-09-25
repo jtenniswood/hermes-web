@@ -3,7 +3,7 @@ import { useBrowserSidebarSections } from './sidebar-sections'
 import { Codicon } from '../upstream/browser-api'
 import { BrowserActionSurface, type BrowserActionAnchor } from './ui/action-surface'
 import { BrowserToolbarButton } from './ui/toolbar-button'
-import { useCompactBrowser } from './ui/use-compact-browser'
+import { useCompactBrowser, useMobileBrowser } from './ui/use-compact-browser'
 import { $conversationOpenRequest } from './conversation-navigation'
 import { clampNavigationWidth, DEFAULT_NAVIGATION_WIDTH, MAX_NAVIGATION_WIDTH, MIN_NAVIGATION_WIDTH, NAVIGATION_TAB_LABELS, NAVIGATION_TABS, readNavigationTab, readNavigationWidth, readVisibleNavigationTabs, type NavigationTab, writeBrowserPreference } from './browser-preferences'
 
@@ -76,7 +76,8 @@ type Navigation = ReturnType<typeof useBrowserNavigation>
 export function BrowserNavigationTabs({ navigation }: { navigation: Navigation }) {
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
   const actionsTrigger = useRef<HTMLButtonElement>(null)
-  const { tab, setTab, visibleTabs, compact, open } = navigation
+  const { tab, setTab, visibleTabs, open } = navigation
+  const compact = useMobileBrowser()
   useEffect(() => { if (!open) setAnchor(null) }, [open])
   const showActions = (event: MouseEvent<HTMLElement>) => {
     event.preventDefault()

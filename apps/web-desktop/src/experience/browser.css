@@ -149,11 +149,16 @@
 .browser-empty { padding:var(--web-space-4); font-size:var(--web-text-body); color:var(--web-text-subtle); }
 .browser-scrim { display:none; }
 @media (width < 48rem), (pointer:coarse) and (max-height:27rem) {
- .browser-chat-toolbar { position:relative; z-index:2; grid-template-columns:max-content minmax(0,1fr); gap:var(--web-space-1); height:auto; min-height:var(--web-touch-target); }
+ .browser-chat-toolbar { position:relative; z-index:2; grid-template-columns:max-content minmax(0,1fr); gap:var(--web-space-1); height:auto; min-height:var(--web-toolbar-height); }
  .browser-chat-toolbar .browser-actions { min-width:0; gap:var(--web-space-1); }
  .browser-navigation { box-sizing:border-box; position:absolute; inset:0; z-index:61; width:100%; padding:calc(env(safe-area-inset-top,0px) / var(--web-ui-scale,1)) calc(env(safe-area-inset-right,0px) / var(--web-ui-scale,1)) calc(env(safe-area-inset-bottom,0px) / var(--web-ui-scale,1)) calc(env(safe-area-inset-left,0px) / var(--web-ui-scale,1)); transform:translateY(.5rem); opacity:0; visibility:hidden; transition:transform 160ms ease,opacity 160ms ease,visibility 160ms; box-shadow:none; }
  .browser-navigation.is-open { transform:none; opacity:1; visibility:visible; }
  .browser-navigation-back:hover,.browser-navigation-back:focus-visible { background:var(--web-hover); color:var(--web-text); }
+ .browser-navigation-resizer { display:none; }
+ .browser-scrim { display:none; }
+}
+@media (pointer: coarse) and (width < 48rem), (pointer: coarse) and (max-height: 27rem) {
+ .browser-chat-toolbar { min-height:var(--web-touch-target); }
  .browser-navigation-heading { min-height:var(--web-touch-target); }
  .browser-navigation-tabs button { min-width:var(--web-touch-target); min-height:var(--web-touch-target); font-size:var(--web-text-caption); }
  .browser-navigation .browser-profile-actions-trigger { width:var(--web-touch-target); height:var(--web-touch-target); flex-basis:var(--web-touch-target); }
@@ -172,8 +177,6 @@
  .browser-profile-slot { flex-basis:var(--web-touch-target); }
  .browser-update-panel-heading button { min-width:var(--web-touch-target); min-height:var(--web-touch-target); }
  .browser-overlay-title button { box-sizing:border-box; min-width:var(--web-touch-target); min-height:var(--web-touch-target); }
- .browser-navigation-resizer { display:none; }
- .browser-scrim { display:none; }
  .browser-statusbar { height:auto; min-height:var(--web-touch-target); padding:var(--web-space-1) var(--web-space-2); gap:var(--web-space-1); }
  .browser-status-controls :is(button,a) { min-height:var(--web-touch-target); height:auto; font-size:var(--web-text-label); padding:.3rem var(--web-space-2); }
 }
@@ -237,7 +240,7 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-roster-action-row:is(:hover,:has(:focus-visible),:has(> [aria-expanded="true"])) > [data-roster-key] > div:last-child > div:first-child > span:last-child { opacity:0; }
 /* Touch has no rollover: show the action in that same cell, with a full touch
    target. The desktop keyboard can still tab to the transparent trigger. */
-@media (width < 48rem), (hover:none), (pointer:coarse) {
+@media (hover:none), (pointer:coarse) {
   .browser-roster-action-row > [data-roster-key] { min-height:var(--web-touch-target); }
   .browser-roster-action-row > [data-roster-key] > div:last-child { padding-inline-end:var(--web-touch-target); }
   .browser-roster-action-row:has(> [data-roster-key]) > .browser-roster-action-trigger { width:var(--web-touch-target); height:var(--web-touch-target); inset-inline-end:.25rem; opacity:1; pointer-events:auto; }
@@ -246,7 +249,7 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-bot-section-heading { display: flex; align-items: center; gap: var(--web-space-1); min-width: 0; width: 100%; padding: var(--web-space-1) var(--web-space-2); text-align: left; font-size:var(--web-text-label); font-weight: 600; color: var(--web-text-subtle); }
 .browser-bot-section-heading > span:not(.browser-bot-section-count) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .browser-bot-section-count { margin-left: auto; }
-@media (width < 48rem), (pointer: coarse) and (max-height: 27rem) {
+@media (pointer: coarse) and (width < 48rem), (pointer: coarse) and (max-height: 27rem) {
   .browser-bot-section-heading { min-height: var(--web-touch-target); }
 }
 

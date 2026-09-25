@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
 import { BrowserActionSurface, type BrowserActionAnchor } from './ui/action-surface'
 import { BrowserToolbarButton } from './ui/toolbar-button'
-import { useCompactBrowser } from './ui/use-compact-browser'
+import { useMobileBrowser } from './ui/use-compact-browser'
 import { BotFace, avatarColor, Codicon, Tip } from '../upstream/browser-api'
 import { useBrowserProfiles } from '../upstream/profiles'
 import { readHideAllProfilesButton, readHiddenProfiles, writeBrowserPreference } from './browser-preferences'
 
 export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean }) {
   const model = useBrowserProfiles()
-  const compact = useCompactBrowser()
+  const compact = useMobileBrowser()
   const actionsTrigger = useRef<HTMLButtonElement>(null), draggedProfile = useRef<string | null>(null)
   const [draggingProfile, setDraggingProfile] = useState<string | null>(null)
   const [dropTargetProfile, setDropTargetProfile] = useState<{ key: string; after: boolean } | null>(null)

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BrowserActionSurface, type BrowserActionAnchor, type BrowserAction } from './ui/action-surface'
-import { useCompactBrowser } from './ui/use-compact-browser'
+import { useMobileBrowser } from './ui/use-compact-browser'
 
 const HIDDEN_SECTIONS_KEY = 'hermes-web.browser.hidden-sections'
 const PINNED_HIDDEN_KEY = 'hermes-web.browser.pinned-section-hidden'
@@ -49,7 +49,7 @@ export function useBrowserSidebarSections() {
 }
 
 export function BrowserSessionsPane({ hidden, sections, children }: { hidden: boolean; sections: ReturnType<typeof useBrowserSidebarSections>; children: ReactNode }) {
-  const compact = useCompactBrowser()
+  const compact = useMobileBrowser()
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
   const pane = useRef<HTMLDivElement>(null)
   const fallback = { current: document.querySelector<HTMLButtonElement>('.browser-navigation-actions-trigger') }

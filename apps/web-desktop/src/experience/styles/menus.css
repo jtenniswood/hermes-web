@@ -265,7 +265,7 @@
 /* Upstream session/action menus use Radix poppers. On phones, present their
    complete action lists as bottom sheets so the menu remains usable by touch
    and retains upstream commands and labels. */
-@media (width < 48rem), (pointer: coarse) and (max-height: 27rem) {
+@media (pointer: coarse) and (width < 48rem), (pointer: coarse) and (max-height: 27rem) {
   /* Keep ancestors mounted for Radix's selection and dismissal handling, but
      show only the active sheet. Submenus are portaled outside their parents. */
   body > [data-radix-popper-content-wrapper]:has(> :is(

@@ -54,10 +54,9 @@
   --web-sheet-padding-bottom: max(var(--web-space-3), calc(env(safe-area-inset-bottom, 0px) / var(--web-ui-scale, 1)));
 }
 
-/* Density follows both viewport and input: a wide touch tablet keeps the
-   desktop layout while receiving comfortable controls. Layout switching is
-   separately owned by useCompactBrowser and the shell/menu media rules. */
-@media (width < 48rem), (pointer: coarse) {
+/* Density follows the primary input. Narrow mouse windows keep desktop
+   controls; wide touch tablets still receive comfortable touch targets. */
+@media (pointer: coarse) {
   :root {
     --web-control-regular: max(2.25rem, var(--web-touch-target));
     --web-control-compact: max(1.5rem, var(--web-touch-target));

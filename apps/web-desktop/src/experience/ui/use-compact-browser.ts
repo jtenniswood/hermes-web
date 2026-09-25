@@ -10,7 +10,20 @@ function subscribe(change: () => void) {
   return () => media.removeEventListener('change', change)
 }
 
-/** Use the same physical viewport breakpoint as the browser navigation. */
+/** Width controls navigation visibility independently of input and density. */
 export function useCompactBrowser() {
   return useSyncExternalStore(subscribe, () => window.matchMedia(query).matches, () => false)
+}
+
+function subscribePointer(change: () => void) {
+  const media = window.matchMedia('(pointer: coarse)')
+  media.addEventListener('change', change)
+  return () => media.removeEventListener('change', change)
+}
+
+/** Only touch-first compact windows use sheets and mobile interactions. */
+export function useMobileBrowser() {
+  const compact = useCompactBrowser()
+  const touch = useSyncExternalStore(subscribePointer, () => window.matchMedia('(pointer: coarse)').matches, () => false)
+  return compact && touch
 }
