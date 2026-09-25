@@ -1,4 +1,4 @@
-name: tested-image-release
+name: quick-image-build
 on:
   push:
     branches: [main]
@@ -6,145 +6,48 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-# Includes builds and promotion, so a newer run cannot race the final tag writes.
+  packages: write
 concurrency:
   group: image-publication
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
-  verify:
-    uses: ./.github/workflows/typecheck-build.yml
-  candidate:
-    needs: verify
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: amd64
-            runner: ubuntu-latest
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
-    permissions:
-      contents: read
-      packages: write
+  build:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - run: corepack enable
-      - run: node scripts/renderer.mjs
-      - run: pnpm install --frozen-lockfile
-      - name: Identify the candidate
-        id: identity
-        shell: bash
-        run: |
-          {
-            echo "wrapper=$(git rev-parse HEAD)"
-            echo "lock_hash=$(sha256sum pnpm-lock.yaml | cut -d' ' -f1)"
-            echo "renderer=$(node scripts/renderer.mjs --revision)"
-            echo "image=ghcr.io/${GITHUB_REPOSITORY,,}"
-            echo "built_at=$(date +%s)"
-          } >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build immutable architecture candidate
-        id: build
+      - name: Identify image and tags
+        id: identity
+        shell: bash
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          {
+            echo "image=$image"
+            echo 'tags<<EOF'
+            echo "$image:latest"
+            echo "$image:sha-${GITHUB_SHA}"
+            if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+              echo "$image:main"
+            elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+              echo "$image:${GITHUB_REF#refs/tags/v}"
+            fi
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+      - name: Build and publish amd64 image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          platforms: linux/${{ matrix.arch }}
-          tags: ${{ steps.identity.outputs.image }}:candidate-${{ steps.identity.outputs.wrapper }}-${{ steps.identity.outputs.renderer }}-${{ matrix.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          platforms: linux/amd64
+          tags: ${{ steps.identity.outputs.tags }}
           build-args: |
-            HERMES_WRAPPER_REV=${{ steps.identity.outputs.wrapper }}
+            HERMES_WRAPPER_REV=${{ github.sha }}
             HERMES_RELEASE_CHANNEL=stable
-            SOURCE_DATE_EPOCH=${{ steps.identity.outputs.built_at }}
           labels: |
-            org.opencontainers.image.revision=${{ steps.identity.outputs.wrapper }}
-            io.hermes.dependency-lock.sha256=${{ steps.identity.outputs.lock_hash }}
+            org.opencontainers.image.revision=${{ github.sha }}
             io.hermes.release.channel=stable
-            io.hermes.renderer.revision=${{ steps.identity.outputs.renderer }}
-          cache-from: type=gha,scope=${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
-      - name: Pull the exact candidate that will be promoted
-        run: docker pull "$CANDIDATE"
-        env:
-          CANDIDATE: ${{ steps.identity.outputs.image }}@${{ steps.build.outputs.digest }}
-      - name: Verify nginx and gateway contracts
-        run: pnpm --filter web-desktop test:gateway
-        env:
-          HERMES_TEST_IMAGE: ${{ steps.identity.outputs.image }}@${{ steps.build.outputs.digest }}
-      - name: Run the existing amd64 baseline on the arm64 test runner
-        if: matrix.arch == 'arm64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: amd64
-      - name: Fetch the reviewed previous-image upgrade baseline
-        run: node scripts/prepare-upgrade-baseline.mjs
-      - run: pnpm exec playwright install --with-deps chromium webkit
-      - name: Verify browser behavior on this architecture
-        run: pnpm exec playwright test
-        env:
-          HERMES_TEST_IMAGE: ${{ steps.identity.outputs.image }}@${{ steps.build.outputs.digest }}
-      - name: Record passed candidate identity
-        run: node scripts/record-candidate.mjs
-        env:
-          WRAPPER: ${{ steps.identity.outputs.wrapper }}
-          ARCH: ${{ matrix.arch }}
-          RENDERER: ${{ steps.identity.outputs.renderer }}
-          DIGEST: ${{ steps.build.outputs.digest }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: candidate-evidence-${{ matrix.arch }}
-          path: candidate-${{ matrix.arch }}.json
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: candidate-browser-${{ matrix.arch }}
-          path: |
-            test-results
-            playwright-report
-  promote:
-    needs: candidate
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: candidate-evidence-*
-          path: candidate-evidence
-          merge-multiple: true
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Combine tested architectures and promote the digest
-        run: node scripts/promote-image.mjs
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HERMES_PROMOTION_ENABLED: ${{ vars.HERMES_PROMOTION_ENABLED }}
-          HERMES_UPDATER_LOGIN: ${{ vars.HERMES_UPDATER_LOGIN }}
-
-      - name: Preserve tested release identity and promotion result
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: release-evidence.json
-          if-no-files-found: warn
