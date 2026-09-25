@@ -47,6 +47,13 @@ http {
             add_header Cache-Control "no-store";
         }
 
+        # Stable URLs change between releases. Always fetch the current shell,
+        # worker scripts, and build identity instead of an intermediary's copy.
+        location ~ ^/(?:index\.html|sw\.js|notifications-sw\.js|update-coordinator-sw\.js|manifest\.webmanifest|build-info\.json)$ {
+            add_header Cache-Control "no-store" always;
+            try_files $uri =404;
+        }
+
         # Cache static build assets aggressively (content-hashed filenames).
         location /assets/ {
             expires 30d;
@@ -101,6 +108,7 @@ http {
 
         # SPA fallback: any unknown route serves the app shell (hash-routed SPA).
         location / {
+            add_header Cache-Control "no-cache" always;
             try_files $uri $uri/ /index.html;
         }
     }

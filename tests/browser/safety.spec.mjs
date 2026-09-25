@@ -97,6 +97,14 @@ test('nginx serves the built app and uncached identity; API stays available for 
   await expect(page.getByText('This app connects to the server configured by its operator.')).toBeVisible()
   const config = await page.request.get(`${origin}/runtime-config.js`)
   expect(config.headers()['cache-control']).toBe('no-store')
+  for (const path of ['/', '/index.html', '/some-client-route', '/sw.js', '/notifications-sw.js', '/update-coordinator-sw.js', '/manifest.webmanifest', '/build-info.json']) {
+    const response = await page.request.get(`${origin}${path}`)
+    expect(response.status(), path).toBe(200)
+    expect(response.headers()['cache-control'], path).toBe('no-store')
+  }
+  const entry = await page.locator('script[type="module"][src]').getAttribute('src')
+  const asset = await page.request.get(new URL(entry, origin).href)
+  expect(asset.headers()['cache-control']).toContain('immutable')
   expect((await page.request.get(`${origin}/api/status`)).status()).toBe(200)
   const info = await (await page.request.get(`${origin}/build-info.json`)).json()
   expect(info.rendererRevision).toMatch(/^[a-f0-9]{40}$/)
@@ -104,6 +112,33 @@ test('nginx serves the built app and uncached identity; API stays available for 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.screenshot({ path: testInfo.outputPath('gateway-recovery-phone.png'), fullPage: true })
   expect(errors).toEqual([])
+})
+
+test('a controlling service worker leaves build metadata and Cloudflare callbacks on the network', async ({ page }) => {
+  await page.goto(origin)
+  await page.evaluate(() => navigator.serviceWorker.ready)
+  await page.waitForFunction(() => navigator.serviceWorker.controller)
+  const metadata = await page.goto(`${origin}/build-info.json`)
+  expect(metadata.fromServiceWorker()).toBe(false)
+  expect((await metadata.json()).rendererRevision).toMatch(/^[a-f0-9]{40}$/)
+
+  // Stand in for the edge's callback handler. A cached navigation fallback
+  // would swallow this request before the browser can reach that handler.
+  await page.route('**/cdn-cgi/access/authorized*', route => route.fulfill({ contentType: 'text/plain', body: 'Cloudflare callback reached' }))
+  const callback = await page.goto(`${origin}/cdn-cgi/access/authorized?state=fixture`)
+  expect(callback.fromServiceWorker()).toBe(false)
+  await expect(page.locator('body')).toHaveText('Cloudflare callback reached')
+})
+
+test('returning to an open app discovers an update without replacing its draft', async ({ page }) => {
+  await openFixture(page)
+  await page.getByRole('textbox', { name: 'Draft' }).fill('Keep this draft until I choose to update')
+  await page.evaluate(() => { window.previousDocument = true })
+  workerVersion++
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect(page.getByRole('button', { name: 'Update when safe' })).toBeVisible()
+  expect(await page.evaluate(() => window.previousDocument)).toBe(true)
+  await expect(page.getByRole('textbox', { name: 'Draft' })).toHaveValue('Keep this draft until I choose to update')
 })
 
 test('storage migration binds only the matching connection and survives a reload', async ({ page }) => {

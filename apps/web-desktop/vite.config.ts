@@ -288,9 +288,9 @@ export default defineConfig(({ command, mode }) => {
         globIgnores: ['**/gateway-config.js', '**/runtime-config.js', '**/build-info.json'],
         maximumFileSizeToCacheInBytes: 32 * 1024 * 1024,
         navigateFallback: 'index.html',
-        // Never hijack the gateway: /api (REST + WS upgrade), /auth, /login
-        // must always hit the network.
-        navigateFallbackDenylist: [/^\/(?:api|auth|login|plugins)(?:\/|$)/, /^\/(?:runtime-config|gateway-config)\.js$/]
+        // Gateway, proxy sign-in callbacks, and deployment metadata must hit
+        // the network even while an older app shell controls this browser.
+        navigateFallbackDenylist: [/^\/(?:api|auth|login|plugins|desktop-plugins|cdn-cgi)(?:\/|$)/, /^\/(?:runtime-config|gateway-config)\.js$/, /^\/build-info\.json$/]
       },
       devOptions: {
         // Keep the SW off in dev so it can't shadow the Vite proxy.

@@ -117,6 +117,20 @@ export function registerPwa(): void {
         const installing = registration.installing
         installing?.addEventListener('statechange', () => { if (installing.state === 'installed') showUpdate(registration) })
       })
+      // Installed apps can stay open across deployments without another page load.
+      // Discover updates in the background; activation still requires the safe-update handshake.
+      let checking = false
+      const checkForUpdate = async () => {
+        if (checking || registration.installing || document.visibilityState === 'hidden' || navigator.onLine === false) return
+        checking = true
+        try { await registration.update(); showUpdate(registration) }
+        catch { /* Offline or expired proxy sign-in: retry after reconnecting. */ }
+        finally { checking = false }
+      }
+      window.addEventListener('online', checkForUpdate)
+      window.addEventListener('focus', checkForUpdate)
+      document.addEventListener('visibilitychange', checkForUpdate)
+      window.setInterval(checkForUpdate, 60_000)
     } catch { /* The shell and connection recovery remain usable without a worker. */ }
   }
   if (document.readyState === 'complete') void register()
