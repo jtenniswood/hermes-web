@@ -47,7 +47,6 @@ export function SettingsMenu({ triggerRef, backendVersion, onOpenGateway, onOpen
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
   const model = useBrowserSettings(panelPanes.map(pane => ({ id: pane.id, collapsible: Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible) })))
   const groups: BrowserActionGroup[] = [
-    { key: 'notifications', label: 'Notifications', actions: [{ key: 'activity-toasts', label: 'Activity toasts', checked: model.activityToasts.enabled, icon: <Codicon name={model.activityToasts.enabled ? 'bell' : 'bell-slash'} size="1rem" />, run: model.activityToasts.toggle }] },
     { key: 'panels', label: 'Panels', actions: model.panels.map(panel => {
       const title = String(panelPanes.find(pane => pane.id === panel.id)?.title || panel.id)
       return { key: panel.id, label: sentenceCase(title), ariaLabel: title, checked: panel.checked, icon: <Codicon name={panel.id === 'review' ? 'git-compare' : 'files'} size="1rem" />, afterClose: true, run: () => { if (panel.select()) onOpenPanel() } }
