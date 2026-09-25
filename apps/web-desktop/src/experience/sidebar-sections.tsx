@@ -11,7 +11,7 @@ type SidebarSection = { key: string; label: string }
 function readHiddenSections(): string[] {
   try {
     const saved = JSON.parse(localStorage.getItem(HIDDEN_SECTIONS_KEY) || 'null')
-    if (Array.isArray(saved)) return saved.filter((value): value is string => typeof value === 'string')
+    if (Array.isArray(saved)) return saved.filter((value): value is string => typeof value === 'string' && value !== 'sessions')
     // Carry forward section preferences from versions that only exposed these two options.
     const hidden: string[] = []
     if (localStorage.getItem(PINNED_HIDDEN_KEY) === 'true') hidden.push('pinned')
@@ -41,9 +41,13 @@ export function useBrowserSidebarSections() {
   const actions: BrowserAction[] = availableSections.map(section => ({
     key: section.key,
     label: section.label,
-    checked: !hiddenSections.includes(section.key),
+    checked: section.key === 'sessions' || !hiddenSections.includes(section.key),
+    disabled: section.key === 'sessions',
     keepOpen: true,
-    run: () => setHiddenSections(current => current.includes(section.key) ? current.filter(key => key !== section.key) : [...current, section.key])
+    run: () => {
+      if (section.key === 'sessions') return
+      setHiddenSections(current => current.includes(section.key) ? current.filter(key => key !== section.key) : [...current, section.key])
+    }
   }))
   return { hiddenSections, setAvailableSections, actions }
 }
@@ -78,7 +82,7 @@ export function BrowserSessionsPane({ hidden, sections, children }: { hidden: bo
         const header = group.querySelector<HTMLElement>(':scope > [data-browser-section-header]')
         const label = sectionLabel(header)
         const key = label ? sectionKey(label, group) : ''
-        group.toggleAttribute('data-browser-section-hidden', Boolean(key) && sections.hiddenSections.includes(key))
+        group.toggleAttribute('data-browser-section-hidden', Boolean(key) && key !== 'sessions' && sections.hiddenSections.includes(key))
       }
       if (pinned) pinned.toggleAttribute('data-browser-section-hidden', sections.hiddenSections.includes('pinned'))
     }
