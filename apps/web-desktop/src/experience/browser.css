@@ -51,9 +51,9 @@
 .browser-navigation-section-list button { width:100%; height:1.75rem; display:flex; align-items:center; gap:.5rem; padding:0 .5rem; border:1px solid transparent; border-radius:var(--radius-md); color:var(--ui-text-secondary,var(--muted-foreground)); background:transparent; font:inherit; font-size:.8125rem; font-weight:500; text-align:left; cursor:pointer; }
 .browser-navigation-section-list button > .codicon { color:color-mix(in srgb,currentColor 72%,transparent); }
 .browser-navigation-section-list button:hover,.browser-navigation-section-list button:focus-visible { color:var(--foreground); background:var(--ui-control-hover-background,var(--browser-hover-fill)); outline:none; }
-.browser-profile-footer { position:relative; display:flex; flex-direction:column; align-items:stretch; gap:0; flex-shrink:0; padding:.6rem .75rem .7rem; background:var(--browser-navigation-background); }
+.browser-profile-footer { position:relative; display:flex; align-items:center; gap:.25rem; min-width:0; flex-shrink:0; padding:.6rem .75rem .7rem; background:var(--browser-navigation-background); }
 .browser-profile-footer[hidden] { display:none; }
-.browser-profile-rail { min-width:0; width:100%; display:flex; align-items:center; gap:.4rem; overflow-x:auto; scrollbar-width:none; }
+.browser-profile-rail { min-width:0; flex:1 1 auto; display:flex; align-items:center; gap:.4rem; overflow-x:auto; scrollbar-width:none; }
 .browser-profile-slot { position:relative; display:flex; align-items:center; flex:0 0 2.5rem; }
 .browser-profile-slot > .browser-profile-drop-indicator { position:absolute; top:50%; left:-.3rem; transform:translateY(-50%); }
 .browser-profile-choice img { pointer-events:none; -webkit-user-drag:none; }
@@ -189,7 +189,7 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-action-error button { flex-shrink:0; padding:.25rem .5rem; border:1px solid var(--border); border-radius:.25rem; background:transparent; color:inherit; cursor:pointer; }
 
 /* Browser-owned actions share commands and focus behavior across viewports. */
-.browser-profile-actions-trigger { display:inline-flex; align-items:center; justify-content:center; width:2.75rem; height:2.75rem; flex:0 0 2.75rem; border:0; border-radius:.6rem; background:transparent; color:var(--muted-foreground); cursor:pointer; }
+.browser-profile-actions-trigger { display:inline-flex; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; flex:0 0 2.5rem; border:0; border-radius:.6rem; background:transparent; color:var(--muted-foreground); cursor:pointer; }
 .browser-profile-actions-trigger:hover,.browser-profile-actions-trigger:focus-visible { background:var(--browser-hover-fill); color:var(--foreground); }
 .browser-action-anchor { position:fixed; width:0; height:0; padding:0; border:0; pointer-events:none; }
 .browser-action-menu { z-index:110; min-width:10rem; max-width:var(--radix-dropdown-menu-content-available-width); max-height:var(--radix-dropdown-menu-content-available-height); overflow:auto; padding:.3rem; border:1px solid var(--border); border-radius:.45rem; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 .5rem 1.5rem #0005; }
@@ -203,7 +203,6 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-action-sheet .browser-action-item { min-height:2.75rem; }
 .browser-action-close { flex-shrink:0; margin-top:.5rem; border-top:1px solid var(--border); justify-content:center; }
 
-.browser-profile-heading { display:flex; align-items:center; justify-content:space-between; color:var(--muted-foreground); font-size:.75rem; }
 @media (min-width:48rem) { .browser-profile-actions-trigger { height:1.75rem; } }
 
 .browser-action-menu,.browser-action-sheet { --browser-hover-fill:color-mix(in srgb,var(--primary,#4d86ff) 20%,var(--background)); }
