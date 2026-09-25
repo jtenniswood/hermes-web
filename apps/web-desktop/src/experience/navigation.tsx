@@ -4,6 +4,7 @@ import { Codicon } from '../upstream/browser-api'
 import { BrowserActionSurface, type BrowserActionAnchor } from './ui/action-surface'
 import { BrowserToolbarButton } from './ui/toolbar-button'
 import { useCompactBrowser } from './ui/use-compact-browser'
+import { $conversationOpenRequest } from './conversation-navigation'
 import { clampNavigationWidth, DEFAULT_NAVIGATION_WIDTH, MAX_NAVIGATION_WIDTH, MIN_NAVIGATION_WIDTH, NAVIGATION_TAB_LABELS, NAVIGATION_TABS, readNavigationTab, readNavigationWidth, readVisibleNavigationTabs, type NavigationTab, writeBrowserPreference } from './browser-preferences'
 
 /** Browser navigation preferences and focus never own the conversation state. */
@@ -23,6 +24,11 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
   const [visibleTabs, setVisibleTabs] = useState<NavigationTab[]>(readVisibleNavigationTabs)
   const previous = useRef({ selectionKey, path })
   useEffect(() => { setDrawerOpen(false) }, [compact])
+  useEffect(() => $conversationOpenRequest.listen(() => {
+    if (!drawerOpen) return
+    setDrawerOpen(false)
+    requestAnimationFrame(() => main.current?.focus())
+  }), [drawerOpen, main])
   useEffect(() => {
     if (previous.current.selectionKey !== selectionKey || previous.current.path !== path) {
       setDrawerOpen(false)

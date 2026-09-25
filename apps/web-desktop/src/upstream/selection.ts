@@ -1,6 +1,7 @@
 import { openSession } from '@/app/open-session'
 import { forgetSessionOwnerHintsForSession, requestSessionResume, sessionOwnerRouteFromRow } from '@/store/session'
 import { reportActionFailure } from '../experience/action-errors'
+import { notifyConversationOpen } from '../experience/conversation-navigation'
 import type { BrowserNavigate, BrowserSessionSelection } from '../experience/contracts/selection'
 
 /** Preserve row ownership before entering the shared browser selection owner. */
@@ -14,6 +15,7 @@ export function selectBrowserSession(selection: BrowserSessionSelection, navigat
       requestSessionResume(selection.sessionId)
     }
     openSession(selection.sessionId, navigate)
+    notifyConversationOpen()
   } catch {
     reportActionFailure('Could not open conversation.')
   }

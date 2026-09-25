@@ -19,7 +19,8 @@ function selectionHarness() {
     bumpBotOpenGeneration: () => { calls.push(['cancel']); return ++generation },
     getBotOpenGeneration: () => generation,
     openSession: (id, navigate) => context.exports.runBrowserSessionSelection(() => { if (fail) throw new Error('Navigation unavailable'); calls.push(['open', id]); navigate('/' + id) }),
-    reportActionFailure: message => errors.push(message)
+    reportActionFailure: message => errors.push(message),
+    notifyConversationOpen: () => {}
   }
   const context = vm.createContext({ exports: {}, require: () => dependencies })
   const evaluate = source => vm.runInContext('(function () {' + ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText + '\n})()', context)
