@@ -19,6 +19,15 @@ http {
         ''      close;
     }
 
+    # A TLS-terminating reverse proxy (such as Cloudflare) may connect to this
+    # nginx over HTTP while the browser is using HTTPS. Preserve its original
+    # scheme so the gateway builds correct OAuth redirects and secure cookies.
+    map $http_x_forwarded_proto $hermes_forwarded_proto {
+        default $scheme;
+        http    http;
+        https   https;
+    }
+
     gzip on;
     gzip_types text/plain text/css application/javascript application/json image/svg+xml;
 
@@ -52,8 +61,9 @@ http {
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
             proxy_set_header Host $http_host;
+            proxy_set_header X-Forwarded-Host $http_host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Proto $hermes_forwarded_proto;
             proxy_read_timeout 3600s;
         }
 
