@@ -502,26 +502,27 @@ test('short touch landscape uses phone surfaces while a taller touch tablet keep
 })
 
 for (const width of [390, 1440]) {
-  test(`backend version opens the backend updater at ${width}px`, async ({ page }) => {
+  test(`settings menu opens the backend updater at ${width}px`, async ({ page }) => {
     await page.route(/\/api\/hermes\/update\/check(?:\?|$)/, route => route.fulfill({ json: {
       current_version: 'synthetic-preview-v1', behind: 0, update_available: false, can_apply: true, commits: []
     } }))
     await page.setViewportSize({ width, height: 960 })
     await open(page)
-    if (width === 390) {
-      await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
-      await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeVisible()
-    }
-    const version = page.locator('.browser-backend-version').getByRole('button', { name: /backend vsynthetic-preview-v1/i })
+    await expect(page.locator('.browser-navigation')).not.toContainText('backend vsynthetic-preview-v1')
+    const settings = page.getByRole('button', { name: 'Open settings menu', exact: true })
+    await settings.click()
+    const surface = page.getByRole(width === 390 ? 'dialog' : 'menu', { name: 'Settings and workspace', exact: true })
+    const version = surface.getByRole(width === 390 ? 'button' : 'menuitem', { name: /backend vsynthetic-preview-v1/i })
     await expect(version).toBeVisible()
     const check = page.waitForRequest(request => request.url().includes('/api/hermes/update/check?force=true'))
     await version.click()
     await check
     const updater = page.getByRole('dialog').filter({ hasText: 'The backend is running the latest version.' })
     await expect(updater).toBeVisible()
+    await expect(surface).toBeHidden()
     await page.keyboard.press('Escape')
     await expect(updater).toBeHidden()
-    await expect(version).toBeFocused()
+    await expect(settings).toBeFocused()
   })
 
   test(`composer stays at the bottom while idle, running, and reconnecting at ${width}px`, async ({ page }) => {

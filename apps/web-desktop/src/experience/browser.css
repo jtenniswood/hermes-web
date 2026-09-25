@@ -129,9 +129,6 @@
 .browser-main [data-slot="composer-dock"]:not([data-popped-out]) { bottom:0 !important; }
 .browser-chat { flex:1; min-height:0; display:flex; flex-direction:column; position:relative; }
 .browser-status { flex-shrink:0; border-top:1px solid var(--web-border); }
-.browser-backend-version { display:flex; flex-shrink:0; padding:var(--web-space-1) var(--web-space-2); color:var(--web-text-subtle); border-top:1px solid var(--web-border); }
-.browser-backend-version:empty { display:none; }
-.browser-backend-version button { min-height:2.75rem; max-width:100%; }
 .browser-statusbar { display:flex; align-items:center; gap:var(--web-space-2); height:2.75rem; min-height:2.75rem; padding:var(--web-space-1) .8rem; background:var(--web-bg); }
 .browser-status-controls { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem; flex:0 0 auto; min-width:0; height:2.25rem; padding:0; background:none; }
 .browser-status-controls > :is(button,a,div) { min-height:2rem; height:2rem; display:inline-flex; align-items:center; gap:var(--web-space-2); padding:var(--web-space-1) var(--web-space-2); border:1px solid var(--web-border); border-radius:var(--web-radius-panel); color:var(--web-text); background:var(--web-bg); font-size:var(--web-text-caption); }
