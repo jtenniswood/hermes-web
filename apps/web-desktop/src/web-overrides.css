@@ -148,27 +148,6 @@ body > [data-slot='fan-menu'] {
     margin-block: 0.5rem;
   }
 
-  /* Boot-recovery's connection editor uses the same full-screen pattern, but
-     its card is a glass-opaque surface rather than `bg-card`. Keep the card
-     inside the dynamic viewport and give its SettingsContent child a real
-     bounded height; otherwise `h-full` resolves against the oversized card
-     and the inner scroll area grows instead of scrolling. */
-  [data-glass-opaque].fixed.inset-0:has(> div > .min-h-0.flex-1) {
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain;
-    padding-block: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-bottom)) !important;
-    touch-action: pan-y;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  [data-glass-opaque].fixed.inset-0:has(> div > .min-h-0.flex-1) > div {
-    flex: 0 0 auto;
-    height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
-    max-height: none !important;
-  }
-
   [data-tree-group][data-window-top]:has([data-zone-tabstrip]) [data-panel-header] {
     height: 62px !important;
   }
@@ -180,4 +159,39 @@ body > [data-slot='fan-menu'] {
     position: absolute;
     top: 34px;
   }
+}
+
+/* Recovery is portalled to the body, so it must follow the visible viewport
+   independently of #root. Bound the card and scroll its form, including on
+   short landscape screens and while the software keyboard is open. */
+[data-glass-opaque].fixed.inset-0:has(.browser-gateway-settings) {
+  box-sizing: border-box;
+  top: calc(var(--web-viewport-top, 0px) / var(--web-ui-scale, 1));
+  bottom: auto;
+  height: calc(var(--web-viewport-height, 100dvh) / var(--web-ui-scale, 1));
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+}
+
+[data-glass-opaque].fixed.inset-0:has(.browser-gateway-settings) > div {
+  min-height: 0;
+  max-height: 100%;
+}
+
+[data-glass-opaque].fixed.inset-0:has(.browser-gateway-settings) > div > button {
+  flex-shrink: 0;
+}
+
+[data-glass-opaque].fixed.inset-0:has(.browser-gateway-settings) > div > .min-h-0.flex-1 {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.browser-gateway-settings :is(input, select, button) {
+  min-height: calc(44px / var(--web-ui-scale, 1));
+}
+
+.browser-gateway-settings :is(input, select) {
+  max-width: 100%;
+  font-size: max(1rem, calc(16px / var(--web-ui-scale, 1)));
 }
