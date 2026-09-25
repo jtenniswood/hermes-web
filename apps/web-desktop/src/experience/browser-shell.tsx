@@ -38,6 +38,40 @@ function BrowserLayout() {
   const [updateNotice, setUpdateNotice] = useState<PwaUpdateNotice | null>(() => currentPwaUpdate())
   const [updateDismissed, setUpdateDismissed] = useState(false)
   const bots = panes.find(pane => pane.id === 'hermes-bots:pane')
+  useEffect(() => {
+    let triggerPointerId: number | null = null
+    let suppressOpeningClick = false
+    let resetTimer = 0
+    const onPointerDown = (event: PointerEvent) => {
+      triggerPointerId = event.target instanceof Element && event.target.closest('button[aria-haspopup="menu"]') ? event.pointerId : null
+      suppressOpeningClick = false
+      window.clearTimeout(resetTimer)
+    }
+    const onPointerUp = (event: PointerEvent) => {
+      if (event.pointerId !== triggerPointerId) return
+      triggerPointerId = null
+      suppressOpeningClick = Boolean(document.querySelector('[data-slot="dropdown-menu-content"][data-state="open"], [data-slot="context-menu-content"][data-state="open"]'))
+      if (suppressOpeningClick) resetTimer = window.setTimeout(() => { suppressOpeningClick = false }, 0)
+    }
+    const onPointerCancel = () => { triggerPointerId = null; suppressOpeningClick = false }
+    const onClick = (event: MouseEvent) => {
+      if (!suppressOpeningClick || !(event.target instanceof Element) || !event.target.closest('[data-slot="dropdown-menu-content"] [role^="menuitem"], [data-slot="context-menu-content"] [role^="menuitem"]')) return
+      suppressOpeningClick = false
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('pointerup', onPointerUp, true)
+    document.addEventListener('pointercancel', onPointerCancel, true)
+    document.addEventListener('click', onClick, true)
+    return () => {
+      window.clearTimeout(resetTimer)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('pointerup', onPointerUp, true)
+      document.removeEventListener('pointercancel', onPointerCancel, true)
+      document.removeEventListener('click', onClick, true)
+    }
+  }, [])
   useEffect(() => subscribePwaUpdate(notice => {
     setUpdateNotice(notice)
     if (notice) setUpdateDismissed(false)
@@ -51,8 +85,7 @@ function BrowserLayout() {
   return <ApprovalToolbarTarget value={approvalTarget}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
     <BrowserActionError />
     <div className="browser-workspace">
-      {navigation.drawerOpen && <button className="browser-scrim" aria-label="Close navigation" onClick={navigation.dismissDrawer} />}
-      <aside id="browser-navigation" ref={navigation.drawer} hidden={!navigation.compact && navigation.collapsed} className={`browser-navigation ${navigation.drawerOpen ? 'is-open' : ''}`} aria-label="Sessions, Bots and tools" style={{ '--browser-navigation-width': `${navigation.width}px` } as CSSProperties}>
+      <aside id="browser-navigation" ref={navigation.drawer} hidden={!navigation.open} className={`browser-navigation ${navigation.drawerOpen ? 'is-open' : ''}`} role={navigation.compact && navigation.drawerOpen ? 'dialog' : undefined} aria-modal={navigation.compact && navigation.drawerOpen ? true : undefined} aria-label="Navigation" style={{ '--browser-navigation-width': `${navigation.width}px` } as CSSProperties}>
         <BrowserNavigationTabs navigation={navigation} />
         <div className="browser-navigation-body" role="tabpanel" aria-label={tab}>
           <BrowserSessionsPane hidden={tab !== 'sessions'} sections={navigation.sections}><BrowserSidebarNavigation onNavigate={openRoute}><WiredPane part="sidebar" /></BrowserSidebarNavigation></BrowserSessionsPane>
@@ -66,7 +99,7 @@ function BrowserLayout() {
         <BrowserProfileNavigation hidden={tab !== 'sessions'} />
       </aside>
       <BrowserNavigationResizer navigation={navigation} />
-      <main className="browser-main" ref={main} tabIndex={-1} aria-label="Conversation and workspace">
+      <main className="browser-main" ref={main} hidden={navigation.compact && navigation.drawerOpen} tabIndex={-1} aria-label="Conversation and workspace">
         <div className="browser-chat-toolbar" aria-label="Chat toolbar">
           <BrowserToolbarButton tooltip={navigation.open ? 'Hide sidebar' : 'Show sidebar'} className="browser-menu" ref={menu} aria-label={navigation.open ? 'Hide navigation' : 'Open navigation'} aria-expanded={navigation.open} aria-controls="browser-navigation" onClick={navigation.toggle}>
             <Codicon name="layout-sidebar-left" size="0.75rem" />

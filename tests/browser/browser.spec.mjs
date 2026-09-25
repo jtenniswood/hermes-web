@@ -49,8 +49,10 @@ const editor = page => page.locator('[contenteditable="true"]:visible').first()
 const openNavigation = async page => {
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
   await expect(page.locator('.browser-navigation.is-open')).toBeVisible()
-  // Let the drawer transition finish before interacting with controls near its
-  // bottom edge; Playwright otherwise can sample the transformed position.
+  await expect(page.getByRole('main', { name: 'Conversation and workspace' })).toBeHidden()
+  await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Back to chat', exact: true })).toBeFocused()
+  // Let the full-page transition finish before measuring touch targets.
   await page.waitForTimeout(200)
 }
 const open = async (page, session = 'preview-week') => {
@@ -190,6 +192,223 @@ test('empty chat stays centered as the available panel space changes', async ({ 
   }
 })
 
+test('phone navigation and action sheets keep touch targets usable across UI scale', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await open(page)
+  const expectTouchTarget = async (name, control, minSize = 44) => {
+    const bounds = await control.boundingBox()
+    expect(bounds, `${name} is visible`).not.toBeNull()
+    expect(bounds.width, `${name} width`).toBeGreaterThanOrEqual(minSize)
+    expect(bounds.height, `${name} height`).toBeGreaterThanOrEqual(minSize)
+  }
+  const trigger = page.getByRole('button', { name: 'Open navigation', exact: true })
+  for (const scale of [50, 75, 100, 125, 150]) {
+    await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), scale)
+    for (const [name, control] of [
+      ['Add context', page.getByRole('button', { name: 'Add context', exact: true })],
+      ['Model', page.getByRole('button', { name: /^Model/ })],
+      ['Voice conversation', page.getByRole('button', { name: /^Start voice conversation/ })]
+    ]) {
+      await expectTouchTarget(`${name} at ${scale}%`, control)
+      const bounds = await control.boundingBox()
+      expect(bounds.x + bounds.width, `${name} remains within 390px`).toBeLessThanOrEqual(391)
+    }
+    const approval = page.locator('.browser-approval-control > button:visible')
+    if (await approval.count()) await expectTouchTarget(`Approval control at ${scale}%`, approval.first())
+    const messageAction = page.locator('.browser-main :has(> button[aria-label="Branch in new chat"])').first()
+    await expect(messageAction, `Message actions exist at ${scale}%`).toHaveCount(1)
+    await expect(messageAction, `Message actions are directly available by touch at ${scale}%`).toBeVisible()
+    for (const label of ['Branch in new chat', 'Copy', 'Read aloud', 'Refresh']) {
+      const action = messageAction.getByRole('button', { name: label, exact: true })
+      if (await action.count()) await expectTouchTarget(`${label} message action at ${scale}%`, action)
+    }
+    for (const label of ['Copy path', 'New branch']) {
+      const action = page.locator(`.browser-main .status-row button[aria-label="${label}"]`)
+      await expect(action, `${label} exists at ${scale}%`).toHaveCount(1)
+      await expect(action, `${label} is available without hover at ${scale}%`).toBeVisible()
+      await expectTouchTarget(`${label} at ${scale}%`, action.first())
+    }
+    await trigger.click()
+    const nav = page.getByRole('dialog', { name: 'Navigation' })
+    await expect(nav).toBeVisible()
+    await expect(page.getByRole('main', { name: 'Conversation and workspace' })).toBeHidden()
+    if (scale === 50) {
+      const backToChat = page.getByRole('button', { name: 'Back to chat', exact: true })
+      await expect(backToChat).toBeFocused()
+      await page.keyboard.press('Shift+Tab')
+      await expect.poll(() => nav.evaluate(element => element.contains(document.activeElement))).toBe(true)
+      await page.keyboard.press('Tab')
+      await expect(backToChat).toBeFocused()
+    }
+    for (const [name, control] of [
+      ['Back to chat', page.getByRole('button', { name: 'Back to chat', exact: true })],
+      ['Sessions tab', page.getByRole('tab', { name: 'Sessions', exact: true })],
+      ['Sessions section toggle', nav.locator('.browser-sessions-pane [data-browser-section-label]').first()],
+      ['Profile actions', page.getByRole('button', { name: 'Profile actions', exact: true })]
+    ]) {
+      await expectTouchTarget(`${name} at ${scale}%`, control)
+    }
+    for (const [name, controls] of [
+      ['Navigation action', nav.locator('.browser-navigation-body [data-sidebar="menu-button"]:visible')],
+      ['Session row', nav.locator('.browser-sessions-pane button[data-slot="row-button"]:visible')],
+      ['Session search', nav.locator('.browser-sessions-pane .browser-session-search:visible')],
+      ['New session', nav.locator('.browser-sessions-pane button[aria-label="New session"]:visible')],
+      ['Session filters', nav.locator('.browser-sessions-pane button[aria-label="Filters"]:visible')],
+      ['Session reorder handle', nav.locator('.browser-sessions-pane [class*="group/handle"]:visible')]
+    ]) {
+      const targets = await controls.all()
+      expect(targets.length, `${name} exists at ${scale}%`).toBeGreaterThan(0)
+      for (const [index, control] of targets.entries()) await expectTouchTarget(`${name} ${index + 1} at ${scale}%`, control)
+    }
+    const profileActions = page.getByRole('button', { name: 'Profile actions', exact: true })
+    await profileActions.click()
+    const sheet = page.getByRole('dialog', { name: 'Profile actions', exact: true })
+    await expect(sheet).toBeVisible()
+    const bounds = await sheet.boundingBox()
+    expect(bounds.x).toBeGreaterThanOrEqual(-1)
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(391)
+    expect(bounds.y + bounds.height).toBeGreaterThanOrEqual(840)
+    const option = sheet.getByRole('button', { name: 'Hide Research', exact: true })
+    await expectTouchTarget(`Sheet option at ${scale}%`, option)
+    await page.keyboard.press('Escape')
+    await expect(nav).toBeVisible()
+    await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
+    await expect(page.getByRole('main', { name: 'Conversation and workspace' })).toBeVisible()
+  }
+})
+
+test('phone navigation and contextual sheets stay tappable at 320px and 200% UI scale', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+  await open(page)
+  await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), 200)
+  await editor(page).fill('Check the phone composer controls')
+  for (const [name, control] of [
+    ['Add context', page.getByRole('button', { name: 'Add context', exact: true })],
+    ['Queue message', page.getByRole('button', { name: 'Queue message', exact: true })],
+    ['Send', page.getByRole('button', { name: 'Send', exact: true })]
+  ]) {
+    const bounds = await control.boundingBox()
+    expect(bounds.width, `${name} target width at 200%`).toBeGreaterThanOrEqual(44)
+    expect(bounds.height, `${name} target height at 200%`).toBeGreaterThanOrEqual(44)
+    expect(bounds.x + bounds.width, `${name} remains within the viewport`).toBeLessThanOrEqual(321)
+  }
+  const toolbar = await page.locator('.browser-chat-toolbar button').evaluateAll(buttons => buttons
+    .map(button => button.getBoundingClientRect().toJSON())
+    .filter(rect => rect.width && rect.height)
+    .sort((a, b) => a.left - b.left))
+  for (let index = 1; index < toolbar.length; index++) {
+    expect(toolbar[index - 1].right, 'toolbar controls do not overlap').toBeLessThanOrEqual(toolbar[index].left)
+  }
+  await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
+  await expect(page.locator('.browser-navigation')).toBeVisible()
+  await expect(page.locator('.browser-main')).toBeHidden()
+  expect((await page.locator('.browser-navigation').boundingBox()).width).toBe(320)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320)
+  await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+  const sheet = page.locator('[data-slot="dropdown-menu-content"]:visible').last()
+  await expect(sheet).toBeVisible()
+  const bounds = await sheet.boundingBox()
+  expect(bounds.x).toBe(0)
+  expect(bounds.width).toBe(320)
+  expect(bounds.y + bounds.height).toBe(700)
+})
+
+test('phone long code and tables scroll inside the response at 320px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.route(/\/api\/sessions\/preview-week\/messages/, async route => {
+    const response = await route.fetch()
+    const payload = await response.json()
+    payload.messages.push({
+      id: 'phone-long-content',
+      role: 'assistant',
+      timestamp: Date.now(),
+      content: `## Long response overflow check\n\n${'A readable response paragraph. '.repeat(40)}\n\n\`\`\`js\nconst data = "${'x'.repeat(500)}"\n\`\`\`\n\n| Column one | Column two |\n| --- | --- |\n| ${'wide content '.repeat(14)} | value |`
+    })
+    await route.fulfill({ response, json: payload })
+  })
+  await open(page)
+  const response = page.locator('.aui-md').filter({ hasText: 'Long response overflow check' }).last()
+  await expect(response).toBeVisible()
+  const codeScroller = response.locator('.aui-shiki .shiki').first()
+  const tableScroller = response.locator('.aui-md-table')
+  await expect.poll(() => codeScroller.evaluate(el => getComputedStyle(el).overflowX)).toBe('auto')
+  await expect.poll(() => codeScroller.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true)
+  await expect.poll(() => tableScroller.evaluate(el => getComputedStyle(el).overflowX)).toBe('auto')
+  await expect.poll(() => tableScroller.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320)
+})
+
+test('phone session-row actions stay open without resuming the row', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  const page = await context.newPage()
+  await open(page)
+  await page.getByRole('button', { name: 'Chat actions', exact: true }).tap()
+  let addedPin = false
+  if (await page.getByRole('menuitem', { name: 'Pin', exact: true }).count()) {
+    await page.getByRole('menuitem', { name: 'Pin', exact: true }).tap()
+    addedPin = true
+  } else {
+    await page.keyboard.press('Escape')
+  }
+  await openNavigation(page)
+  const section = page.locator('.browser-pinned-section')
+  await expect(section).toBeVisible()
+  if (!await section.locator('[data-row-actions]').count()) await section.getByRole('button', { name: /Pinned/ }).first().click()
+  const row = section.locator('[data-row-actions]').first()
+  await expect(row).toBeVisible()
+  await row.getByRole('button', { name: 'Session actions', exact: true }).tap()
+  const sheet = page.locator('[data-slot="dropdown-menu-content"]:visible').last()
+  await expect(sheet).toBeVisible()
+  await expect(sheet.getByRole('menuitem', { name: /Rename/ })).toBeVisible()
+  const bounds = await sheet.boundingBox()
+  expect(bounds.x).toBe(0)
+  expect(bounds.width).toBe(390)
+  expect(bounds.y + bounds.height).toBe(844)
+  await page.keyboard.press('Escape')
+  await expect(row).toBeVisible()
+  await expect(page.locator('.browser-navigation.is-open')).toBeVisible()
+  await expect(row.getByRole('button', { name: 'Session actions', exact: true })).toBeFocused()
+  if (addedPin) {
+    await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
+    await page.getByRole('button', { name: 'Chat actions', exact: true }).tap()
+    await page.getByRole('menuitem', { name: 'Unpin', exact: true }).tap()
+  }
+  await context.close()
+})
+
+test('short touch landscape uses phone surfaces while a taller touch tablet keeps split navigation', async ({ browser }) => {
+  const phoneContext = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true })
+  const phone = await phoneContext.newPage()
+  await open(phone)
+  expect(await phone.evaluate(() => matchMedia('(pointer:coarse) and (max-height:27rem)').matches)).toBe(true)
+  const composerBounds = await phone.locator('[data-slot="composer-dock"]:not([data-popped-out])').boundingBox()
+  expect(composerBounds.y).toBeGreaterThanOrEqual(0)
+  expect(composerBounds.y + composerBounds.height).toBeLessThanOrEqual(391)
+  await expect(editor(phone)).toBeVisible()
+  await openNavigation(phone)
+  expect(await phone.locator('.browser-navigation').boundingBox()).toMatchObject({ x: 0, y: 0, width: 844, height: 390 })
+  await phone.getByRole('button', { name: 'Back to chat', exact: true }).tap()
+  await phone.getByRole('button', { name: 'Chat actions', exact: true }).tap()
+  const menu = phone.locator('[data-slot="dropdown-menu-content"]:visible').last()
+  await expect(menu).toBeVisible()
+  const menuBounds = await menu.boundingBox()
+  expect(menuBounds.x).toBe(0)
+  expect(menuBounds.width).toBe(844)
+  expect(menuBounds.y + menuBounds.height).toBe(390)
+  await phone.keyboard.press('Escape')
+  await phoneContext.close()
+
+  const tabletContext = await browser.newContext({ viewport: { width: 1024, height: 768 }, isMobile: true, hasTouch: true })
+  const tablet = await tabletContext.newPage()
+  await open(tablet)
+  expect(await tablet.evaluate(() => matchMedia('(pointer:coarse) and (max-height:27rem)').matches)).toBe(false)
+  await expect(tablet.locator('.browser-navigation')).toBeVisible()
+  await expect(tablet.getByRole('main', { name: 'Conversation and workspace' })).toBeVisible()
+  await expect(tablet.getByRole('dialog', { name: 'Navigation' })).toHaveCount(0)
+  await tabletContext.close()
+})
+
 for (const width of [390, 1440]) {
   test(`composer stays at the bottom while idle, running, and reconnecting at ${width}px`, async ({ page }) => {
     let disconnect = false
@@ -215,6 +434,11 @@ for (const width of [390, 1440]) {
     await editor(page).fill('Check composer bottom spacing')
     await editor(page).press('Enter')
     await expect(surface.getByRole('button', { name: 'Stop', exact: true })).toBeVisible()
+    if (width === 390) {
+      const stopBounds = await surface.getByRole('button', { name: 'Stop', exact: true }).boundingBox()
+      expect(stopBounds.width, 'Stop target width').toBeGreaterThanOrEqual(44)
+      expect(stopBounds.height, 'Stop target height').toBeGreaterThanOrEqual(44)
+    }
     await expect(page.locator('.browser-chat-toolbar [role="status"]')).toHaveCount(0)
     await expect(page.locator('.browser-running-status')).toHaveCount(0)
     await checkBottom(150)
@@ -267,6 +491,13 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 960 })
     await open(page)
     await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+    if (width === 390) {
+      const sessionMenu = page.locator('[data-slot="dropdown-menu-content"]:visible').last()
+      const bounds = await sessionMenu.boundingBox()
+      expect(bounds.width).toBeGreaterThan(380)
+      expect(bounds.y + bounds.height).toBeGreaterThan(950)
+      expect(bounds.y).toBeGreaterThan(0)
+    }
     const unpin = page.getByRole('menuitem', { name: 'Unpin', exact: true })
     if (await unpin.count()) {
       await unpin.click()
@@ -307,10 +538,14 @@ for (const width of [390, 1440]) {
     if (!await section.locator('[data-row-actions]').count()) await heading.click()
     const row = section.locator('[data-row-actions]').first()
     await expect(row).toBeVisible()
-    await row.click({ button: 'right' })
+    if (width === 390) {
+      await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
+      await page.getByRole('button', { name: 'Chat actions', exact: true }).click()
+    }
+    else await row.click({ button: 'right' })
     await expect(page.getByRole('menuitem', { name: 'Unpin', exact: true })).toBeVisible()
     await expect(page.getByRole('menuitem', { name: 'Hide pinned section', exact: true })).toHaveCount(0)
-    // Restore the shared preview fixture after checking the nested row menu.
+    // Restore the shared preview fixture after checking the action menu.
     await page.getByRole('menuitem', { name: 'Unpin', exact: true }).click()
     await expect(section).toHaveCount(0)
     await page.reload()
@@ -381,12 +616,16 @@ test('browser settings omit desktop-only keybinds', async ({ page }) => {
 test('browser workspace panels open and close without losing a draft', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await open(page)
+  await page.evaluate(() => window.hermesDesktop.zoom.setPercent(50))
   await editor(page).fill('Keep my draft while using panels')
   await expect(page.getByRole('button', { name: 'Open panels', exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: 'Open settings menu', exact: true }).click()
   await page.getByRole('dialog', { name: 'Settings and workspace', exact: true }).getByRole('button', { name: 'files', exact: true }).click()
   const close = page.getByRole('button', { name: 'Close files panel', exact: true })
   await expect(close).toBeVisible()
+  const closeBounds = await close.boundingBox()
+  expect(closeBounds.width).toBeGreaterThanOrEqual(44)
+  expect(closeBounds.height).toBeGreaterThanOrEqual(44)
   await close.click()
   await expect(close).toBeHidden()
   await expect(editor(page)).toContainText('Keep my draft while using panels')
@@ -405,23 +644,31 @@ for (const width of [390, 1440]) {
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(navigation).toBeVisible()
     const originalWidth = (await navigation.boundingBox()).width
-    const originalChatWidth = (await page.locator('.browser-main').boundingBox()).width
-    await toggle.click()
+    const main = page.locator('.browser-main')
+    const originalChatWidth = width === 1440 ? (await main.boundingBox()).width : null
+    if (width === 390) {
+      await expect(main).toBeHidden()
+      await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
+      await expect(main).toBeVisible()
+    } else {
+      await toggle.click()
+    }
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     await expect(navigation).toBeHidden()
     await expect(resizer).toBeHidden()
-    if (width === 1440) expect((await page.locator('.browser-main').boundingBox()).width).toBeGreaterThan(originalChatWidth)
+    if (width === 1440) expect((await main.boundingBox()).width).toBeGreaterThan(originalChatWidth)
     await toggle.click()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(navigation).toBeVisible()
     expect((await navigation.boundingBox()).width).toBeCloseTo(originalWidth, 0)
-    await expect(editor(page)).toContainText('Keep this draft while toggling the sidebar')
-    await expect(page.locator('.browser-chat-title')).toHaveCount(0)
     if (width === 390) {
       await page.keyboard.press('Escape')
       await expect(navigation).toBeHidden()
       await expect(toggle).toBeFocused()
+      await expect(editor(page)).toContainText('Keep this draft while toggling the sidebar')
     } else {
+      await expect(editor(page)).toContainText('Keep this draft while toggling the sidebar')
+      await expect(page.locator('.browser-chat-title')).toHaveCount(0)
       await expect(resizer).toBeVisible()
     }
   })
@@ -617,7 +864,7 @@ for (const width of [390, 1440]) {
     await page.getByRole('tab', { name: 'Bots', exact: true }).click()
     await expect(page.getByRole('button', { name: /Research · @/ })).toBeVisible()
     await expect(page.locator('.browser-pane button:has(.codicon-bell), .browser-pane button:has(.codicon-bell-slash)')).toHaveCount(0)
-    if (width === 390) await page.getByRole('button', { name: 'Hide navigation', exact: true }).click()
+    if (width === 390) await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
     const settings = page.getByRole('button', { name: 'Open settings menu', exact: true })
     await settings.click()
     await expect(page.getByText('Notifications', { exact: true })).toBeVisible()
@@ -774,9 +1021,9 @@ for (const width of [390, 1440]) {
       if (width === 390) await openNavigation(page)
       const trigger = page.getByRole('button', { name: 'Navigation tabs', exact: true })
       if (width === 390) {
-        const drawerBox = await page.locator('.browser-navigation').boundingBox()
-        expect(drawerBox.x).toBeGreaterThanOrEqual(0)
-        expect(drawerBox.x + drawerBox.width).toBeLessThanOrEqual(width * .88 + 1)
+        const navigationBox = await page.locator('.browser-navigation').boundingBox()
+        expect(navigationBox.x).toBe(0)
+        expect(navigationBox.width).toBe(width)
         const triggerBox = await trigger.boundingBox()
         expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(width)
       }
@@ -805,7 +1052,7 @@ for (const width of [390, 1440]) {
       await expect(trigger).toBeFocused()
       if (width === 390) {
         await expect(page.locator('.browser-navigation.is-open')).toBeVisible()
-        await page.getByRole('button', { name: 'Hide navigation', exact: true }).click()
+        await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
       }
       await expect(page).toHaveURL(/#\/preview-week$/)
       await expect(editor(page)).toHaveText('Keep this draft while arranging navigation')
@@ -825,7 +1072,7 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole('tab', { name: 'Bots', exact: true, includeHidden: true })).toBeFocused()
       await page.keyboard.press('ArrowLeft')
       await expect(page.getByRole('tab', { name: 'Sessions', exact: true, includeHidden: true })).toBeFocused()
-      if (width === 390) await page.getByRole('button', { name: 'Hide navigation', exact: true }).click()
+      if (width === 390) await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
       await expect(editor(page)).toHaveText('Keep this draft while arranging navigation')
     })
   }
@@ -1026,7 +1273,7 @@ for (const width of [390, 1440]) {
       await surface.getByRole(actionRole, { name: 'Show hidden', exact: true }).click()
       await expect(page.locator('[data-profile-key="writer"]')).toBeVisible()
       await expect(trigger).toBeFocused()
-      if (width === 390) await page.getByRole('button', { name: 'Hide navigation', exact: true }).click()
+      if (width === 390) await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
       else {
         await trigger.click()
         await editor(page).click()
@@ -1052,7 +1299,7 @@ test.describe('touch profile controls', () => {
     await trigger.tap()
     await sheet.getByRole('button', { name: 'Show hidden', exact: true }).tap()
     await expect(page.locator('[data-profile-key="research"]')).toBeVisible()
-    await page.getByRole('button', { name: 'Hide navigation', exact: true }).tap()
+    await page.getByRole('button', { name: 'Back to chat', exact: true }).tap()
     await expect(page).toHaveURL(/#\/preview-week$/)
     await expect(editor(page)).toHaveText('Keep the touch draft')
   })
@@ -1087,6 +1334,24 @@ test('full-page browser routes open as modals and return to the chat', async ({ 
   await page.getByRole('group', { name: 'More controls', exact: true }).getByRole('button', { name: 'Capabilities', exact: true }).click()
   await expect(page).toHaveURL(/#\/skills$/)
   await expect(page.locator('[data-overlay-surface]:visible').filter({ hasText: 'Skills' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page).toHaveURL(/#\/preview-week$/)
+  await expect(editor(page)).toBeVisible()
+})
+
+test('phone tool surfaces fit a short 320px viewport and close back to chat', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 480 })
+  await open(page)
+  await openNavigation(page)
+  await page.getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('group', { name: 'More controls', exact: true }).getByRole('button', { name: 'Capabilities', exact: true }).click()
+  const surface = page.locator('[data-overlay-surface]:visible').filter({ hasText: 'Skills' })
+  await expect(surface).toBeVisible()
+  const bounds = await surface.boundingBox()
+  expect(bounds.x).toBeGreaterThanOrEqual(0)
+  expect(bounds.y).toBeGreaterThanOrEqual(0)
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(321)
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(481)
   await page.keyboard.press('Escape')
   await expect(page).toHaveURL(/#\/preview-week$/)
   await expect(editor(page)).toBeVisible()
@@ -1305,7 +1570,7 @@ for (const width of [390, 1440]) {
       }
       if (width === 390) await expect(page.locator('.browser-navigation.is-open')).toBeVisible()
       await page.getByRole('tab', { name: 'Sessions', exact: true }).click()
-      if (width === 390) await page.getByRole('button', { name: 'Hide navigation', exact: true }).click()
+      if (width === 390) await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
       await expect(editor(page)).toHaveText('Keep my draft while arranging Bots')
       await expect(page).toHaveURL(/#\/preview-week$/)
       errors.assertClean()
@@ -1338,7 +1603,7 @@ test.describe('touch Bots controls', () => {
     await expect(dialog).toBeVisible()
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).tap()
     await expect(add).toBeFocused()
-    await page.getByRole('button', { name: 'Hide navigation', exact: true }).tap()
+    await page.getByRole('button', { name: 'Back to chat', exact: true }).tap()
     await expect(editor(page)).toHaveText('Keep this touch Bots draft')
     await expect(page).toHaveURL(/#\/preview-week$/)
   })
@@ -1434,7 +1699,7 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole('tab', { name: 'Bots', exact: true })).toBeFocused()
       await expect(trigger).toBeVisible()
       await page.getByRole('tab', { name: 'Sessions', exact: true }).click()
-      if (width === 390) await page.getByRole('button', { name: 'Hide navigation', exact: true }).click()
+      if (width === 390) await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
       await expect(editor(page)).toHaveText('Keep my draft while organizing rows')
       await expect(page).toHaveURL(/#\/preview-week$/)
       errors.assertClean()

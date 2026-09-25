@@ -50,6 +50,70 @@ body > [data-radix-popper-content-wrapper] > [data-slot='tooltip-content'] [data
   height: calc(5px * var(--web-ui-scale, 1));
 }
 
+/* Upstream session/action menus use Radix poppers. On phones, present their
+   complete action lists as bottom sheets so the menu remains usable by touch
+   and retains upstream commands, labels, and submenu behavior. */
+@media (max-width: 47.999rem), (pointer: coarse) and (max-height: 27rem) {
+  body > [data-radix-popper-content-wrapper]:has(> [data-slot='dropdown-menu-content']),
+  body > [data-radix-popper-content-wrapper]:has(> [data-slot='context-menu-content']),
+  body > [data-radix-popper-content-wrapper]:has(> [data-slot='dropdown-menu-sub-content']),
+  body > [data-radix-popper-content-wrapper]:has(> [data-slot='context-menu-sub-content']) {
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    width: 100vw !important;
+    transform: none !important;
+    z-index: 111 !important;
+  }
+
+  body > [data-radix-popper-content-wrapper] > :is(
+    [data-slot='dropdown-menu-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-sub-content']
+  ) {
+    box-sizing: border-box !important;
+    position: relative !important;
+    inset: auto !important;
+    width: calc(100vw / var(--web-ui-scale, 1)) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: calc(82dvh / var(--web-ui-scale, 1)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 1rem max(.75rem, calc(env(safe-area-inset-right, 0px) / var(--web-ui-scale, 1))) max(.75rem, calc(env(safe-area-inset-bottom, 0px) / var(--web-ui-scale, 1))) max(.75rem, calc(env(safe-area-inset-left, 0px) / var(--web-ui-scale, 1))) !important;
+    border-radius: 1rem 1rem 0 0 !important;
+    transform: none !important;
+    transform-origin: bottom center !important;
+  }
+
+  body > [data-radix-popper-content-wrapper] > :is(
+    [data-slot='dropdown-menu-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-sub-content']
+  )::before {
+    display: block;
+    width: 2.25rem;
+    height: .25rem;
+    margin: -.35rem auto .75rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 28%, transparent);
+    content: '';
+  }
+
+  body > [data-radix-popper-content-wrapper] > :is(
+    [data-slot='dropdown-menu-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-sub-content']
+  ) [role^='menuitem'] {
+    box-sizing: border-box;
+    min-height: calc(3.25rem / var(--web-ui-scale, 1));
+    padding-block: .55rem;
+    white-space: normal;
+  }
+}
+
 /* Fan controls also portal directly to the body. Cancel the document zoom on
    their fixed positioning wrapper so its measured anchor coordinates remain
    aligned with the control that opened it. */
@@ -76,9 +140,41 @@ body > [data-slot='fan-menu'] {
    space for those controls, but the tab strip can still occupy their vertical
    band. Give the tabs their own row so both controls and Sessions/Bots remain
    usable on mobile. */
-@media (max-width: 48rem) {
+@media (max-width: 48rem), (pointer: coarse) and (max-height: 27rem) {
   [data-slot='composer-dock']:not([data-popped-out]) {
     bottom: env(safe-area-inset-bottom) !important;
+  }
+
+  /* Keep frequent composer actions large enough to tap after app zoom. */
+  [data-slot='composer-dock']:not([data-popped-out]) :is(
+    button[aria-label='Add context'],
+    button[aria-label^='Model'],
+    button[aria-label='Voice'],
+    button[aria-label='Voice dictation'],
+    button[aria-label='Stop'],
+    button[aria-label^='Send'],
+    button[aria-label^='Queue message'],
+    button[aria-label^='Start voice conversation']
+  ) {
+    box-sizing: border-box;
+    min-width: calc(2.75rem / var(--web-ui-scale, 1));
+    min-height: calc(2.75rem / var(--web-ui-scale, 1));
+  }
+
+  /* Status-row actions are otherwise hover-only and can collapse to the icon
+     size on touch screens. Keep the file and branch actions available without
+     hover and give their rendered targets the same phone minimum as nav. */
+  .browser-main .status-row :has(> button[aria-label='Copy path']) {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .browser-main .status-row :is(button[aria-label='Copy path'], button[aria-label='New branch']) {
+    box-sizing: border-box;
+    min-width: calc(3.25rem / var(--web-ui-scale, 1));
+    min-height: calc(3.25rem / var(--web-ui-scale, 1));
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 
   /* The renderer positions both fixed control clusters from the same titlebar
