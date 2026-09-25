@@ -9,6 +9,7 @@ export const MAX_NAVIGATION_WIDTH = 560
 const KEYS = {
   activeTab: 'hermes-web.browser.navigation',
   hiddenProfiles: 'hermes-web.browser.hidden-profiles',
+  hideAllProfilesButton: 'hermes-web.browser.hide-all-profiles-button',
   navigationTabs: 'hermes-web.browser.navigation-tabs',
   navigationWidth: 'hermes-web.browser.navigation-width'
 } as const
@@ -49,6 +50,10 @@ export function readHiddenProfiles(): string[] {
     const saved = JSON.parse(read(KEYS.hiddenProfiles) || 'null')
     return Array.isArray(saved) ? saved.filter((value): value is string => typeof value === 'string') : []
   } catch { return [] }
+}
+
+export function readHideAllProfilesButton(): boolean {
+  return read(KEYS.hideAllProfilesButton) === 'true'
 }
 
 export function readNavigationWidth(): number {
