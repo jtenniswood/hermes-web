@@ -16,6 +16,7 @@ import { useBrowserConversation } from '../upstream/conversation'
 import { useBrowserSessionActions } from '../upstream/conversation-actions'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
 import { ApprovalToolbarTarget, BackendVersionListener, type StatusbarItem } from '../upstream/browser-api'
+import { installConversationSubmitScroll } from './ui/submit-scroll'
 
 export function BrowserShell() {
   return <SidebarProvider className="browser-provider" style={{ '--sidebar-width': '100%' } as CSSProperties}>
@@ -24,6 +25,7 @@ export function BrowserShell() {
 }
 function BrowserLayout() {
   useMobileSubmenus()
+  useEffect(() => installConversationSubmitScroll(), [])
   const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
   const [backendVersion, setBackendVersion] = useState<StatusbarItem | null>(null)
   const navigate = useNavigate(), location = useLocation()
