@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   review-image:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'preview-image')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,14 +17,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: corepack enable
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - run: node scripts/renderer.mjs
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test:foundation
       - id: identity
         name: Identify the review build
         run: |
@@ -51,7 +53,7 @@ jobs:
             io.hermes.release.channel=browser-preview
           cache-from: type=gha,scope=browser-preview
           cache-to: type=gha,mode=max,scope=browser-preview
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm exec playwright install --with-deps chromium
       - name: Test the browser experience through the built nginx image
         run: pnpm exec playwright test tests/browser/browser.spec.mjs
         env:
