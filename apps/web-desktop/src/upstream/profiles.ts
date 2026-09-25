@@ -12,13 +12,17 @@ function label(value: string) {
 
 /** Restore the tab's profile without changing its persisted all-profiles scope. */
 export function restoreBrowserProfile(): () => void {
+  let saved: string | null = null
   try {
-    const saved = sessionStorage.getItem('hermes-web.browser.profile')
-    if (saved) {
-      window.__HERMES_WEB_ACTIVE_PROFILE__ = $showAllProfiles.get() ? null : saved
-      $activeGatewayProfile.set(saved)
-    }
+    saved = sessionStorage.getItem('hermes-web.browser.profile')
   } catch { /* Optional tab state. */ }
+  if (saved) {
+    window.__HERMES_WEB_ACTIVE_PROFILE__ = $showAllProfiles.get() ? null : saved
+    $activeGatewayProfile.set(saved)
+  } else {
+    window.__HERMES_WEB_ACTIVE_PROFILE__ = null
+    setShowAllProfiles(true)
+  }
   return $activeGatewayProfile.subscribe(profile => {
     try { sessionStorage.setItem('hermes-web.browser.profile', profile) } catch { /* Optional tab state. */ }
   })
