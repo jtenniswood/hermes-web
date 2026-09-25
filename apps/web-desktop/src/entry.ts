@@ -11,11 +11,14 @@ import { runtimeConfig } from './platform/runtime'
 import { registerPwa } from './pwa/register'
 import { installTimelineRailScrubbing } from './experience/ui/timeline-rail-scrubbing'
 import { trackVisualViewport } from './platform/viewport'
+import { installComposerKeyboard } from './platform/composer-keyboard'
 
 const stopTrackingViewport = trackVisualViewport()
 if (import.meta.hot) import.meta.hot.dispose(stopTrackingViewport)
 const stopTimelineRailScrubbing = installTimelineRailScrubbing()
 if (import.meta.hot) import.meta.hot.dispose(stopTimelineRailScrubbing)
+const stopComposerKeyboard = installComposerKeyboard()
+if (import.meta.hot) import.meta.hot.dispose(stopComposerKeyboard)
 registerPwa()
 
 async function start(): Promise<void> {
