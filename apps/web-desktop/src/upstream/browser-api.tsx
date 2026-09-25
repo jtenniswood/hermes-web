@@ -28,6 +28,6 @@ export type { TitlebarTool } from '@/app/shell/titlebar-controls'
 export type { StatusbarItem } from '@/app/shell/statusbar-controls'
 
 export { BrowserWorkspace } from './browser-workspace'
-export { ApprovalToolbarTarget } from './browser-statusbar'
+export { ApprovalToolbarTarget, BackendVersionTarget } from './browser-statusbar'
 
 export { BrowserPageRoutes } from './browser-routes'
