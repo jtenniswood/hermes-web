@@ -469,12 +469,14 @@ export function disableBrowserSessionTabs(source: string): string {
   const marker = '    // Browser-focused shell does not register chat tab creation.\n'
   const action = '    $newSessionTabAction.set(openNewSessionTab)'
   const disabledAction = '    $newSessionTabAction.set(null)'
-  const original = source.replace(marker, keybind).replace(disabledAction, action)
+  const newSession = '    onNewSessionInWorkspace: path => startSessionInWorkspace(path, { openTab: true }),'
+  const browserNewSession = '    onNewSessionInWorkspace: path => startSessionInWorkspace(path),'
+  const original = source.replace(marker, keybind).replace(disabledAction, action).replace(browserNewSession, newSession)
   const contract = contracts.find(item => item.module === 'app/contrib/wiring.tsx')!
-  if (createHash('sha256').update(original).digest('hex') !== contract.sourceHash || original.split(keybind).length !== 2 || original.split(action).length !== 2) {
+  if (createHash('sha256').update(original).digest('hex') !== contract.sourceHash || original.split(keybind).length !== 2 || original.split(action).length !== 2 || original.split(newSession).length !== 2) {
     throw new Error('Browser chat tab action contract changed')
   }
-  return source.replace(keybind, marker).replace(action, disabledAction)
+  return source.replace(keybind, marker).replace(action, disabledAction).replace(newSession, browserNewSession)
 }
 
 export function disableBrowserSessionTileMirrors(source: string): string {
