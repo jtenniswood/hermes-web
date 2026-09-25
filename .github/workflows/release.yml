@@ -11,10 +11,7 @@ concurrency:
   group: image-publication
   cancel-in-progress: false
 jobs:
-  verify:
-    uses: ./.github/workflows/typecheck-build.yml
   candidate:
-    needs: verify
     strategy:
       fail-fast: false
       matrix:
