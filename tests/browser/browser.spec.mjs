@@ -768,9 +768,11 @@ for (const width of [390, 1440]) {
     const main = page.locator('.browser-main')
     const originalChatWidth = width === 1440 ? (await main.boundingBox()).width : null
     if (width === 390) {
-      await expect(main).toBeHidden()
-      await page.getByRole('button', { name: 'Back to chat', exact: true }).click()
       await expect(main).toBeVisible()
+      await expect(main).toHaveAttribute('inert', '')
+      expect(originalWidth).toBeLessThan(width)
+      await page.getByRole('button', { name: 'Close navigation', exact: true }).click()
+      await expect(main).not.toHaveAttribute('inert')
     } else {
       await toggle.click()
     }

@@ -151,13 +151,14 @@
 @media (width < 48rem), (pointer:coarse) and (max-height:27rem) {
  .browser-chat-toolbar { position:relative; z-index:2; grid-template-columns:max-content minmax(0,1fr); gap:var(--web-space-1); height:auto; min-height:var(--web-toolbar-height); }
  .browser-chat-toolbar .browser-actions { min-width:0; gap:var(--web-space-1); }
- .browser-navigation { box-sizing:border-box; position:absolute; inset:0; z-index:61; width:100%; padding:calc(env(safe-area-inset-top,0px) / var(--web-ui-scale,1)) calc(env(safe-area-inset-right,0px) / var(--web-ui-scale,1)) calc(env(safe-area-inset-bottom,0px) / var(--web-ui-scale,1)) calc(env(safe-area-inset-left,0px) / var(--web-ui-scale,1)); transform:translateY(.5rem); opacity:0; visibility:hidden; transition:transform 160ms ease,opacity 160ms ease,visibility 160ms; box-shadow:none; }
+ .browser-navigation { box-sizing:border-box; position:absolute; inset:0; inset-inline-end:auto; z-index:61; width:min(var(--browser-navigation-width,19rem),calc(100% - 3rem)); padding:calc(env(safe-area-inset-top,0px) / var(--web-ui-scale,1)) calc(env(safe-area-inset-right,0px) / var(--web-ui-scale,1)) calc(env(safe-area-inset-bottom,0px) / var(--web-ui-scale,1)) calc(env(safe-area-inset-left,0px) / var(--web-ui-scale,1)); transform:translateY(.5rem); opacity:0; visibility:hidden; transition:transform 160ms ease,opacity 160ms ease,visibility 160ms; box-shadow:var(--web-shadow-panel); }
  .browser-navigation.is-open { transform:none; opacity:1; visibility:visible; }
  .browser-navigation-back:hover,.browser-navigation-back:focus-visible { background:var(--web-hover); color:var(--web-text); }
  .browser-navigation-resizer { display:none; }
- .browser-scrim { display:none; }
+ .browser-scrim { display:block; position:absolute; inset:0; z-index:60; padding:0; border:0; background:#0004; cursor:default; }
 }
 @media (pointer: coarse) and (width < 48rem), (pointer: coarse) and (max-height: 27rem) {
+ .browser-navigation { inset-inline-end:0; width:100%; box-shadow:none; }
  .browser-chat-toolbar { min-height:var(--web-touch-target); }
  .browser-navigation-heading { min-height:var(--web-touch-target); }
  .browser-navigation-tabs button { min-width:var(--web-touch-target); min-height:var(--web-touch-target); font-size:var(--web-text-caption); }
