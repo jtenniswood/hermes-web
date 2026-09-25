@@ -20,7 +20,9 @@ function readHiddenSections(): string[] {
   } catch { return [] }
 }
 
-function sectionKey(label: string): string {
+function sectionKey(label: string, group: HTMLElement): string {
+  if (group.classList.contains('browser-pinned-section')) return 'pinned'
+  if (group.classList.contains('browser-session-list-section')) return 'sessions'
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
@@ -60,21 +62,22 @@ export function BrowserSessionsPane({ hidden, sections, children }: { hidden: bo
       const discovered: SidebarSection[] = []
       for (const group of groups) {
         const header = group.querySelector<HTMLElement>(':scope > [data-browser-section-header]')
-        const content = group.querySelector<HTMLElement>(':scope > [data-sidebar="group-content"]')
         const label = sectionLabel(header)
-        if (!label || !content) continue
-        const key = sectionKey(label)
+        if (!label) continue
+        const key = sectionKey(label, group)
         if (key) discovered.push({ key, label })
       }
       const pinned = root.querySelector<HTMLElement>('.browser-pinned-section')
-      if (pinned?.querySelector('[data-slot="row-button"]')) discovered.push({ key: 'pinned', label: 'Pinned' })
+      if (pinned && !discovered.some(section => section.key === 'pinned')) discovered.push({ key: 'pinned', label: 'Pinned' })
+      // Cron is omitted by upstream when there are no jobs; keep its visibility option available.
+      if (!discovered.some(section => section.key === 'cron-jobs')) discovered.push({ key: 'cron-jobs', label: 'Cron jobs' })
       const unique = [...new Map(discovered.map(section => [section.key, section])).values()]
       sections.setAvailableSections(current => current.length === unique.length && current.every((section, index) => section.key === unique[index]?.key && section.label === unique[index]?.label) ? current : unique)
 
       for (const group of groups) {
         const header = group.querySelector<HTMLElement>(':scope > [data-browser-section-header]')
         const label = sectionLabel(header)
-        const key = label ? sectionKey(label) : ''
+        const key = label ? sectionKey(label, group) : ''
         group.toggleAttribute('data-browser-section-hidden', Boolean(key) && sections.hiddenSections.includes(key))
       }
       if (pinned) pinned.toggleAttribute('data-browser-section-hidden', sections.hiddenSections.includes('pinned'))
