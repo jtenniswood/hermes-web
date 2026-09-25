@@ -75,7 +75,7 @@ body > [data-radix-popper-content-wrapper] > :is(
   min-height: 2.5rem;
   padding-block: .55rem;
   border-radius: .35rem;
-  font-size: .9rem;
+  font-size: .8125rem;
   line-height: 1.35;
 }
 

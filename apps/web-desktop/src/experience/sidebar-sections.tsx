@@ -24,6 +24,12 @@ function sectionKey(label: string): string {
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
+function sectionLabel(header: HTMLElement | null): string {
+  const label = header?.querySelector<HTMLElement>('[data-browser-section-label]')?.textContent?.trim() || ''
+  const repeated = /^(.+?)\s*\1$/.exec(label)
+  return repeated?.[1] || label
+}
+
 export function useBrowserSidebarSections() {
   const [hiddenSections, setHiddenSections] = useState(readHiddenSections)
   const [availableSections, setAvailableSections] = useState<SidebarSection[]>([])
@@ -55,8 +61,8 @@ export function BrowserSessionsPane({ hidden, sections, children }: { hidden: bo
       for (const group of groups) {
         const header = group.querySelector<HTMLElement>(':scope > [data-browser-section-header]')
         const content = group.querySelector<HTMLElement>(':scope > [data-sidebar="group-content"]')
-        const label = header?.querySelector<HTMLElement>('[data-browser-section-label]')?.textContent?.trim()
-        if (!label || !content?.children.length) continue
+        const label = sectionLabel(header)
+        if (!label || !content) continue
         const key = sectionKey(label)
         if (key) discovered.push({ key, label })
       }
@@ -67,11 +73,9 @@ export function BrowserSessionsPane({ hidden, sections, children }: { hidden: bo
 
       for (const group of groups) {
         const header = group.querySelector<HTMLElement>(':scope > [data-browser-section-header]')
-        const content = group.querySelector<HTMLElement>(':scope > [data-sidebar="group-content"]')
-        const label = header?.querySelector<HTMLElement>('[data-browser-section-label]')?.textContent?.trim()
+        const label = sectionLabel(header)
         const key = label ? sectionKey(label) : ''
-        const populated = Boolean(content?.children.length)
-        group.toggleAttribute('data-browser-section-hidden', populated && Boolean(key) && sections.hiddenSections.includes(key))
+        group.toggleAttribute('data-browser-section-hidden', Boolean(key) && sections.hiddenSections.includes(key))
       }
       if (pinned) pinned.toggleAttribute('data-browser-section-hidden', sections.hiddenSections.includes('pinned'))
     }

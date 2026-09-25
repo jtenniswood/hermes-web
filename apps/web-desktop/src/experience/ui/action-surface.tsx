@@ -30,7 +30,7 @@ export type BrowserActionAnchor = {
 }
 
 /** One command list, with keyboard menus on desktop and a modal phone sheet. */
-export function BrowserActionSurface({ title, actions = [], groups, anchor, compact, onClose, fallbackFocus, closeLabel = 'Cancel', className = '' }: {
+export function BrowserActionSurface({ title, actions = [], groups, anchor, compact, onClose, fallbackFocus, className = '' }: {
   title: string
   actions?: BrowserAction[]
   groups?: BrowserActionGroup[]
@@ -39,7 +39,6 @@ export function BrowserActionSurface({ title, actions = [], groups, anchor, comp
   compact: boolean
   onClose: () => void
   fallbackFocus?: RefObject<HTMLElement | null>
-  closeLabel?: string
 }) {
   const returnToTrigger = useRef(true)
   const nextAction = useRef<BrowserAction | null>(null)
@@ -89,7 +88,6 @@ export function BrowserActionSurface({ title, actions = [], groups, anchor, comp
             </button>)}
           </div>)}
         </div>
-        <Dialog.Close className="browser-action-item browser-action-close">{closeLabel}</Dialog.Close>
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>
