@@ -339,6 +339,30 @@ test('phone long code and tables scroll inside the response at 320px', async ({ 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320)
 })
 
+test('phone reselecting the highlighted session returns to the chat and preserves its draft', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  const page = await context.newPage()
+  try {
+    await open(page)
+    await editor(page).fill('Keep this draft when returning to the same chat')
+    const navigation = page.locator('#browser-navigation')
+    const main = page.getByRole('main', { name: 'Conversation and workspace' })
+    for (const activation of ['touch', 'keyboard']) {
+      await page.getByRole('button', { name: 'Open navigation', exact: true }).tap()
+      await expect(navigation).toBeVisible()
+      const row = navigation.getByRole('button', { name: 'Plan a calmer working week', exact: true }).first()
+      await expect(row).toBeVisible()
+      if (activation === 'touch') await row.tap()
+      else await row.press('Enter')
+      await expect(navigation).toBeHidden()
+      await expect(main).toBeVisible()
+      await expect(main).toBeFocused()
+      await expect(page.locator('[data-browser-conversation-id]')).toHaveAttribute('data-browser-conversation-id', 'preview-week')
+      await expect(editor(page)).toHaveText('Keep this draft when returning to the same chat')
+    }
+  } finally { await context.close() }
+})
+
 test('phone session-row actions stay open without resuming the row', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
   const page = await context.newPage()
