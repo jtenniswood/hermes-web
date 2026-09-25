@@ -1,4 +1,4 @@
-# Renderer updates and tested image releases
+# Renderer updates and quick image builds
 
 `flake.lock` is the only renderer pin. Normal Docker, development and Nix builds
 use its exact commit; they do not resolve upstream `main`. The updater resolves
@@ -38,9 +38,9 @@ completed with a normal repository token alone:
    token to this repository and those two write permissions. A separate
    read-only workflow token inspects check results.
 5. Keep `HERMES_RENDERER_UPDATES_ENABLED` and `HERMES_PROMOTION_ENABLED` unset
-   while validating the initial release. The schedule and stable promotion are
-   independent switches. A manual release run can still build/test candidates;
-   a manual renderer-update dispatch from `main` can validate a proposal without
+   while validating renderer-update automation. The quick image workflow does
+   not read either variable: successful builds publish `latest` directly. A
+   manual renderer-update dispatch from `main` can validate a proposal without
    enabling recurring triggers. The App remains required.
 
 The App token lets PR creation trigger ordinary checks automatically; using
@@ -60,11 +60,12 @@ separately from frontend build metadata. These are initial rollout gates; do not
 set the switches merely because unit tests pass.
 
 After those gates and required-check setup, set `HERMES_PROMOTION_ENABLED=true`,
-then `HERMES_RENDERER_UPDATES_ENABLED=true`. The updater runs every six hours
-and after changes to `main`. Use `node scripts/check-update-setup.mjs` to audit
-configuration without changing it. See the [upstream update runbook](upstream-updates.md)
-for branch refresh, compatibility reports, and the repair process.
-No workflow restarts a running deployment.
+then `HERMES_RENDERER_UPDATES_ENABLED=true` to enable renderer-update automation.
+The updater runs every six hours and after changes to `main`. Use
+`node scripts/check-update-setup.mjs` to audit configuration without changing it.
+See the [upstream update runbook](upstream-updates.md) for branch refresh,
+compatibility reports, and the repair process. No workflow restarts a running
+deployment.
 
 ## Failure handling and promotion
 
@@ -77,20 +78,14 @@ allowed. The required policy check validates both filenames and the semantic
 lockfile diff. Conservative transform fixtures deliberately stop updates when
 an upstream assumption changes; humans review those changes.
 
-`release.yml` is the only image publisher. It first runs compatibility checks,
-then builds separate native amd64/arm64 candidates, tests nginx and browser
-behavior against each exact digest, and combines the passing digests. Candidate
-names contain both full revisions and a workflow run/attempt identity. Artifacts
-include candidate evidence, screenshots and failure traces. `/build-info.json`
-contains wrapper/renderer revisions, dependency-lock hash, timestamp and channel;
-OCI labels identify wrapper and renderer too.
-
-Promotion is serialized and refuses a source that is no longer current `main`.
-Main releases move `main` and `latest`; a merged App renderer update also moves
-`nightly`. Version tags such as `v1.2.3` publish `1.2.3` through the same checks and
-must point to current main. Tags always reference the tested multi-architecture
-digest. Candidate images are never used as moving stable aliases until all gates
-pass. A failed build/test retains the last stable digest.
+`release.yml` is the quick image publisher. It runs on pushes to `main`, version
+tags, and manual dispatch. It builds and publishes one native `linux/amd64`
+image directly without waiting for compatibility or browser tests. Every
+successful build updates `latest` and a commit-specific `sha-<revision>` tag.
+Builds from `main` also update `main`; version tags such as `v1.2.3` also publish
+`1.2.3`. Docker builds still compile the frontend and use the exact renderer
+revision in `flake.lock`. The workflow does not deploy or restart a running
+container.
 
 ## Disable updates and roll back
 
@@ -101,14 +96,12 @@ gh variable set HERMES_RENDERER_UPDATES_ENABLED --body false
 ```
 
 This leaves any already-open proposal visible; disable its auto-merge explicitly
-if it must not land. Disable stable promotion separately with:
+if it must not land. `HERMES_PROMOTION_ENABLED` controls renderer-update
+automation readiness. It does not disable quick image builds or updates to
+`latest`.
 
-```sh
-gh variable set HERMES_PROMOTION_ENABLED --body false
-```
-
-To roll back a deployment, select the previous tested digest from the release
-summary, set the deployment's image to
+To roll back a deployment, select a previous immutable image digest from the
+registry, set the deployment's image to
 `ghcr.io/OWNER/REPOSITORY@sha256:PREVIOUS_TESTED_DIGEST`, and use its normal rollout
 procedure. Pulling a digest or publishing an image does not restart production.
 Do not rebuild an old commit and call it the same artifact. Keep the current
@@ -116,11 +109,11 @@ configuration and volumes; the state migration retains legacy browser records.
 
 ## Previous-image upgrade gate
 
-Compatibility and candidate-image jobs run `tests/browser/upgrades.spec.mjs`
-alongside the existing protocol tests. The tests boot the immutable previous
-image in `tests/fixtures/upgrade-baseline.json`, open the real composers in two
-browser tabs, and switch a stable local origin to the candidate nginx image.
-They verify that an active response, unsent file, or conflicting same-session
+`tests/browser/upgrades.spec.mjs` remains available for manual validation. It
+boots the immutable previous image in `tests/fixtures/upgrade-baseline.json`,
+opens the real composers in two browser tabs, and switches a stable local origin
+to a candidate nginx image. The quick publishing workflow does not run this
+suite. It verifies that an active response, unsent file, or conflicting same-session
 drafts prevents activation. Once work is safe, both tabs must activate the new
 worker, load the candidate's actual entry asset, and retain independent drafts
 and conversation selections.
@@ -141,11 +134,9 @@ candidate under test or a moving tag. The fixture rejects identical wrapper
 revisions and image IDs. `scripts/prepare-upgrade-baseline.mjs` fetches the fixed
 digest before CI tests, and Playwright records both image IDs and build metadata.
 
-The initial baseline is an amd64 image. On arm64 release runners QEMU runs that
-previous nginx binary while the candidate runs natively. This tests the same
-previous browser assets against the native candidate image; it does not claim a
-previous native arm64 baseline exists. Record that distinction when reviewing
-cross-architecture release evidence.
+The release workflow targets `linux/amd64`. Its immutable upgrade baseline is
+also an amd64 image, so the browser upgrade checks compare images built for the
+same platform.
 
 To reproduce locally with a built candidate:
 
@@ -158,16 +149,11 @@ The tests use a synthetic gateway and do not deploy either image. The separate
 real-gateway smoke test and physical-device checks remain release requirements.
 
 
-## Retained release identity and rollback verification
+## Build identity and rollback verification
 
-The publication job retains `release-evidence-RUN-ATTEMPT` containing
-`release-evidence.json`. It records the wrapper and renderer revisions, the
-combined immutable digest, both tested architecture digests, and the workflow
-run. `promotion.status` distinguishes `disabled`, `not-completed`, and
-`completed`; only `completed` confirms that every listed stable tag was read
-back at the tested digest. `not-completed` does not prove that no tag changed:
-inspect the failed job and registry before retrying. Missing candidate evidence
-or a failed combine step produces no release record.
+The quick image workflow publishes the revision and tags to GHCR directly. Read
+the workflow summary for the image digest; pull the `sha-<revision>` tag when a
+fixed build is needed, or `latest` for the newest completed build.
 
 The upgrade suite also switches the actual nginx origin from the candidate back
 to the immutable previous-image baseline. It requires active responses and

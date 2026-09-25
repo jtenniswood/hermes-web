@@ -222,8 +222,8 @@ The nginx image includes Node only for the shared configuration generator at
 startup; nginx handles all requests. The same generator and route contract are
 used by development and the Nix service.
 
-GitHub Actions publishes multi-architecture images to GHCR after changes are
-merged to `main` and for version tags.
+GitHub Actions publishes `linux/amd64` images to GHCR after changes are merged
+to `main` and for version tags.
 
 ## Editing the UI
 
