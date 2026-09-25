@@ -180,6 +180,11 @@
 @media (prefers-reduced-motion:reduce) { .browser-navigation { transition:none; } }
 .browser-upstream-workspace { position:relative; display:flex; flex:1; min-height:0; min-width:0; }
 .browser-upstream-workspace [data-tree-group] :is(aside,[data-slot="sidebar"]) { border-left-width:0; border-right-width:0; box-shadow:none; }
+/* In the browser, pinned user bubbles cover the transcript as it scrolls.
+   Keep prompts in document flow and disable the clip applied to replies behind them. */
+.browser-shell [data-slot="aui_thread-viewport"] [data-slot="aui_user-message-root"].sticky { position:static; top:auto; z-index:auto; }
+.browser-shell [data-slot="aui_thread-viewport"] [data-sticky-prompt-clip] { clip-path:none; }
+.browser-shell [data-slot="aui_thread-viewport"] .sticky-human-clamp { max-height:none; overflow:visible; -webkit-mask-image:none; mask-image:none; }
 .browser-upstream-workspace [data-tree-group] header[class*="h-(--titlebar-height)"] { display:none; }
 /* Chat title and profile ownership are already represented by the browser
    toolbar. Keep the upstream title header out of the chat surface even when
