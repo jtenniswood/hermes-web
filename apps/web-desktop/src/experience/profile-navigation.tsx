@@ -4,7 +4,7 @@ import { BrowserToolbarButton } from './ui/toolbar-button'
 import { useCompactBrowser } from './ui/use-compact-browser'
 import { BotFace, avatarColor, Codicon, Tip } from '../upstream/browser-api'
 import { useBrowserProfiles } from '../upstream/profiles'
-import { readHiddenProfiles, writeBrowserPreference } from './browser-preferences'
+import { readHideAllProfilesButton, readHiddenProfiles, writeBrowserPreference } from './browser-preferences'
 
 export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean }) {
   const model = useBrowserProfiles()
@@ -13,10 +13,12 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
   const [draggingProfile, setDraggingProfile] = useState<string | null>(null)
   const [dropTargetProfile, setDropTargetProfile] = useState<{ key: string; after: boolean } | null>(null)
   const [hiddenProfiles, setHiddenProfiles] = useState<string[]>(readHiddenProfiles)
+  const [hideAllProfilesButton, setHideAllProfilesButton] = useState(readHideAllProfilesButton)
   const [profileContextMenuPosition, setProfileContextMenuPosition] = useState<(BrowserActionAnchor & { profile: string | null }) | null>(null)
   const visibleProfileAvatars = model.items.filter(item => !hiddenProfiles.includes(item.key))
   useEffect(() => { if (hidden) setProfileContextMenuPosition(null) }, [hidden])
   useEffect(() => { writeBrowserPreference('hiddenProfiles', JSON.stringify(hiddenProfiles)) }, [hiddenProfiles])
+  useEffect(() => { writeBrowserPreference('hideAllProfilesButton', String(hideAllProfilesButton)) }, [hideAllProfilesButton])
   const openProfileContextMenu = (event: React.MouseEvent<HTMLElement>, profile: string | null = null) => {
     event.preventDefault()
     event.stopPropagation()
@@ -35,6 +37,7 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
   }
   const showHiddenProfiles = () => {
     setHiddenProfiles([])
+    setHideAllProfilesButton(false)
     setProfileContextMenuPosition(null)
   }
   const beginProfileDrag = (event: ReactDragEvent<HTMLButtonElement>, name: string) => {
@@ -83,7 +86,7 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
   return <>
     <div className="browser-profile-footer" hidden={hidden}>
       <div className="browser-profile-rail" role="radiogroup" aria-label="Profiles" onContextMenu={event => openProfileContextMenu(event)} onDragOver={hoverProfileDrop} onDrop={reorderProfiles} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTargetProfile(null) }}>
-        {model.items.length > 1 && <Tip label="All profiles"><button className="browser-profile-choice browser-profile-all" type="button" aria-label="All profiles" aria-pressed={model.all} onClick={() => model.select(null)} onContextMenu={event => openProfileContextMenu(event)}><Codicon name="symbol-misc" size="1rem" /></button></Tip>}
+        {model.items.length > 1 && !hideAllProfilesButton && <Tip label="All profiles"><button className="browser-profile-choice browser-profile-all" type="button" aria-label="All profiles" aria-pressed={model.all} onClick={() => model.select(null)} onContextMenu={event => openProfileContextMenu(event)}><Codicon name="symbol-misc" size="1rem" /></button></Tip>}
         {model.fallback && <Tip label={model.fallback.label}><button className="browser-profile-choice" type="button" aria-label={model.fallback.label} aria-pressed onClick={() => model.select(model.active)} onContextMenu={event => openProfileContextMenu(event, model.active)}><BotFace color={avatarColor(model.fallback.appearance.color, model.fallback.botName)} name={model.fallback.botName} image={model.fallback.appearance.image} shape={model.fallback.appearance.shape} size={28} /></button></Tip>}
         {visibleProfileAvatars.map(item => <div className="browser-profile-slot" key={item.key}>
           {draggingProfile && dropTargetProfile?.key === item.key && !dropTargetProfile.after && draggingProfile !== item.key && <span className="browser-profile-drop-indicator" aria-hidden="true" />}
@@ -106,7 +109,8 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
         ...(profileContextMenuPosition?.profile
           ? [{ key: 'hide', label: 'Hide profile', run: () => hideProfile(profileContextMenuPosition.profile!) }]
           : (model.fallback ? [...visibleProfileAvatars, model.fallback] : visibleProfileAvatars).map(item => ({ key: `hide-${item.key}`, label: `Hide ${item.label}`, run: () => hideProfile(item.key) }))),
-        { key: 'show-hidden', label: 'Show hidden', disabled: !hiddenProfiles.length, run: showHiddenProfiles }
+        { key: 'toggle-all-profiles', label: `${hideAllProfilesButton ? 'Show' : 'Hide'} All profiles button`, run: () => { setHideAllProfilesButton(value => !value); setProfileContextMenuPosition(null) } },
+        { key: 'show-hidden', label: 'Show hidden', disabled: !hiddenProfiles.length && !hideAllProfilesButton, run: showHiddenProfiles }
       ]}
     />
   </>
