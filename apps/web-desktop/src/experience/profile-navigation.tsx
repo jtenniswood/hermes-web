@@ -16,6 +16,7 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
   const [hideAllProfilesButton, setHideAllProfilesButton] = useState(readHideAllProfilesButton)
   const [profileContextMenuPosition, setProfileContextMenuPosition] = useState<(BrowserActionAnchor & { profile: string | null }) | null>(null)
   const visibleProfileAvatars = model.items.filter(item => !hiddenProfiles.includes(item.key))
+  const visibleFallback = model.fallback && !hiddenProfiles.includes(model.fallback.key) ? model.fallback : null
   useEffect(() => { if (hidden) setProfileContextMenuPosition(null) }, [hidden])
   useEffect(() => { writeBrowserPreference('hiddenProfiles', JSON.stringify(hiddenProfiles)) }, [hiddenProfiles])
   useEffect(() => { writeBrowserPreference('hideAllProfilesButton', String(hideAllProfilesButton)) }, [hideAllProfilesButton])
@@ -30,10 +31,12 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
       profile
     })
   }
-  const hideProfile = (profileName: string) => {
-    setHiddenProfiles(current => current.includes(profileName) ? current : [...current, profileName])
-    if (model.active === profileName) model.select(null)
-    setProfileContextMenuPosition(null)
+  const toggleProfile = (profileName: string) => {
+    const isHidden = hiddenProfiles.includes(profileName)
+    setHiddenProfiles(current => isHidden
+      ? current.filter(name => name !== profileName)
+      : [...current, profileName])
+    if (!isHidden && model.active === profileName) model.select(null)
   }
   const showHiddenProfiles = () => {
     setHiddenProfiles([])
@@ -82,12 +85,13 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
     if (target) model.reorder(source, target.key, target.after)
     finishProfileDrag()
   }
+  const profileItems = model.fallback ? [...model.items, model.fallback] : model.items
   const lastVisibleProfile = visibleProfileAvatars.at(-1)?.key
   return <>
     <div className="browser-profile-footer" hidden={hidden}>
       <div className="browser-profile-rail" role="radiogroup" aria-label="Profiles" onContextMenu={event => openProfileContextMenu(event)} onDragOver={hoverProfileDrop} onDrop={reorderProfiles} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTargetProfile(null) }}>
         {model.items.length > 1 && !hideAllProfilesButton && <Tip label="All profiles"><button className="browser-profile-choice browser-profile-all" type="button" aria-label="All profiles" aria-pressed={model.all} onClick={() => model.select(null)} onContextMenu={event => openProfileContextMenu(event)}><Codicon name="symbol-misc" size="1rem" /></button></Tip>}
-        {model.fallback && <Tip label={model.fallback.label}><button className="browser-profile-choice" type="button" aria-label={model.fallback.label} aria-pressed onClick={() => model.select(model.active)} onContextMenu={event => openProfileContextMenu(event, model.active)}><BotFace color={avatarColor(model.fallback.appearance.color, model.fallback.botName)} name={model.fallback.botName} image={model.fallback.appearance.image} shape={model.fallback.appearance.shape} size={28} /></button></Tip>}
+        {visibleFallback && <Tip label={visibleFallback.label}><button className="browser-profile-choice" type="button" aria-label={visibleFallback.label} aria-pressed onClick={() => model.select(model.active)} onContextMenu={event => openProfileContextMenu(event, model.active)}><BotFace color={avatarColor(visibleFallback.appearance.color, visibleFallback.botName)} name={visibleFallback.botName} image={visibleFallback.appearance.image} shape={visibleFallback.appearance.shape} size={28} /></button></Tip>}
         {visibleProfileAvatars.map(item => <div className="browser-profile-slot" key={item.key}>
           {draggingProfile && dropTargetProfile?.key === item.key && !dropTargetProfile.after && draggingProfile !== item.key && <span className="browser-profile-drop-indicator" aria-hidden="true" />}
           <Tip label={item.label}><button className={`browser-profile-choice${draggingProfile === item.key ? ' is-dragging' : ''}${dropTargetProfile?.key === item.key && draggingProfile !== item.key ? ' is-drop-target' : ''}`} draggable={!compact} data-profile-key={item.key} type="button" aria-label={item.label} aria-pressed={!model.all && model.active === item.key} onClick={() => model.select(item.key)} onContextMenu={event => openProfileContextMenu(event, item.key)} onDragStart={event => beginProfileDrag(event, item.key)} onDragEnd={finishProfileDrag}><BotFace color={avatarColor(item.appearance.color, item.botName)} image={item.appearance.image} name={item.botName} shape={item.appearance.shape} size={28} /></button></Tip>
@@ -105,12 +109,25 @@ export function BrowserProfileNavigation({ hidden = false }: { hidden?: boolean 
       compact={compact}
       fallbackFocus={actionsTrigger}
       onClose={() => setProfileContextMenuPosition(null)}
-      actions={[
-        ...(profileContextMenuPosition?.profile
-          ? [{ key: 'hide', label: 'Hide profile', run: () => hideProfile(profileContextMenuPosition.profile!) }]
-          : (model.fallback ? [...visibleProfileAvatars, model.fallback] : visibleProfileAvatars).map(item => ({ key: `hide-${item.key}`, label: `Hide ${item.label}`, run: () => hideProfile(item.key) }))),
-        { key: 'toggle-all-profiles', label: `${hideAllProfilesButton ? 'Show' : 'Hide'} All profiles button`, run: () => { setHideAllProfilesButton(value => !value); setProfileContextMenuPosition(null) } },
-        { key: 'show-hidden', label: 'Show hidden', disabled: !hiddenProfiles.length && !hideAllProfilesButton, run: showHiddenProfiles }
+      groups={[
+        {
+          key: 'profiles',
+          label: 'Profiles',
+          actions: profileItems.map(item => ({
+            key: `profile-${item.key}`,
+            label: item.label,
+            checked: !hiddenProfiles.includes(item.key),
+            keepOpen: true,
+            run: () => toggleProfile(item.key)
+          }))
+        },
+        {
+          key: 'controls',
+          actions: [
+            { key: 'toggle-all-profiles', label: `${hideAllProfilesButton ? 'Show' : 'Hide'} All profiles button`, run: () => { setHideAllProfilesButton(value => !value); setProfileContextMenuPosition(null) } },
+            { key: 'show-hidden', label: 'Show hidden', disabled: !hiddenProfiles.length && !hideAllProfilesButton, run: showHiddenProfiles }
+          ]
+        }
       ]}
     />
   </>
