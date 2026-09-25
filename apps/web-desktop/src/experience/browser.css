@@ -212,7 +212,7 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-action-error { position:fixed; z-index:200; top:1rem; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:var(--web-space-4); max-width:calc(100% - 2rem); padding:var(--web-space-3) var(--web-space-4); border:1px solid var(--web-border); border-radius:var(--web-radius-panel); background:var(--web-surface); color:var(--web-text); box-shadow:var(--web-shadow-panel); }
 .browser-action-error button { flex-shrink:0; padding:var(--web-space-1) var(--web-space-2); border:1px solid var(--web-border); border-radius:var(--web-radius-control); background:transparent; color:inherit; cursor:pointer; }
 
-.browser-navigation-heading { display:flex; align-items:center; flex-shrink:0; border-bottom:1px solid var(--web-border); }
+.browser-navigation-heading { display:flex; align-items:center; flex-shrink:0; }
 .browser-navigation .browser-navigation-back { display:none; }
 
 .browser-bots-heading { display:flex; align-items:center; justify-content:space-between; gap:var(--web-space-2); padding:var(--web-space-2) var(--web-space-2) var(--web-space-1); }
