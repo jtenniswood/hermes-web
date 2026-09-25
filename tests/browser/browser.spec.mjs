@@ -314,6 +314,74 @@ test('phone navigation and contextual sheets stay tappable at 320px and 200% UI 
   expect(bounds.y + bounds.height).toBe(700)
 })
 
+for (const mode of [
+  { name: 'narrow mouse', viewport: { width: 390, height: 844 }, touch: false },
+  { name: 'phone touch', viewport: { width: 390, height: 844 }, touch: true },
+  { name: 'landscape touch', viewport: { width: 844, height: 390 }, touch: true }
+]) {
+  test(`${mode.name} submenus open on activation and replace the parent sheet`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: mode.viewport, isMobile: mode.touch, hasTouch: mode.touch })
+    const page = await context.newPage()
+    const activate = locator => mode.touch ? locator.tap() : locator.click()
+    try {
+      await open(page)
+      await activate(page.getByRole('button', { name: 'Open navigation', exact: true }))
+      await expect(page.getByRole('dialog', { name: 'Navigation', exact: true })).toBeVisible()
+      const filters = page.getByRole('button', { name: 'Filters', exact: true })
+      await activate(filters)
+      const parent = page.locator('[data-slot="dropdown-menu-content"]').last()
+      const submenu = page.locator('[data-slot="dropdown-menu-sub-content"]')
+      const ordering = parent.getByRole('menuitem', { name: 'Ordering', exact: true })
+      await ordering.hover()
+      // Radix's hover-open delay is 100 ms; wait beyond it to catch regressions.
+      await page.waitForTimeout(300)
+      await expect(submenu).toHaveCount(0)
+      await activate(ordering)
+      await expect(submenu).toBeVisible()
+      await expect(parent).toBeHidden()
+      await expect.poll(() => submenu.evaluate(el => el.contains(document.activeElement))).toBe(true)
+      await expect(page.getByRole('menu')).toHaveCount(1)
+      const bounds = await submenu.boundingBox()
+      expect(bounds.x).toBe(0)
+      expect(bounds.width).toBe(mode.viewport.width)
+      expect(Math.round(bounds.y + bounds.height)).toBe(mode.viewport.height)
+      await activate(submenu.getByRole('menuitemradio', { name: 'Created', exact: true }))
+      await expect(submenu.getByRole('menuitemradio', { name: 'Created', exact: true })).toHaveAttribute('aria-checked', 'true')
+      await expect(parent).toBeHidden()
+      await page.keyboard.press('Escape')
+      await expect(parent).toHaveCount(0)
+      await expect(submenu).toHaveCount(0)
+      await expect(filters).toBeFocused()
+      await activate(filters)
+      await activate(parent.getByRole('menuitem', { name: 'Ordering', exact: true }))
+      await expect(submenu.getByRole('menuitemradio', { name: 'Created', exact: true })).toHaveAttribute('aria-checked', 'true')
+      await page.keyboard.press('ArrowLeft')
+      await expect(parent).toBeVisible()
+      await expect(ordering).toBeFocused()
+      await page.keyboard.press('ArrowRight')
+      await expect(submenu).toBeVisible()
+      await expect(parent).toBeHidden()
+      await page.keyboard.press('Escape')
+      await expect(submenu).toHaveCount(0)
+      await expect(parent).toHaveCount(0)
+      await expect(filters).toBeFocused()
+    } finally { await context.close() }
+  })
+}
+
+test('desktop submenus still open on hover beside their parent menu', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await open(page)
+  await page.getByRole('button', { name: 'Filters', exact: true }).click()
+  const parent = page.locator('[data-slot="dropdown-menu-content"]').last()
+  await parent.getByRole('menuitem', { name: 'Ordering', exact: true }).hover()
+  const submenu = page.locator('[data-slot="dropdown-menu-sub-content"]')
+  await expect(submenu).toBeVisible()
+  await expect(parent).toBeVisible()
+  await expect(page.getByRole('menu')).toHaveCount(2)
+  await page.keyboard.press('Escape')
+})
+
 test('phone long code and tables scroll inside the response at 320px', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 })
   await page.route(/\/api\/sessions\/preview-week\/messages/, async route => {

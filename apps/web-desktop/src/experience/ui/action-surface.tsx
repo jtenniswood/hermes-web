@@ -30,8 +30,9 @@ export type BrowserActionAnchor = {
 }
 
 /** One command list, with keyboard menus on desktop and a modal phone sheet. */
-export function BrowserActionSurface({ title, actions = [], groups, anchor, compact, onClose, fallbackFocus, className = '' }: {
+export function BrowserActionSurface({ title, hideTitle = false, actions = [], groups, anchor, compact, onClose, fallbackFocus, className = '' }: {
   title: string
+  hideTitle?: boolean
   actions?: BrowserAction[]
   groups?: BrowserActionGroup[]
   className?: string
@@ -79,7 +80,7 @@ export function BrowserActionSurface({ title, actions = [], groups, anchor, comp
     <Dialog.Portal>
       <Dialog.Overlay className="browser-action-backdrop" />
       <Dialog.Content className={`browser-action-sheet ${className}`} data-browser-action-surface aria-describedby={undefined} onCloseAutoFocus={restoreFocus}>
-        <Dialog.Title className="browser-action-title">{title}</Dialog.Title>
+        <Dialog.Title className="browser-action-title" hidden={hideTitle}>{title}</Dialog.Title>
         <div className="browser-action-list">
           {sections.map(group => <div key={group.key} className="browser-action-group" role={group.selection === 'single' ? 'radiogroup' : 'group'} aria-label={group.label}>
             {group.label && <h3 className="browser-action-group-label">{group.label}</h3>}
