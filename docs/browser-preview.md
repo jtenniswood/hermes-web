@@ -6,7 +6,9 @@ This review build uses the browser-focused shell with the pinned Hermes Desktop
  now the only web entry point in dev, Docker, preview, and CI.
 
 The browser shell supplies Sessions/Bots/Tools navigation, a profile selector,
-and a drawer below 48rem. Its main area reuses the upstream workspace tree for
+and a drawer below 48rem. Narrow desktop windows keep desktop sizing,
+right-click menus, and hover submenus; compact touch devices use larger touch
+targets and action sheets. Its main area reuses the upstream workspace tree for
 the chat, composer, streaming, and contributed panel bodies while keeping the
 browser experience to one visible conversation. Desktop chat tabs, split
 sessions, duplicate title bars, and browser-owned menu rewrites are not exposed.

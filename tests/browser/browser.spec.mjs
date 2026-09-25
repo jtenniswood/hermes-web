@@ -4,6 +4,7 @@ import { createPreviewGateway } from '../../scripts/preview/gateway.mjs'
 import { getBrowserTarget } from './test-target.mjs'
 import { installBrowserErrorCollector } from './error-collector.mjs'
 import { viewportChecks } from './viewport-checks.mjs'
+import { narrowDesktopChecks } from './narrow-desktop-checks.mjs'
 
 // This suite exercises the browser shell only. The old desktop/browser
 // selector was removed, so every test must start through the same production
@@ -71,6 +72,9 @@ const open = async (page, session = 'preview-week') => {
 }
 
 viewportChecks(test, open)
+narrowDesktopChecks(test, open)
+
+const touchTest = test.extend({ hasTouch: true })
 
 test.describe('browser microphone', () => {
   test('records once permission is granted and releases the mic after transcription', async ({ page }) => {
@@ -195,7 +199,7 @@ test('empty chat stays centered as the available panel space changes', async ({ 
   }
 })
 
-test('phone navigation and action sheets keep touch targets usable across UI scale', async ({ page }) => {
+touchTest('phone navigation and action sheets keep touch targets usable across UI scale', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await open(page)
   const expectTouchTarget = async (name, control, minSize = 44) => {
@@ -280,7 +284,7 @@ test('phone navigation and action sheets keep touch targets usable across UI sca
   }
 })
 
-test('phone navigation and contextual sheets stay tappable at 320px and 200% UI scale', async ({ page }) => {
+touchTest('phone navigation and contextual sheets stay tappable at 320px and 200% UI scale', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 })
   await open(page)
   await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), 200)
@@ -318,7 +322,6 @@ test('phone navigation and contextual sheets stay tappable at 320px and 200% UI 
 })
 
 for (const mode of [
-  { name: 'narrow mouse', viewport: { width: 390, height: 844 }, touch: false },
   { name: 'phone touch', viewport: { width: 390, height: 844 }, touch: true },
   { name: 'landscape touch', viewport: { width: 844, height: 390 }, touch: true }
 ]) {
@@ -385,7 +388,7 @@ test('desktop submenus still open on hover beside their parent menu', async ({ p
   await page.keyboard.press('Escape')
 })
 
-test('phone long code and tables scroll inside the response at 320px', async ({ page }) => {
+touchTest('phone long code and tables scroll inside the response at 320px', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 })
   await page.route(/\/api\/sessions\/preview-week\/messages/, async route => {
     const response = await route.fetch()
@@ -505,7 +508,7 @@ test('short touch landscape uses phone surfaces while a taller touch tablet keep
 })
 
 for (const width of [390, 1440]) {
-  test(`settings menu opens the backend updater at ${width}px`, async ({ page }) => {
+  test.extend({ hasTouch: width === 390 })(`settings menu opens the backend updater at ${width}px`, async ({ page }) => {
     await page.route(/\/api\/hermes\/update\/check(?:\?|$)/, route => route.fulfill({ json: {
       current_version: 'synthetic-preview-v1', behind: 0, update_available: false, can_apply: true, commits: []
     } }))
@@ -731,7 +734,7 @@ test('browser settings omit desktop-only keybinds', async ({ page }) => {
   }
 })
 
-test('browser workspace panels open and close without losing a draft', async ({ page }) => {
+touchTest('browser workspace panels open and close without losing a draft', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await open(page)
   await page.evaluate(() => window.hermesDesktop.zoom.setPercent(50))
@@ -878,7 +881,7 @@ const openSectionNavigation = async page => {
   await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeVisible()
 }
 
-test('Cron jobs can be hidden before any jobs exist and restored later', async ({ page }) => {
+touchTest('Cron jobs can be hidden before any jobs exist and restored later', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 960 })
   let jobs = []
   await page.route(/\/api\/cron\/jobs(?:\?|$)/, route => route.fulfill({ json: jobs }))
@@ -904,7 +907,7 @@ test('Cron jobs can be hidden before any jobs exist and restored later', async (
   await expect(cronSection).toBeVisible()
 })
 
-test('section menu includes collapsed session, messaging, and Cron sections', async ({ page }) => {
+touchTest('section menu includes collapsed session, messaging, and Cron sections', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 960 })
   await page.route(/\/api\/cron\/jobs(?:\?|$)/, route => route.fulfill({ json: [{ id: 'preview-menu-job', name: 'Menu verification job', prompt: 'Check navigation', enabled: true }] }))
   await page.route(/\/api\/profiles\/sessions\/sidebar(?:\?|$)/, async route => {
@@ -1068,7 +1071,7 @@ for (const width of [390, 1440]) {
 
 for (const width of [390, 1440]) {
   for (const scale of [100, 150]) {
-    test(`settings actions retain drafts and transfer modal focus at ${width}px and ${scale}%`, async ({ page }, testInfo) => {
+    test.extend({ hasTouch: width === 390 })(`settings actions retain drafts and transfer modal focus at ${width}px and ${scale}%`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 960 })
       await open(page)
       await page.evaluate(value => window.hermesDesktop.zoom.setPercent(value), scale)
@@ -1157,7 +1160,7 @@ test('settings menu consolidates workspace and gateway controls', async ({ page 
 })
 
 for (const width of [390, 1440]) {
-  test(`gateway opens as a modal from the settings menu at ${width}px`, async ({ page }, testInfo) => {
+  test.extend({ hasTouch: width === 390 })(`gateway opens as a modal from the settings menu at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 960 })
     await page.emulateMedia({ colorScheme: 'dark' })
     await open(page)
@@ -1193,7 +1196,7 @@ for (const width of [390, 1440]) {
 
 for (const width of [390, 1440]) {
   for (const scale of [100, 150]) {
-    test(`navigation tab actions preserve selection and drafts at ${width}px and ${scale}%`, async ({ page }) => {
+    test.extend({ hasTouch: width === 390 })(`navigation tab actions preserve selection and drafts at ${width}px and ${scale}%`, async ({ page }) => {
       await page.setViewportSize({ width, height: 960 })
       await open(page)
       await page.evaluate(value => window.hermesDesktop.zoom.setPercent(value), scale)
@@ -1418,7 +1421,7 @@ for (const width of [1440]) {
 
 for (const width of [390, 1440]) {
   for (const scale of [100, 150]) {
-    test(`profile actions preserve drafts and focus at ${width}px and ${scale}%`, async ({ page }, testInfo) => {
+    test.extend({ hasTouch: width === 390 })(`profile actions preserve drafts and focus at ${width}px and ${scale}%`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 960 })
       await open(page)
       await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), scale)
@@ -1519,7 +1522,7 @@ test('full-page browser routes open as modals and return to the chat', async ({ 
   await expect(editor(page)).toBeVisible()
 })
 
-test('phone tool surfaces fit a short 320px viewport and close back to chat', async ({ page }) => {
+touchTest('phone tool surfaces fit a short 320px viewport and close back to chat', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 480 })
   await open(page)
   await openNavigation(page)
@@ -1939,7 +1942,7 @@ for (const scenario of [
       }))
       expect(controls).toHaveLength(4)
       for (const control of controls) {
-        expect(control.width).toBeCloseTo(Math.max(36 * scale / 100, compact || hasTouch ? 44 : 0), 0)
+        expect(control.width).toBeCloseTo(Math.max(36 * scale / 100, hasTouch ? 44 : 0), 0)
         expect(control.height).toBeCloseTo(control.width, 0)
         expect(control.icon).toBeCloseTo(16 * scale / 100, 0)
         expect(control.centered).toBe(true)
@@ -1949,7 +1952,7 @@ for (const scenario of [
       await settings.focus()
       await expect(settings).toHaveCSS('outline-style', 'solid')
       await page.keyboard.press('Enter')
-      const actions = page.getByRole(compact ? 'dialog' : 'menu', { name: 'Settings and workspace', exact: true })
+      const actions = page.getByRole(compact && hasTouch ? 'dialog' : 'menu', { name: 'Settings and workspace', exact: true })
       await expect(actions).toBeVisible()
       const appearance = await actions.evaluate(el => {
         const style = getComputedStyle(el)
@@ -1958,12 +1961,12 @@ for (const scenario of [
       })
       expect(appearance.background).not.toBe('rgba(0, 0, 0, 0)')
       expect(appearance.width).toBeGreaterThan(0)
-      expect(appearance.rowHeight).toBeCloseTo(compact || hasTouch ? 44 : 24 * scale / 100, 0)
+      expect(appearance.rowHeight).toBeCloseTo(hasTouch ? 44 : 24 * scale / 100, 0)
       const bounds = await actions.boundingBox()
       expect(bounds.x).toBeGreaterThanOrEqual(-1)
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1)
       expect(bounds.y + bounds.height).toBeLessThanOrEqual(height + 1)
-      if (compact) {
+      if (compact && hasTouch) {
         expect(bounds.width).toBeCloseTo(width, 0)
         expect(bounds.y + bounds.height).toBeCloseTo(height, 0)
         const last = actions.getByRole('button', { name: 'Agents', exact: true })
@@ -1983,7 +1986,7 @@ for (const scenario of [
       const ordering = filters.getByRole('menuitem', { name: 'Ordering', exact: true })
       await expect(ordering).toHaveCSS('font-family', appearance.font)
       expect((await ordering.boundingBox()).height).toBeCloseTo(appearance.rowHeight, 0)
-      if (compact) await ordering.click()
+      if (compact && hasTouch) await ordering.click()
       else await ordering.hover()
       const submenu = page.locator('[data-slot="dropdown-menu-sub-content"]:visible')
       await expect(submenu).toBeVisible()

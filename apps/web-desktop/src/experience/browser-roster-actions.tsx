@@ -2,10 +2,10 @@ import { useRef, useState, type ReactNode } from 'react'
 import { Codicon, type RosterRow } from '../upstream/browser-api'
 import { useBrowserBotRowActions, type BotActionCallbacks } from '../upstream/roster-actions'
 import { BrowserActionSurface, type BrowserActionAnchor, type BrowserActionGroup } from './ui/action-surface'
-import { useCompactBrowser } from './ui/use-compact-browser'
+import { useMobileBrowser } from './ui/use-compact-browser'
 
 function RosterActions({ name, groups, children, sectionId, actionKey }: { name: string; actionKey: string; groups: BrowserActionGroup[]; children: ReactNode; sectionId?: string }) {
-  const compact = useCompactBrowser()
+  const compact = useMobileBrowser()
   const trigger = useRef<HTMLButtonElement>(null)
   const fallback = { current: document.querySelector<HTMLElement>('.browser-navigation [role="tab"][aria-selected="true"]') }
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)

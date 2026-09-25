@@ -85,7 +85,7 @@ body > [data-slot='fan-menu'] {
    space for those controls, but the tab strip can still occupy their vertical
    band. Give the tabs their own row so both controls and Sessions/Bots remain
    usable on mobile. */
-@media (width < 48rem), (pointer: coarse) and (max-height: 27rem) {
+@media (pointer: coarse) and (width < 48rem), (pointer: coarse) and (max-height: 27rem) {
   [data-slot='composer-dock']:not([data-popped-out]) {
     bottom: env(safe-area-inset-bottom) !important;
   }

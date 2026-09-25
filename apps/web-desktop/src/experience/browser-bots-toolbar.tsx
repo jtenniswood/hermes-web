@@ -3,7 +3,7 @@ import { useBrowserBotVisibility } from '../upstream/bots'
 import { cn, Codicon, GatewayKindGlyph, rosterGatewayOptions, SearchField, type RosterActivityFilter, type RosterKindFilter, type RosterRow, type useBots } from '../upstream/browser-api'
 import { BrowserActionSurface, type BrowserActionGroup, type BrowserActionAnchor } from './ui/action-surface'
 import { BrowserToolbarButton } from './ui/toolbar-button'
-import { useCompactBrowser } from './ui/use-compact-browser'
+import { useMobileBrowser } from './ui/use-compact-browser'
 
 type RenderRosterToolbarProps = {
   b: ReturnType<typeof useBots>
@@ -30,7 +30,7 @@ type RenderRosterToolbarProps = {
 function BotsActionControl({ title, label = title, icon, active = false, groups }: {
   title: string; label?: string; icon: string; active?: boolean; groups: BrowserActionGroup[]
 }) {
-  const compact = useCompactBrowser()
+  const compact = useMobileBrowser()
   const trigger = useRef<HTMLButtonElement>(null)
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
   return <>
