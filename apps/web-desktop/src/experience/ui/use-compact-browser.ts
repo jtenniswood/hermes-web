@@ -1,6 +1,9 @@
 import { useSyncExternalStore } from 'react'
 
-const query = '(max-width:47.999rem)'
+// Landscape phones can be wider than the portrait breakpoint while having
+// little vertical room. Treat short, coarse-pointer viewports as compact too,
+// while leaving taller touch tablets in the split navigation layout.
+const query = '(max-width:47.999rem), (pointer:coarse) and (max-height:27rem)'
 function subscribe(change: () => void) {
   const media = window.matchMedia(query)
   media.addEventListener('change', change)

@@ -41,6 +41,10 @@
       {
         "file": "tests/browser/interruptions.spec.mjs",
         "scenario": "a late Bot A response cannot replace Bot B or cross their drafts"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "phone session-row actions stay open without resuming the row"
       }
     ],
     "removal": "Remove when the upstream gateway registry supports shared browser connections without backend activation.",
@@ -230,7 +234,7 @@
     "kind": "browser-transform",
     "order": 20,
     "module": "store/layout.ts",
-    "reason": "Allow the persisted None grouping preference.",
+    "reason": "Expose and default browser session grouping to None while preserving saved choices.",
     "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
     "tests": [
       {
@@ -245,7 +249,7 @@
     "sourceHash": "5ae9d3aaee72646156a1c1088e515b45669624cb345fe2d76d9aa90400fade2e",
     "sourceRoot": "renderer",
     "inputHash": "5ae9d3aaee72646156a1c1088e515b45669624cb345fe2d76d9aa90400fade2e",
-    "outputHash": "3aa36697c8737e18f13f7e6ca5e79aae2c51939a79fe3adfd2dd19f4f1c6cc1e"
+    "outputHash": "85accb3fc7bfe96fe5e38d9953559f524bfb34556d66c8f82cbf81697726ce7f"
   },
   {
     "name": "browser-session-filters",

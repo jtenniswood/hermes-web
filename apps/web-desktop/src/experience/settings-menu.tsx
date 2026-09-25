@@ -46,16 +46,16 @@ export function SettingsMenu({ triggerRef, onOpenGateway, onOpenPanel, onOpenRou
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
   const model = useBrowserSettings(panelPanes.map(pane => ({ id: pane.id, collapsible: Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible) })))
   const groups: BrowserActionGroup[] = [
-    { key: 'notifications', label: 'Notifications', actions: [{ key: 'activity-toasts', label: 'Activity toasts', checked: model.activityToasts.enabled, icon: <Codicon name={model.activityToasts.enabled ? 'bell' : 'bell-slash'} size="0.875rem" />, run: model.activityToasts.toggle }] },
+    { key: 'notifications', label: 'Notifications', actions: [{ key: 'activity-toasts', label: 'Activity toasts', checked: model.activityToasts.enabled, icon: <Codicon name={model.activityToasts.enabled ? 'bell' : 'bell-slash'} size="1rem" />, run: model.activityToasts.toggle }] },
     { key: 'panels', label: 'Panels', actions: model.panels.map(panel => {
       const title = String(panelPanes.find(pane => pane.id === panel.id)?.title || panel.id)
-      return { key: panel.id, label: sentenceCase(title), ariaLabel: title, checked: panel.checked, icon: <Codicon name={panel.id === 'review' ? 'git-compare' : 'files'} size="0.875rem" />, afterClose: true, run: () => { if (panel.select()) onOpenPanel() } }
+      return { key: panel.id, label: sentenceCase(title), ariaLabel: title, checked: panel.checked, icon: <Codicon name={panel.id === 'review' ? 'git-compare' : 'files'} size="1rem" />, afterClose: true, run: () => { if (panel.select()) onOpenPanel() } }
     }) },
     { key: 'systems', label: 'Systems', actions: [
-      { key: 'settings', label: 'Settings', icon: <Codicon name="settings-gear" size="0.875rem" />, afterClose: true, run: () => onOpenRoute('/settings') },
-      { key: 'gateway', label: 'Gateway', icon: <Codicon name="pulse" size="0.875rem" />, afterClose: true, run: onOpenGateway }
+      { key: 'settings', label: 'Settings', icon: <Codicon name="settings-gear" size="1rem" />, afterClose: true, run: () => onOpenRoute('/settings') },
+      { key: 'gateway', label: 'Gateway', icon: <Codicon name="pulse" size="1rem" />, afterClose: true, run: onOpenGateway }
     ] },
-    { key: 'workspace', label: 'Workspace', actions: APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => ({ key: route.path, label: toolRouteLabel(route.id), icon: <Codicon name={toolRouteIcon(route.id)} size="0.875rem" />, afterClose: true, run: () => onOpenRoute(route.path) })) }
+    { key: 'workspace', label: 'Workspace', actions: APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => ({ key: route.path, label: toolRouteLabel(route.id), icon: <Codicon name={toolRouteIcon(route.id)} size="1rem" />, afterClose: true, run: () => onOpenRoute(route.path) })) }
   ]
   return <>
     <BrowserToolbarButton ref={triggerRef} tooltip="Settings" aria-label="Open settings menu" aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(anchor)} onClick={event => {
