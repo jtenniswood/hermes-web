@@ -15,14 +15,17 @@
 .browser-approval-control > button:hover,.browser-approval-control > button:focus-visible { background:var(--browser-hover-fill); outline:none; }
 .browser-approval-control > button > span[aria-hidden] { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
 .browser-approval-control > button > span[aria-hidden] > svg { color:inherit; opacity:1; }
-.browser-approval-control > button svg { width:.75rem; height:.75rem; }
 .browser-panels-menu-wrap { position:relative; }
 .browser-panels-menu { position:absolute; top:calc(100% + .4rem); right:0; z-index:40; width:15rem; max-height:min(24rem,calc(100dvh - 5rem)); overflow:auto; padding:.35rem; border:1px solid var(--border); border-radius:.55rem; background:var(--popover,var(--background)); box-shadow:0 .6rem 1.5rem #0006; }
 .browser-panels-menu .browser-tool-row { width:100%; min-height:2rem; height:auto; display:flex; align-items:center; justify-content:flex-start; gap:.5rem; padding:.35rem .45rem; border:1px solid transparent; border-radius:.4rem; color:var(--foreground); background:transparent; text-align:left; font:inherit; font-size:.75rem; cursor:pointer; box-sizing:border-box; }
 .browser-panels-menu .browser-tool-row:hover,.browser-panels-menu .browser-tool-row:focus-visible { border-color:transparent; background:var(--browser-hover-fill); outline:none; }
 .browser-tool-title button { border:1px solid var(--border); border-radius:.5rem; padding:.45rem .65rem; font-size:.75rem; background:var(--background); cursor:pointer; }
 .browser-actions svg { width:1rem; height:1rem; }
-.browser-chat-toolbar .browser-actions svg { width:.75rem; height:.75rem; }
+/* One 16px action glyph across font icons and SVGs. Upstream section controls
+   and the approval portal join the same sizing as browser toolbar buttons;
+   inline Codicon sizes need an explicit override. Button targets stay separate. */
+:is([data-browser-toolbar-button], .browser-approval-control > button, .browser-sessions-pane [data-browser-section-header] button[data-size="icon-xs"], .browser-roster-action-trigger) :is(.codicon, svg) { width:1rem; height:1rem; flex-shrink:0; }
+:is([data-browser-toolbar-button], .browser-approval-control > button, .browser-sessions-pane [data-browser-section-header] button[data-size="icon-xs"], .browser-roster-action-trigger) .codicon { display:inline-flex; align-items:center; justify-content:center; font-size:1rem !important; line-height:1; }
 .browser-chat-toolbar .browser-actions > button,.browser-chat-toolbar .browser-actions > .browser-panels-menu-wrap > button { position:relative; }
 .browser-action-badge { position:absolute; top:-.4rem; right:-.35rem; padding:.1rem .25rem; border-radius:.5rem; background:var(--primary); color:var(--primary-foreground); font-size:.55rem; }
 .browser-workspace { flex:1; min-height:0; display:flex; position:relative; }
@@ -229,22 +232,21 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-profile-actions-trigger { display:inline-flex; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; flex:0 0 2.5rem; border:0; border-radius:.6rem; background:transparent; color:var(--muted-foreground); cursor:pointer; }
 .browser-profile-actions-trigger:hover,.browser-profile-actions-trigger:focus-visible { background:var(--browser-hover-fill); color:var(--foreground); }
 .browser-action-anchor { position:fixed; width:0; height:0; padding:0; border:0; pointer-events:none; }
-.browser-action-menu { z-index:110; min-width:13rem; max-width:var(--radix-dropdown-menu-content-available-width); max-height:var(--radix-dropdown-menu-content-available-height); overflow:auto; padding:.2rem; border:1px solid color-mix(in srgb,var(--border) 88%,#6878bb); border-radius:.5rem; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 .5rem 1.5rem #0007; }
+.browser-action-menu { z-index:110; min-width:13rem; max-width:var(--radix-dropdown-menu-content-available-width); max-height:var(--radix-dropdown-menu-content-available-height); overflow:auto; padding:.25rem; }
 /* Desktop menus use the renderer's compact 12px text; phone sheets retain
    the 13px navigation text and larger touch targets. */
 .browser-action-item { display:flex; align-items:center; width:100%; padding:.5rem .65rem; border:0; border-radius:.3rem; background:transparent; color:inherit; font:inherit; font-size:.8125rem; line-height:1.4; text-align:left; cursor:pointer; }
-.browser-action-menu .browser-action-item { box-sizing:border-box; min-height:1.75rem; padding:.25rem .5rem; border-radius:.25rem; font-size:.75rem; line-height:1.35; }
+.browser-action-menu .browser-action-item { box-sizing:border-box; min-height:1.5rem; padding:.25rem .5rem; border-radius:.125rem; font-size:.75rem; line-height:1rem; }
 .browser-action-item:hover,.browser-action-item:focus-visible,.browser-action-item[data-highlighted] { outline:none; background:var(--browser-hover-fill); }
 .browser-action-item:disabled,.browser-action-item[data-disabled] { color:var(--muted-foreground); opacity:.65; cursor:default; background:transparent; }
 .browser-action-item[data-destructive] { color:var(--destructive,#ff4545); }
 .browser-action-item[data-destructive]:hover,.browser-action-item[data-destructive]:focus-visible,.browser-action-item[data-destructive][data-highlighted] { background:color-mix(in srgb,var(--destructive,#ff4545) 12%,var(--background)); }
 .browser-action-backdrop { position:fixed; inset:0; z-index:110; background:#0006; }
-.browser-action-sheet { box-sizing:border-box; position:fixed; z-index:111; bottom:0; left:0; width:calc(100vw / var(--web-ui-scale,1)); max-height:calc(90dvh / var(--web-ui-scale,1)); display:flex; flex-direction:column; padding:1.5rem max(.75rem,calc(env(safe-area-inset-right,0px) / var(--web-ui-scale,1))) max(.75rem,calc(env(safe-area-inset-bottom,0px) / var(--web-ui-scale,1))) max(.75rem,calc(env(safe-area-inset-left,0px) / var(--web-ui-scale,1))); border:1px solid var(--border); border-radius:1rem 1rem 0 0; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 -.5rem 2rem #0004; }
+.browser-action-sheet { box-sizing:border-box; position:fixed; z-index:111; bottom:0; left:0; width:calc(100vw / var(--web-ui-scale,1)); max-height:calc(90dvh / var(--web-ui-scale,1)); display:flex; flex-direction:column; padding:1.5rem max(.75rem,calc(env(safe-area-inset-right,0px) / var(--web-ui-scale,1))) max(.75rem,calc(env(safe-area-inset-bottom,0px) / var(--web-ui-scale,1))) max(.75rem,calc(env(safe-area-inset-left,0px) / var(--web-ui-scale,1))); border-radius:1rem 1rem 0 0; box-shadow:0 -.5rem 2rem #0004; }
 .browser-action-sheet::before { display:block; width:2.25rem; height:.25rem; flex:0 0 auto; margin:-.9rem auto .75rem; border-radius:999px; background:color-mix(in srgb,currentColor 28%,transparent); content:''; }
 .browser-action-title { margin:0; padding:.5rem .65rem; font-size:1rem; font-weight:600; }
 .browser-action-list { min-height:0; overflow-y:auto; }
 .browser-action-sheet .browser-action-item { min-height:calc(3.25rem / var(--web-ui-scale,1)); }
-.browser-action-menu,.browser-action-sheet { --browser-hover-fill:color-mix(in srgb,var(--primary,#4d86ff) 20%,var(--background)); }
 
 .browser-navigation-heading { display:flex; flex-shrink:0; border-bottom:1px solid var(--browser-panel-divider); }
 .browser-navigation .browser-navigation-back { display:none; }
@@ -252,12 +254,14 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-navigation-actions-trigger:hover,.browser-navigation-actions-trigger:focus-visible { background:var(--browser-hover-fill); color:var(--foreground); }
 .browser-action-check { display:inline-block; width:1rem; flex:0 0 1rem; margin-right:.5rem; color:var(--primary,#4d86ff); }
 
-.browser-action-group + .browser-action-group { margin-top:.3rem; padding-top:.3rem; border-top:1px solid var(--border); }
-.browser-action-menu .browser-action-group + .browser-action-group { margin:.3rem -.2rem 0; padding:.3rem .2rem 0; border-color:color-mix(in srgb,var(--border) 88%,#6878bb); }
-.browser-action-group-label { margin:0; padding:.45rem .65rem .2rem; color:var(--muted-foreground); font-size:.7rem; font-weight:600; }
-.browser-action-menu .browser-action-group-label { padding-inline:.5rem; font-size:.75rem; }
+.browser-action-group + .browser-action-group { margin-top:.3rem; padding-top:.3rem; border-top:1px solid var(--ui-stroke-secondary); }
+.browser-action-menu .browser-action-group + .browser-action-group { margin:.25rem -.25rem 0; padding:.25rem .25rem 0; border-top:1px solid var(--ui-stroke-secondary); }
+.browser-action-group-label { margin:0; padding:.45rem .65rem .2rem; color:var(--ui-text-tertiary); font-size:.7rem; font-weight:600; }
+.browser-action-menu .browser-action-group-label { padding:.25rem .5rem; color:var(--ui-text-tertiary); font-size:.75rem; font-weight:400; line-height:1rem; }
 .browser-action-icon { display:inline-flex; align-items:center; justify-content:center; flex:0 0 1rem; margin-right:.5rem; }
-.browser-action-menu .browser-action-icon { flex-basis:1rem; width:1rem; margin-right:.5rem; font-size:1rem; }
+.browser-action-menu .browser-action-icon { flex-basis:1rem; width:1rem; margin-right:.5rem; color:var(--ui-text-tertiary); font-size:1rem; }
+.browser-action-menu .browser-action-check { order:1; margin-left:auto; margin-right:0; color:var(--ui-text-primary); }
+.browser-action-menu .browser-action-item[data-destructive] .browser-action-icon { color:inherit; }
 
 .browser-bots-heading { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.625rem .625rem .375rem; }
 .browser-bots-heading > span { font-size:.6875rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--ui-text-quaternary); }
@@ -277,6 +281,26 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-roster-action-row > :first-child { flex: 1; min-width: 0; }
 .browser-roster-action-trigger { display: flex; align-items: center; justify-content: center; flex: none; width: 1.75rem; height: 1.75rem; border-radius: .375rem; color: var(--ui-text-tertiary); }
 .browser-roster-action-trigger:hover, .browser-roster-action-trigger[aria-expanded="true"] { background: var(--chrome-action-hover); color: var(--ui-text-primary); }
+/* Bot rows keep one centered name line. The upstream content column contains
+   the name/age row followed by optional handle/message details. */
+.browser-roster-action-row:has(> [data-roster-key]) { position:relative; }
+.browser-roster-action-row > [data-roster-key] > div:last-child { padding-inline-end:2rem; }
+.browser-roster-action-row > [data-roster-key] > div:last-child > div + div { display:none; }
+/* Age and actions occupy the same trailing cell, without moving the name or
+   shrinking the selected row background when the action button appears. */
+.browser-roster-action-row > [data-roster-key] > div:last-child > div:first-child > span:last-child,
+.browser-roster-action-row:has(> [data-roster-key]) > .browser-roster-action-trigger { position:absolute; inset-inline-end:.5rem; top:50%; transform:translateY(-50%); width:1.75rem; text-align:center; }
+.browser-roster-action-row:has(> [data-roster-key]) > .browser-roster-action-trigger { opacity:0; pointer-events:none; }
+.browser-roster-action-row:has(> [data-roster-key]):is(:hover,:has(:focus-visible),:has(> [aria-expanded="true"])) > .browser-roster-action-trigger { opacity:1; pointer-events:auto; }
+.browser-roster-action-row:is(:hover,:has(:focus-visible),:has(> [aria-expanded="true"])) > [data-roster-key] > div:last-child > div:first-child > span:last-child { opacity:0; }
+/* Touch has no rollover: show the action in that same cell, with a full touch
+   target. The desktop keyboard can still tab to the transparent trigger. */
+@media (max-width:47.999rem), (hover:none), (pointer:coarse) {
+  .browser-roster-action-row > [data-roster-key] { min-height:calc(3.25rem / var(--web-ui-scale,1)); }
+  .browser-roster-action-row > [data-roster-key] > div:last-child { padding-inline-end:calc(3.25rem / var(--web-ui-scale,1)); }
+  .browser-roster-action-row:has(> [data-roster-key]) > .browser-roster-action-trigger { width:calc(3.25rem / var(--web-ui-scale,1)); height:calc(3.25rem / var(--web-ui-scale,1)); inset-inline-end:.25rem; opacity:1; pointer-events:auto; }
+  .browser-roster-action-row > [data-roster-key] > div:last-child > div:first-child > span:last-child { opacity:0; }
+}
 .browser-bot-section-heading { display: flex; align-items: center; gap: .375rem; min-width: 0; width: 100%; padding: .375rem .5rem; text-align: left; font-size: .6875rem; font-weight: 600; color: var(--ui-text-tertiary); }
 .browser-bot-section-heading > span:not(.browser-bot-section-count) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .browser-bot-section-count { margin-left: auto; }

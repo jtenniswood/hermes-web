@@ -50,45 +50,107 @@ body > [data-radix-popper-content-wrapper] > [data-slot='tooltip-content'] [data
   height: calc(5px * var(--web-ui-scale, 1));
 }
 
-/* Keep renderer-owned dropdown and context menus on the same surface and row
-   rhythm as browser-owned action menus on desktop and mobile. */
-body > [data-radix-popper-content-wrapper] > :is(
+/* All Radix menu surfaces (including plugin and dialog-owned menus) use the
+   same theme tokens. Browser action sheets share the palette, while keeping
+   their mobile layout and touch targets in browser.css. */
+:is(
+  [data-radix-menu-content],
+  .browser-action-menu,
+  .browser-action-sheet,
+  [data-slot='dropdown-menu-content'],
+  [data-slot='context-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='context-menu-sub-content']
+) {
+  --browser-hover-fill: var(--ui-control-active-background);
+  border: 1px solid var(--ui-stroke-secondary) !important;
+  background: var(--ui-bg-elevated) !important;
+  color: var(--ui-text-primary) !important;
+  font-family: var(--font-sans);
+}
+
+:is(
+  [data-radix-menu-content],
+  .browser-action-menu,
   [data-slot='dropdown-menu-content'],
   [data-slot='context-menu-content'],
   [data-slot='dropdown-menu-sub-content'],
   [data-slot='context-menu-sub-content']
 ) {
   box-sizing: border-box;
-  border: 1px solid var(--border) !important;
-  border-radius: .7rem !important;
-  background: var(--popover, var(--background)) !important;
-  color: var(--foreground) !important;
+  border-radius: .25rem !important;
   font-size: .75rem;
-  box-shadow: 0 .5rem 1.5rem #0005 !important;
+  box-shadow: 0 0 0 1px var(--ui-stroke-tertiary), 0 .25rem .75rem #0003 !important;
 }
 
-body > [data-radix-popper-content-wrapper] > :is(
-  [data-slot='dropdown-menu-content'],
-  [data-slot='context-menu-content'],
-  [data-slot='dropdown-menu-sub-content'],
-  [data-slot='context-menu-sub-content']
-) [role^='menuitem'] {
-  box-sizing: border-box;
-  min-height: 1.75rem;
-  padding-block: .25rem;
-  border-radius: .35rem;
-  font-size: .75rem;
-  line-height: 1.35;
+/* Desktop rows follow the compact renderer rhythm. Keep horizontal insets
+   owned by each component so icons, checks, and nested actions stay aligned. */
+@media (min-width: 48rem) and (min-height: 27.001rem), (min-width: 48rem) and (pointer: fine) {
+  :is(
+    [data-radix-menu-content],
+    .browser-action-menu,
+    [data-slot='dropdown-menu-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-sub-content']
+  ) [role^='menuitem'] {
+    box-sizing: border-box;
+    min-height: 1.5rem;
+    padding-block: .25rem;
+    border-radius: .125rem;
+    font-size: .75rem;
+    font-weight: 400;
+    line-height: 1rem;
+  }
+
+  :is(
+    [data-slot='dropdown-menu-label'],
+    [data-slot='context-menu-label'],
+    .browser-action-menu .browser-action-group-label
+  ) {
+    padding-block: .25rem;
+    color: var(--ui-text-tertiary);
+    font-size: .75rem;
+    font-weight: 400;
+    line-height: 1rem;
+  }
 }
 
-body > [data-radix-popper-content-wrapper] > :is(
-  [data-slot='dropdown-menu-content'],
-  [data-slot='context-menu-content'],
-  [data-slot='dropdown-menu-sub-content'],
-  [data-slot='context-menu-sub-content']
-) [data-slot$='menu-separator'] {
-  margin-block: .35rem;
-  border-color: color-mix(in srgb, var(--border) 88%, #6878bb);
+:is(
+  [data-slot='dropdown-menu-separator'],
+  [data-slot='context-menu-separator']
+) {
+  margin-block: .25rem;
+  background: var(--ui-stroke-secondary);
+}
+
+/* Leading action icons match the toolbar; nested check indicators keep their
+   component sizing so they remain secondary to the action label. */
+:is([data-radix-menu-content], .browser-action-sheet) :is([role^='menuitem'] > svg, [role^='menuitem'] > .codicon, .browser-action-icon > svg, .browser-action-icon > .codicon) {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+:is([data-radix-menu-content], .browser-action-sheet) :is([role^='menuitem'] > .codicon, .browser-action-icon > .codicon) {
+  font-size: 1rem !important;
+  line-height: 1;
+}
+
+/* Match pointer, keyboard, and open-submenu states across menu providers.
+   Destructive actions retain their warning color and tinted highlight. */
+:is([data-radix-menu-content], .browser-action-menu, .browser-action-sheet)
+:is([role^='menuitem'], .browser-action-item):is(:hover, :focus-visible, [data-highlighted], [data-state='open']):not([data-disabled], :disabled, [data-variant='destructive'], [data-destructive]) {
+  outline: none;
+  background: var(--ui-control-active-background);
+  color: var(--ui-text-primary);
+}
+
+:is([data-radix-menu-content], .browser-action-menu, .browser-action-sheet)
+:is([role^='menuitem'], .browser-action-item):is([data-disabled], :disabled) {
+  color: var(--ui-text-tertiary);
+  opacity: .65;
+  background: transparent;
 }
 
 /* Upstream session/action menus use Radix poppers. On phones, present their
