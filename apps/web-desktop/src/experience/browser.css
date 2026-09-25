@@ -34,12 +34,13 @@
 .browser-navigation-resizer::after { position:absolute; inset:0 auto 0 50%; width:1px; transform:translateX(-50%); background:transparent; content:""; }
 .browser-navigation-resizer:hover::after,.browser-navigation-resizer:focus-visible::after,.browser-navigation-resizer:active::after { width:.2rem; border-radius:999px; background:var(--primary,#4d86ff); box-shadow:0 0 .45rem color-mix(in srgb,var(--primary,#4d86ff) 70%,transparent); }
 .browser-navigation-resizer:focus-visible { outline:none; }
-.browser-navigation-tabs { display:flex; flex:1; align-items:center; gap:.25rem; min-width:0; overflow-x:auto; padding-inline:.25rem; background:var(--browser-navigation-background); scrollbar-width:none; }
+.browser-navigation-tabs { display:flex; flex:1; gap:0; min-width:0; overflow-x:auto; background:var(--browser-navigation-background); scrollbar-width:none; }
 .browser-navigation-tabs::-webkit-scrollbar { display:none; }
-.browser-navigation-tabs button { position:relative; flex:0 0 auto; min-width:0; max-width:12rem; min-height:2.25rem; border:0; border-radius:.35rem; padding:0 .75rem; color:var(--muted-foreground); background:transparent; font-size:.625rem; font-weight:500; letter-spacing:.025em; text-transform:uppercase; cursor:pointer; }
-.browser-navigation-tabs button[aria-selected="true"] { color:var(--foreground); background:var(--browser-navigation-background); box-shadow:inset 0 -2px 0 var(--primary,#4d86ff); }
+.browser-navigation-tabs button { position:relative; flex:0 0 auto; min-width:0; max-width:12rem; min-height:2.75rem; border:0; border-radius:0; padding:0 .75rem; color:var(--muted-foreground); background:var(--browser-navigation-background); font-size:.625rem; font-weight:500; letter-spacing:.025em; text-transform:uppercase; cursor:pointer; }
+.browser-navigation-tabs button + button::before { position:absolute; top:.35rem; bottom:.35rem; left:0; width:1px; background:color-mix(in srgb,var(--foreground) 14%,transparent); content:""; }
 .browser-navigation-tabs button:hover { color:var(--foreground); background:var(--browser-hover-fill); }
 .browser-navigation-tabs button:focus-visible { color:var(--foreground); background:var(--browser-hover-fill); outline:none; }
+.browser-navigation-tabs button[aria-selected="true"] { color:var(--foreground); background:var(--browser-navigation-background); box-shadow:inset 0 -2px 0 var(--primary,#4d86ff); }
 .browser-navigation-body { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; background:var(--browser-navigation-background); }
 /* Keep the disclosure in the search/navigation flow so expansion reserves space. */
 .browser-navigation-section { width:calc(100% + 1rem); margin:1px -.5rem 0; }
@@ -238,7 +239,7 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 
 .browser-navigation-heading { display:flex; flex-shrink:0; border-bottom:1px solid var(--browser-panel-divider); }
 .browser-navigation .browser-navigation-back { display:none; }
-.browser-navigation-actions-trigger { display:inline-flex; align-items:center; justify-content:center; flex:0 0 2.75rem; min-height:2.75rem; border:0; background:transparent; color:var(--muted-foreground); cursor:pointer; }
+.browser-navigation-actions-trigger { display:inline-flex; align-items:center; justify-content:center; flex:0 0 2.75rem; min-height:2.75rem; margin-right:.25rem; border:0; border-radius:.35rem; background:transparent; color:var(--muted-foreground); cursor:pointer; }
 .browser-navigation-actions-trigger:hover,.browser-navigation-actions-trigger:focus-visible { background:var(--browser-hover-fill); color:var(--foreground); }
 .browser-action-check { display:inline-block; width:1rem; flex:0 0 1rem; margin-right:.5rem; color:var(--primary,#4d86ff); }
 
