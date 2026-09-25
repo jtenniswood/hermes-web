@@ -226,10 +226,11 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-profile-actions-trigger { display:inline-flex; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; flex:0 0 2.5rem; border:0; border-radius:.6rem; background:transparent; color:var(--muted-foreground); cursor:pointer; }
 .browser-profile-actions-trigger:hover,.browser-profile-actions-trigger:focus-visible { background:var(--browser-hover-fill); color:var(--foreground); }
 .browser-action-anchor { position:fixed; width:0; height:0; padding:0; border:0; pointer-events:none; }
-.browser-action-menu { z-index:110; min-width:15rem; max-width:var(--radix-dropdown-menu-content-available-width); max-height:var(--radix-dropdown-menu-content-available-height); overflow:auto; padding:.2rem; border:1px solid color-mix(in srgb,var(--border) 88%,#6878bb); border-radius:.5rem; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 .5rem 1.5rem #0007; }
-/* Match the 13px navigation rows in both menus and phone sheets. */
+.browser-action-menu { z-index:110; min-width:13rem; max-width:var(--radix-dropdown-menu-content-available-width); max-height:var(--radix-dropdown-menu-content-available-height); overflow:auto; padding:.2rem; border:1px solid color-mix(in srgb,var(--border) 88%,#6878bb); border-radius:.5rem; background:var(--popover,var(--background)); color:var(--foreground); box-shadow:0 .5rem 1.5rem #0007; }
+/* Desktop menus use the renderer's compact 12px text; phone sheets retain
+   the 13px navigation text and larger touch targets. */
 .browser-action-item { display:flex; align-items:center; width:100%; padding:.5rem .65rem; border:0; border-radius:.3rem; background:transparent; color:inherit; font:inherit; font-size:.8125rem; line-height:1.4; text-align:left; cursor:pointer; }
-.browser-action-menu .browser-action-item { box-sizing:border-box; min-height:2.65rem; padding:.55rem .75rem; border-radius:.25rem; line-height:1.35; }
+.browser-action-menu .browser-action-item { box-sizing:border-box; min-height:1.75rem; padding:.25rem .5rem; border-radius:.25rem; font-size:.75rem; line-height:1.35; }
 .browser-action-item:hover,.browser-action-item:focus-visible,.browser-action-item[data-highlighted] { outline:none; background:var(--browser-hover-fill); }
 .browser-action-item:disabled,.browser-action-item[data-disabled] { color:var(--muted-foreground); opacity:.65; cursor:default; background:transparent; }
 .browser-action-item[data-destructive] { color:var(--destructive,#ff4545); }
@@ -251,9 +252,9 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-action-group + .browser-action-group { margin-top:.3rem; padding-top:.3rem; border-top:1px solid var(--border); }
 .browser-action-menu .browser-action-group + .browser-action-group { margin:.3rem -.2rem 0; padding:.3rem .2rem 0; border-color:color-mix(in srgb,var(--border) 88%,#6878bb); }
 .browser-action-group-label { margin:0; padding:.45rem .65rem .2rem; color:var(--muted-foreground); font-size:.7rem; font-weight:600; }
-.browser-action-menu .browser-action-group-label { padding-inline:.75rem; font-size:.75rem; }
+.browser-action-menu .browser-action-group-label { padding-inline:.5rem; font-size:.75rem; }
 .browser-action-icon { display:inline-flex; align-items:center; justify-content:center; flex:0 0 1rem; margin-right:.5rem; }
-.browser-action-menu .browser-action-icon { flex-basis:1.25rem; width:1.25rem; margin-right:.65rem; font-size:1rem; }
+.browser-action-menu .browser-action-icon { flex-basis:1rem; width:1rem; margin-right:.5rem; font-size:1rem; }
 
 .browser-bots-heading { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.625rem .625rem .375rem; }
 .browser-bots-heading > span { font-size:.6875rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--ui-text-quaternary); }
