@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { createPreviewGateway } from '../../scripts/preview/gateway.mjs'
 import { getBrowserTarget } from './test-target.mjs'
+import { viewportChecks } from './viewport-checks.mjs'
 
 test.describe.configure({ retries: 1, timeout: 90000 })
 const { image, url } = getBrowserTarget()
@@ -33,6 +34,8 @@ const open = async page => {
   await expect(editor(page)).toBeVisible({ timeout: 30000 })
   await expect(page.getByText('Help me make a thoughtful plan.', { exact: true }).first()).toBeVisible({ timeout: 30000 })
 }
+
+viewportChecks(test, open)
 
 test('WebKit starts cleanly and keeps drafts isolated while switching conversations', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })

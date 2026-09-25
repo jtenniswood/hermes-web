@@ -6,8 +6,17 @@ html {
   height: calc(100dvh / var(--web-ui-scale, 1)) !important;
 }
 
+/* Size the app to the area above the keyboard and follow focus-driven panning.
+   Keep its ancestors at layout height so they do not clip the shifted shell.
+   Dynamic height remains the fallback when VisualViewport is unavailable. */
+#root {
+  height: calc(var(--web-viewport-height, 100dvh) / var(--web-ui-scale, 1)) !important;
+  min-height: 0 !important;
+  position: relative;
+  top: calc(var(--web-viewport-top, 0px) / var(--web-ui-scale, 1));
+}
+
 body,
-#root,
 [data-slot='sidebar-wrapper'],
 [data-contrib-shell] {
   height: 100% !important;
