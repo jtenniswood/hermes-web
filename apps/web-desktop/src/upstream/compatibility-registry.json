@@ -41,6 +41,10 @@
       {
         "file": "tests/browser/interruptions.spec.mjs",
         "scenario": "a late Bot A response cannot replace Bot B or cross their drafts"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "phone session-row actions stay open without resuming the row"
       }
     ],
     "removal": "Remove when the upstream gateway registry supports shared browser connections without backend activation.",

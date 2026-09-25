@@ -47,6 +47,6 @@ test('WebKit starts cleanly and keeps drafts isolated while switching conversati
   await editor(page).fill('bot draft')
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
   await page.getByRole('tab', { name: 'Sessions', exact: true }).click()
-  await page.getByRole('button', { name: 'Plan a calmer working week', exact: true }).click()
+  await page.locator('.browser-sessions-pane button[data-slot="row-button"]').filter({ hasText: 'Plan a calmer working week' }).click()
   await expect(editor(page)).toHaveText('session draft')
 })
