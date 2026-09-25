@@ -21,7 +21,7 @@
 .browser-navigation-resizer:focus-visible { outline:none; }
 .browser-navigation-tabs { display:flex; flex:1; gap:0; min-width:0; overflow-x:auto; background:var(--web-sidebar); scrollbar-width:none; }
 .browser-navigation-tabs::-webkit-scrollbar { display:none; }
-.browser-navigation-tabs button { position:relative; flex:0 0 auto; min-width:0; max-width:12rem; min-height:var(--web-toolbar-height); border:0; border-radius:0; padding:0 var(--web-space-3); color:var(--web-text-subtle); background:var(--web-sidebar); font-size:var(--web-text-label); font-weight:500; letter-spacing:.025em; text-transform:uppercase; cursor:pointer; }
+.browser-navigation-tabs button { position:relative; flex:0 0 auto; min-width:0; max-width:12rem; min-height:var(--web-toolbar-height); border:0; border-radius:0; padding:0 var(--web-space-3); color:var(--web-text-subtle); background:var(--web-sidebar); font-size:.625rem; font-weight:500; letter-spacing:.025em; text-transform:uppercase; cursor:pointer; }
 .browser-navigation-tabs button[draggable="true"] { cursor:grab; }
 .browser-navigation-tabs button[data-dragging="true"] { opacity:.5; cursor:grabbing; }
 .browser-navigation-tabs button + button::before { position:absolute; inset-block:.65rem; left:0; width:1px; background:color-mix(in srgb,var(--web-text) 14%,transparent); content:""; }
