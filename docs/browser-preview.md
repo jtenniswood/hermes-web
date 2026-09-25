@@ -6,7 +6,10 @@ This review build uses the browser-focused shell with the pinned Hermes Desktop
  now the only web entry point in dev, Docker, preview, and CI.
 
 The browser shell supplies Sessions/Bots/Tools navigation, a profile selector,
-and a drawer below 48rem. Narrow desktop windows keep desktop sizing,
+and a drawer below 48rem. On narrow desktop windows, the drawer overlays the
+chat at the saved sidebar width, capped to leave part of the chat visible.
+Click outside it, use its close button, or press Escape to return to the chat.
+Mobile navigation still fills the screen. Narrow desktop windows keep desktop sizing,
 right-click menus, and hover submenus; compact touch devices use larger touch
 targets and action sheets. Its main area reuses the upstream workspace tree for
 the chat, composer, streaming, and contributed panel bodies while keeping the

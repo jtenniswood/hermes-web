@@ -88,6 +88,7 @@ function BrowserLayout() {
   return <ApprovalToolbarTarget value={approvalTarget}><BackendVersionListener value={setBackendVersion}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
     <BrowserActionError />
     <div className="browser-workspace">
+      {navigation.compact && !navigation.mobile && navigation.drawerOpen && <button type="button" className="browser-scrim" aria-label="Dismiss navigation" tabIndex={-1} onClick={navigation.dismissDrawer} />}
       <aside id="browser-navigation" ref={navigation.drawer} hidden={!navigation.open} className={`browser-navigation ${navigation.drawerOpen ? 'is-open' : ''}`} role={navigation.compact && navigation.drawerOpen ? 'dialog' : undefined} aria-modal={navigation.compact && navigation.drawerOpen ? true : undefined} aria-label="Navigation" style={{ '--browser-navigation-width': `${navigation.width}px` } as CSSProperties}>
         <BrowserNavigationTabs navigation={navigation} />
         <div className="browser-navigation-body" role="tabpanel" aria-label={tab}>
@@ -102,7 +103,7 @@ function BrowserLayout() {
         <BrowserProfileNavigation hidden={tab !== 'sessions'} />
       </aside>
       <BrowserNavigationResizer navigation={navigation} />
-      <main className="browser-main" ref={main} hidden={navigation.compact && navigation.drawerOpen} tabIndex={-1} aria-label="Conversation and workspace">
+      <main className="browser-main" ref={main} hidden={navigation.mobile && navigation.drawerOpen} inert={navigation.compact && !navigation.mobile && navigation.drawerOpen} tabIndex={-1} aria-label="Conversation and workspace">
         <div className="browser-chat-toolbar" aria-label="Chat toolbar">
           <BrowserToolbarButton tooltip={navigation.open ? 'Hide sidebar' : 'Show sidebar'} className="browser-menu" ref={menu} aria-label={navigation.open ? 'Hide navigation' : 'Open navigation'} aria-expanded={navigation.open} aria-controls="browser-navigation" onClick={navigation.toggle}>
             <Codicon name="layout-sidebar-left" />

@@ -17,13 +17,14 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
   const sections = useBrowserSidebarSections()
   const drawer = useRef<HTMLElement>(null)
   const compact = useCompactBrowser()
+  const mobile = useMobileBrowser()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [width, setWidth] = useState(readNavigationWidth)
   const [tab, setTab] = useState<NavigationTab>(readNavigationTab)
   const [visibleTabs, setVisibleTabs] = useState<NavigationTab[]>(readVisibleNavigationTabs)
   const previous = useRef({ selectionKey, path })
-  useEffect(() => { setDrawerOpen(false) }, [compact])
+  useEffect(() => { setDrawerOpen(false) }, [compact, mobile])
   useEffect(() => $conversationOpenRequest.listen(() => {
     if (!drawerOpen) return
     setDrawerOpen(false)
@@ -57,7 +58,7 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
     return () => document.removeEventListener('keydown', keydown)
   }, [drawerOpen])
   return {
-    sections, drawer, compact, drawerOpen, collapsed, width, setWidth, tab, setTab, visibleTabs,
+    sections, drawer, compact, mobile, drawerOpen, collapsed, width, setWidth, tab, setTab, visibleTabs,
     open: compact ? drawerOpen : !collapsed,
     toggle: () => compact ? setDrawerOpen(open => !open) : setCollapsed(value => !value),
     closeDrawer: () => setDrawerOpen(false),
@@ -98,6 +99,7 @@ export function BrowserNavigationTabs({ navigation }: { navigation: Navigation }
           }
         }} onClick={() => { setAnchor(null); setTab(value) }}>{NAVIGATION_TAB_LABELS[value]}</button>)}
       </div>
+      {navigation.compact && !navigation.mobile && <BrowserToolbarButton tooltip="Close navigation" aria-label="Close navigation" onClick={navigation.dismissDrawer}><Codicon name="close" /></BrowserToolbarButton>}
       <BrowserToolbarButton ref={actionsTrigger} tooltip="Navigation tabs" className="browser-navigation-actions-trigger" aria-label="Navigation tabs" aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(anchor)} onClick={showActions}><Codicon name="ellipsis" size="1rem" /></BrowserToolbarButton>
     </div>
     <BrowserActionSurface title="Navigation tabs" hideTitle anchor={anchor} compact={compact} fallbackFocus={actionsTrigger} onClose={() => setAnchor(null)} groups={[{ key: 'tabs', label: 'Tabs', actions: NAVIGATION_TABS.map(value => ({
