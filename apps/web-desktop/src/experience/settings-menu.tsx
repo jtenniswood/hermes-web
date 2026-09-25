@@ -1,5 +1,5 @@
 import { useState, type RefObject } from 'react'
-import { APP_ROUTES, Codicon } from '../upstream/browser-api'
+import { APP_ROUTES, Codicon, type StatusbarItem } from '../upstream/browser-api'
 import { useBrowserSettings } from '../upstream/settings'
 import { BrowserActionSurface, type BrowserActionAnchor, type BrowserActionGroup } from './ui/action-surface'
 import { BrowserToolbarButton } from './ui/toolbar-button'
@@ -35,13 +35,14 @@ type PanelEntry = {
 
 type SettingsMenuProps = {
   triggerRef: RefObject<HTMLButtonElement | null>
+  backendVersion: StatusbarItem | null
   onOpenGateway: () => void
   onOpenPanel: () => void
   onOpenRoute: (path: string) => void
   panelPanes: PanelEntry[]
 }
 
-export function SettingsMenu({ triggerRef, onOpenGateway, onOpenPanel, onOpenRoute, panelPanes }: SettingsMenuProps) {
+export function SettingsMenu({ triggerRef, backendVersion, onOpenGateway, onOpenPanel, onOpenRoute, panelPanes }: SettingsMenuProps) {
   const compact = useCompactBrowser()
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
   const model = useBrowserSettings(panelPanes.map(pane => ({ id: pane.id, collapsible: Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible) })))
@@ -53,7 +54,8 @@ export function SettingsMenu({ triggerRef, onOpenGateway, onOpenPanel, onOpenRou
     }) },
     { key: 'systems', label: 'Systems', actions: [
       { key: 'settings', label: 'Settings', icon: <Codicon name="settings-gear" size="1rem" />, afterClose: true, run: () => onOpenRoute('/settings') },
-      { key: 'gateway', label: 'Gateway', icon: <Codicon name="pulse" size="1rem" />, afterClose: true, run: onOpenGateway }
+      { key: 'gateway', label: 'Gateway', icon: <Codicon name="pulse" size="1rem" />, afterClose: true, run: onOpenGateway },
+      ...(backendVersion ? [{ key: backendVersion.id, label: typeof backendVersion.label === 'string' ? backendVersion.label : 'Backend update', icon: backendVersion.icon, disabled: backendVersion.disabled, afterClose: true, run: () => backendVersion.onSelect?.({ shiftKey: false }) }] : [])
     ] },
     { key: 'workspace', label: 'Workspace', actions: APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => ({ key: route.path, label: toolRouteLabel(route.id), icon: <Codicon name={toolRouteIcon(route.id)} size="1rem" />, afterClose: true, run: () => onOpenRoute(route.path) })) }
   ]

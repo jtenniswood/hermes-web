@@ -15,7 +15,7 @@ import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, Cont
 import { useBrowserConversation } from '../upstream/conversation'
 import { useBrowserSessionActions } from '../upstream/conversation-actions'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
-import { ApprovalToolbarTarget, BackendVersionTarget } from '../upstream/browser-api'
+import { ApprovalToolbarTarget, BackendVersionListener, type StatusbarItem } from '../upstream/browser-api'
 
 export function BrowserShell() {
   return <SidebarProvider className="browser-provider" style={{ '--sidebar-width': '100%' } as CSSProperties}>
@@ -25,7 +25,7 @@ export function BrowserShell() {
 function BrowserLayout() {
   useMobileSubmenus()
   const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
-  const [versionTarget, setVersionTarget] = useState<HTMLDivElement | null>(null)
+  const [backendVersion, setBackendVersion] = useState<StatusbarItem | null>(null)
   const navigate = useNavigate(), location = useLocation()
   const conversation = useBrowserConversation()
   const selected = conversation.sessionId
@@ -85,7 +85,7 @@ function BrowserLayout() {
     navigation.closeDrawer()
   }
   const panelPanes = panes.filter(pane => !['workspace', 'sessions', 'hermes-bots:pane', 'terminal'].includes(pane.id))
-  return <ApprovalToolbarTarget value={approvalTarget}><BackendVersionTarget value={versionTarget}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
+  return <ApprovalToolbarTarget value={approvalTarget}><BackendVersionListener value={setBackendVersion}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
     <BrowserActionError />
     <div className="browser-workspace">
       <aside id="browser-navigation" ref={navigation.drawer} hidden={!navigation.open} className={`browser-navigation ${navigation.drawerOpen ? 'is-open' : ''}`} role={navigation.compact && navigation.drawerOpen ? 'dialog' : undefined} aria-modal={navigation.compact && navigation.drawerOpen ? true : undefined} aria-label="Navigation" style={{ '--browser-navigation-width': `${navigation.width}px` } as CSSProperties}>
@@ -100,7 +100,6 @@ function BrowserLayout() {
           <button type="button" className="browser-update-panel-action" onClick={updateNotice.update}>Update when safe</button>
         </div>}
         <BrowserProfileNavigation hidden={tab !== 'sessions'} />
-        <div className="browser-backend-version" ref={setVersionTarget} />
       </aside>
       <BrowserNavigationResizer navigation={navigation} />
       <main className="browser-main" ref={main} hidden={navigation.compact && navigation.drawerOpen} tabIndex={-1} aria-label="Conversation and workspace">
@@ -113,7 +112,7 @@ function BrowserLayout() {
               <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" /></BrowserToolbarButton>
             </SessionActionsMenu>}
             <span className="browser-approval-control" ref={setApprovalTarget} />
-            <SettingsMenu triggerRef={settingsTrigger} onOpenGateway={() => { navigation.closeDrawer(); setGatewayDialogOpen(true) }} onOpenPanel={() => main.current?.focus()} onOpenRoute={openRoute} panelPanes={panelPanes} />
+            <SettingsMenu triggerRef={settingsTrigger} backendVersion={backendVersion} onOpenGateway={() => { navigation.closeDrawer(); setGatewayDialogOpen(true) }} onOpenPanel={() => main.current?.focus()} onOpenRoute={openRoute} panelPanes={panelPanes} />
           </div>
         </div>
         <BrowserWorkspace />
@@ -124,5 +123,5 @@ function BrowserLayout() {
       </BrowserModal>
       <BrowserToolModal />
     </div>
-  </div></BackendVersionTarget></ApprovalToolbarTarget>
+  </div></BackendVersionListener></ApprovalToolbarTarget>
 }
