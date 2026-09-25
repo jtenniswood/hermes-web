@@ -873,6 +873,68 @@ for (const width of [390, 1440]) {
   })
 }
 
+const openSectionNavigation = async page => {
+  await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeVisible()
+}
+
+test('Cron jobs can be hidden before any jobs exist and restored later', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 960 })
+  let jobs = []
+  await page.route(/\/api\/cron\/jobs(?:\?|$)/, route => route.fulfill({ json: jobs }))
+  await open(page)
+  await openSectionNavigation(page)
+  await page.getByRole('button', { name: 'Navigation tabs', exact: true }).click()
+  const sheet = page.getByRole('dialog', { name: 'Navigation tabs' })
+  const cron = sheet.getByRole('checkbox', { name: 'Cron jobs' })
+  await expect(cron).toBeVisible()
+  await expect(cron).toHaveAttribute('aria-checked', 'true')
+  await cron.click()
+  await expect(cron).toHaveAttribute('aria-checked', 'false')
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('hermes-web.browser.hidden-sections') || '[]'))).toContain('cron-jobs')
+
+  jobs = [{ id: 'preview-hidden-job', name: 'Hidden verification job', prompt: 'Check navigation', enabled: true }]
+  await page.reload()
+  await openSectionNavigation(page)
+  const cronSection = page.locator('.browser-sessions-pane [data-browser-section-label]').filter({ hasText: /^Cron jobs$/ }).locator('xpath=ancestor::*[@data-sidebar="group"][1]')
+  await expect(cronSection).toHaveAttribute('data-browser-section-hidden', '')
+  await page.getByRole('button', { name: 'Navigation tabs', exact: true }).click()
+  const restored = page.getByRole('dialog', { name: 'Navigation tabs' }).getByRole('checkbox', { name: 'Cron jobs' })
+  await restored.click()
+  await expect(cronSection).toBeVisible()
+})
+
+test('section menu includes collapsed session, messaging, and Cron sections', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 960 })
+  await page.route(/\/api\/cron\/jobs(?:\?|$)/, route => route.fulfill({ json: [{ id: 'preview-menu-job', name: 'Menu verification job', prompt: 'Check navigation', enabled: true }] }))
+  await page.route(/\/api\/profiles\/sessions\/sidebar(?:\?|$)/, async route => {
+    const response = await route.fetch()
+    const data = await response.json()
+    data.messaging = {
+      ...data.messaging,
+      sessions: [{ ...data.recents.sessions[0], id: 'preview-menu-discord', title: 'Discord conversation', source: 'discord' }],
+      total: 1
+    }
+    await route.fulfill({ response, json: data })
+  })
+  await open(page)
+  await openSectionNavigation(page)
+  const pane = page.locator('.browser-sessions-pane')
+  for (const name of ['Sessions', 'Discord', 'Cron jobs']) {
+    const label = pane.locator('[data-browser-section-header]').getByRole('button', { name, exact: true })
+    await expect(label).toBeVisible()
+    const content = label.locator('xpath=ancestor::*[@data-sidebar="group"][1]').locator(':scope > [data-sidebar="group-content"]')
+    if (await content.count()) await label.click()
+    await expect(content).toHaveCount(0)
+  }
+  await page.getByRole('button', { name: 'Navigation tabs', exact: true }).click()
+  const sheet = page.getByRole('dialog', { name: 'Navigation tabs' })
+  const sections = sheet.getByRole('group', { name: 'Sections' })
+  for (const name of ['Sessions', 'Discord', 'Cron jobs']) await expect(sections.getByRole('checkbox', { name, exact: true })).toBeVisible()
+  await sections.getByRole('checkbox', { name: 'Discord', exact: true }).click()
+  await expect(pane.locator('[data-browser-section-header]').filter({ hasText: 'Discord' }).locator('xpath=ancestor::*[@data-sidebar="group"][1]')).toHaveAttribute('data-browser-section-hidden', '')
+})
+
 test('None grouping shows all sessions without subheaders and survives reload', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 })
   await page.route(/\/api\/(?:profiles\/)?sessions(?:\/sidebar)?(?:\?|$)/, async route => {
