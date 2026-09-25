@@ -1873,7 +1873,7 @@ for (const scenario of [
       }))
       expect(controls).toHaveLength(4)
       for (const control of controls) {
-        expect(control.width).toBeCloseTo(Math.max(36 * scale / 100, compact || hasTouch ? 52 : 0), 0)
+        expect(control.width).toBeCloseTo(Math.max(36 * scale / 100, compact || hasTouch ? 44 : 0), 0)
         expect(control.height).toBeCloseTo(control.width, 0)
         expect(control.icon).toBeCloseTo(16 * scale / 100, 0)
         expect(control.centered).toBe(true)
@@ -1892,7 +1892,7 @@ for (const scenario of [
       })
       expect(appearance.background).not.toBe('rgba(0, 0, 0, 0)')
       expect(appearance.width).toBeGreaterThan(0)
-      expect(appearance.rowHeight).toBeCloseTo(compact || hasTouch ? 52 : 24 * scale / 100, 0)
+      expect(appearance.rowHeight).toBeCloseTo(compact || hasTouch ? 44 : 24 * scale / 100, 0)
       const bounds = await actions.boundingBox()
       expect(bounds.x).toBeGreaterThanOrEqual(-1)
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1)
