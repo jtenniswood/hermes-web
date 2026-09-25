@@ -121,12 +121,12 @@
 .browser-shell [data-slot="aui_thread-content"] > div:has(> div > [data-slot="aui_intro"]) { min-height:0; grid-template-rows:minmax(0,1fr); gap:0; }
 .browser-shell div:has(> [data-slot="aui_intro"]) { min-width:0; padding-top:0; }
 .browser-shell [data-slot="aui_intro"] { box-sizing:border-box; min-width:0; width:100%; max-width:100%; padding:1rem .5rem; }
-.browser-shell [data-slot="aui_intro"] > div { min-width:0; width:100%; max-width:100%; container-type:inline-size; }
+.browser-shell :is([data-slot="aui_intro"],[data-slot="bot_chat_empty"]) > div { min-width:0; width:100%; max-width:100%; container-type:inline-size; text-align:center; }
 .browser-shell [data-slot="aui_intro"] p:last-child { font-size:clamp(.625rem,3cqi,.875rem); }
-.browser-shell [data-slot="aui_intro"] .wordmark { display:block; min-width:0; max-width:100%; }
-.browser-shell [data-slot="aui_intro"] .wordmark > [aria-hidden] { display:none; }
-.browser-shell [data-slot="aui_intro"] .wordmark > :not([aria-hidden]) { display:block; min-width:0; width:100%; max-width:100%; }
-.browser-shell [data-slot="aui_intro"] .wordmark > :not([aria-hidden]) > * { inline-size:100%; max-width:100%; font-size:min(11cqi,9rem) !important; }
+.browser-shell :is([data-slot="aui_intro"],[data-slot="bot_chat_empty"]) .wordmark { display:block; min-width:0; max-width:100%; }
+.browser-shell :is([data-slot="aui_intro"],[data-slot="bot_chat_empty"]) .wordmark > [aria-hidden] { display:none; }
+.browser-shell :is([data-slot="aui_intro"],[data-slot="bot_chat_empty"]) .wordmark > :not([aria-hidden]) { display:block; min-width:0; width:100%; max-width:100%; }
+.browser-shell :is([data-slot="aui_intro"],[data-slot="bot_chat_empty"]) .wordmark > :not([aria-hidden]) > * { inline-size:100%; max-width:100%; font-size:min(11cqi,9rem) !important; }
 /* Browser-focused sessions keep messaging groups compact: hide any extra
    header marker while keeping the disclosure caret visible. */
 .browser-sessions-pane [data-browser-section-label] > span[aria-hidden="true"] { display:none !important; }
