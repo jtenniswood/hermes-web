@@ -38,9 +38,9 @@
   --web-shadow-panel: 0 .5rem 1.5rem #0003;
   --web-focus-ring: 2px solid var(--web-accent);
 
-  /* CSS zoom must not make physical touch targets smaller than 44/52px. */
+  /* Keep touch controls compact without shrinking below 44 physical pixels. */
   --web-touch-min: calc(2.75rem / var(--web-ui-scale, 1));
-  --web-touch-target: calc(3.25rem / var(--web-ui-scale, 1));
+  --web-touch-target: var(--web-touch-min);
   --web-control-regular: 2.25rem;
   --web-control-compact: 1.5rem;
   --web-toolbar-height: 2.75rem;
@@ -65,6 +65,6 @@
     --web-navigation-row: max(1.75rem, var(--web-touch-min));
     --web-menu-row: var(--web-touch-target);
     --web-menu-font: var(--web-text-body);
-    --web-menu-row-padding: var(--web-space-2);
+    --web-menu-row-padding: var(--web-space-1);
   }
 }

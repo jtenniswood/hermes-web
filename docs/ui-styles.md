@@ -39,8 +39,9 @@ does not define those variables. Do not change the fetched `apps/desktop` or
 - Action icons: 16px; secondary disclosure icons may be 12px.
 - Desktop action buttons: 36px, or 24px for compact section actions.
 - Desktop menu rows: at least 24px with 12px text.
-- Compact or coarse-pointer action buttons and menu rows: at least 52 physical pixels; secondary
-  navigation/composer targets use a 44px minimum.
+- Compact or coarse-pointer action buttons, menu rows, and secondary
+  navigation/composer targets: at least 44 physical pixels.
+- Menu rows and section labels use 4px vertical padding at every screen size.
 - Compact or coarse-pointer menu text: 13px. Long descriptions can wrap and expand their rows.
 - Spacing: use the shared 4/8/12/16/24px scale. Geometry such as avatars, resize
   handles, and drag indicators can keep purpose-specific dimensions.
