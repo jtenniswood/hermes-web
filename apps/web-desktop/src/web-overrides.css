@@ -63,6 +63,7 @@ body > [data-radix-popper-content-wrapper] > :is(
   border-radius: .7rem !important;
   background: var(--popover, var(--background)) !important;
   color: var(--foreground) !important;
+  font-size: .75rem;
   box-shadow: 0 .5rem 1.5rem #0005 !important;
 }
 
@@ -72,10 +73,11 @@ body > [data-radix-popper-content-wrapper] > :is(
   [data-slot='dropdown-menu-sub-content'],
   [data-slot='context-menu-sub-content']
 ) [role^='menuitem'] {
-  min-height: 2.5rem;
-  padding-block: .55rem;
+  box-sizing: border-box;
+  min-height: 1.75rem;
+  padding-block: .25rem;
   border-radius: .35rem;
-  font-size: .8125rem;
+  font-size: .75rem;
   line-height: 1.35;
 }
 
@@ -149,6 +151,7 @@ body > [data-radix-popper-content-wrapper] > :is(
     box-sizing: border-box;
     min-height: calc(3.25rem / var(--web-ui-scale, 1));
     padding-block: .55rem;
+    font-size: .8125rem;
     white-space: normal;
   }
 }
