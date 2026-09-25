@@ -1,14 +1,20 @@
 const COMPOSER_EDITOR_SELECTOR = '[data-slot="composer-rich-input"]'
 
-/** Let Shift+Enter use the browser's native line break in the rich composer. */
+/** Insert a line break for Shift+Enter in the rich composer. */
 export function installComposerKeyboard(): () => void {
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== 'Enter' || !event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return
-    if (!(event.target instanceof Element) || !event.target.closest(COMPOSER_EDITOR_SELECTOR)) return
+    const editor = event.target instanceof Element
+      ? event.target.closest<HTMLElement>(COMPOSER_EDITOR_SELECTOR)
+      : null
+    if (!editor) return
 
-    // The renderer's key handler owns plain Enter submission. Keep this chord
-    // away from it while allowing the contenteditable's native line break.
+    // Keep Shift+Enter away from the renderer's send handler, then insert the
+    // line break explicitly because native key handling can be suppressed.
+    event.preventDefault()
     event.stopPropagation()
+    editor.focus()
+    document.execCommand('insertLineBreak')
   }
 
   window.addEventListener('keydown', onKeyDown, true)
