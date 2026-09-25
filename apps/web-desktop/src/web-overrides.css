@@ -50,6 +50,45 @@ body > [data-radix-popper-content-wrapper] > [data-slot='tooltip-content'] [data
   height: calc(5px * var(--web-ui-scale, 1));
 }
 
+/* Keep renderer-owned dropdown and context menus on the same surface and row
+   rhythm as browser-owned action menus on desktop and mobile. */
+body > [data-radix-popper-content-wrapper] > :is(
+  [data-slot='dropdown-menu-content'],
+  [data-slot='context-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='context-menu-sub-content']
+) {
+  box-sizing: border-box;
+  border: 1px solid var(--border) !important;
+  border-radius: .7rem !important;
+  background: var(--popover, var(--background)) !important;
+  color: var(--foreground) !important;
+  box-shadow: 0 .5rem 1.5rem #0005 !important;
+}
+
+body > [data-radix-popper-content-wrapper] > :is(
+  [data-slot='dropdown-menu-content'],
+  [data-slot='context-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='context-menu-sub-content']
+) [role^='menuitem'] {
+  min-height: 2.5rem;
+  padding-block: .55rem;
+  border-radius: .35rem;
+  font-size: .9rem;
+  line-height: 1.35;
+}
+
+body > [data-radix-popper-content-wrapper] > :is(
+  [data-slot='dropdown-menu-content'],
+  [data-slot='context-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='context-menu-sub-content']
+) [data-slot$='menu-separator'] {
+  margin-block: .35rem;
+  border-color: color-mix(in srgb, var(--border) 88%, #6878bb);
+}
+
 /* Upstream session/action menus use Radix poppers. On phones, present their
    complete action lists as bottom sheets so the menu remains usable by touch
    and retains upstream commands, labels, and submenu behavior. */
