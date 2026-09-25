@@ -106,11 +106,11 @@ function BrowserLayout() {
       <main className="browser-main" ref={main} hidden={navigation.compact && navigation.drawerOpen} tabIndex={-1} aria-label="Conversation and workspace">
         <div className="browser-chat-toolbar" aria-label="Chat toolbar">
           <BrowserToolbarButton tooltip={navigation.open ? 'Hide sidebar' : 'Show sidebar'} className="browser-menu" ref={menu} aria-label={navigation.open ? 'Hide navigation' : 'Open navigation'} aria-expanded={navigation.open} aria-controls="browser-navigation" onClick={navigation.toggle}>
-            <Codicon name="layout-sidebar-left" size="0.75rem" />
+            <Codicon name="layout-sidebar-left" />
           </BrowserToolbarButton>
           <div className="browser-actions">
             {selected && <SessionActionsMenu align="end" onArchive={sessionActions.archive} onDelete={sessionActions.delete} onPin={sessionActions.togglePin} onToggleUnread={sessionActions.toggleUnread} pinned={sessionActions.pinned} unread={sessionActions.unread} profile={sessionActions.profile} sessionId={selected} title={chatTitle}>
-              <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" size="0.75rem" /></BrowserToolbarButton>
+              <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" /></BrowserToolbarButton>
             </SessionActionsMenu>}
             <span className="browser-approval-control" ref={setApprovalTarget} />
             <SettingsMenu triggerRef={settingsTrigger} onOpenGateway={() => { navigation.closeDrawer(); setGatewayDialogOpen(true) }} onOpenPanel={() => main.current?.focus()} onOpenRoute={openRoute} panelPanes={panelPanes} />

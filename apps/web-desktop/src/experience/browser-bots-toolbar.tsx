@@ -34,10 +34,10 @@ function BotsActionControl({ title, label = title, icon, active = false, groups 
   const trigger = useRef<HTMLButtonElement>(null)
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
   return <>
-    <BrowserToolbarButton ref={trigger} tooltip={label} aria-label={label} aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(anchor)} className="browser-bots-control" data-active={active || undefined} onClick={event => {
+    <BrowserToolbarButton size="compact" ref={trigger} tooltip={label} aria-label={label} aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(anchor)} className="browser-bots-control" data-active={active || undefined} onClick={event => {
       const bounds = event.currentTarget.getBoundingClientRect()
       setAnchor({ x: bounds.right, y: bounds.bottom, returnFocus: event.currentTarget })
-    }}><Codicon name={icon} size="0.75rem" /></BrowserToolbarButton>
+    }}><Codicon name={icon} /></BrowserToolbarButton>
     <BrowserActionSurface title={title} groups={groups} anchor={anchor} compact={compact} fallbackFocus={trigger} onClose={() => setAnchor(null)} />
   </>
 }

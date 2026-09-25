@@ -61,7 +61,7 @@ export function SettingsMenu({ triggerRef, onOpenGateway, onOpenPanel, onOpenRou
     <BrowserToolbarButton ref={triggerRef} tooltip="Settings" aria-label="Open settings menu" aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(anchor)} onClick={event => {
       const bounds = event.currentTarget.getBoundingClientRect()
       setAnchor({ x: bounds.right, y: bounds.bottom, returnFocus: event.currentTarget })
-    }}><Codicon name="settings-gear" size="0.75rem" /></BrowserToolbarButton>
+    }}><Codicon name="settings-gear" /></BrowserToolbarButton>
     <BrowserActionSurface title="Settings and workspace" className="browser-settings-menu" groups={groups} anchor={anchor} compact={compact} onClose={() => setAnchor(null)} fallbackFocus={triggerRef} />
   </>
 }

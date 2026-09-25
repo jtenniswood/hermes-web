@@ -1,0 +1,70 @@
+/* Browser design contract. Keep upstream theme names at this boundary; putting
+   tokens on :root also makes them available to body/dialog-owned portals. */
+:root {
+  --web-bg: var(--ui-bg-chrome);
+  --web-surface: var(--ui-bg-elevated);
+  --web-sidebar: var(--ui-bg-sidebar);
+  --web-text: var(--ui-text-primary);
+  --web-text-muted: var(--ui-text-secondary);
+  --web-text-subtle: var(--ui-text-tertiary);
+  --web-border: var(--ui-stroke-secondary);
+  --web-border-subtle: var(--ui-stroke-tertiary);
+  --web-accent: var(--ui-accent);
+  --web-on-accent: var(--dt-primary-foreground);
+  --web-hover: var(--ui-control-hover-background);
+  --web-active: var(--ui-control-active-background);
+  --web-danger: var(--dt-destructive);
+  --web-font: var(--dt-font-sans);
+
+  --web-space-1: .25rem;
+  --web-space-2: .5rem;
+  --web-space-3: .75rem;
+  --web-space-4: 1rem;
+  --web-space-6: 1.5rem;
+  --web-text-label: .6875rem;
+  --web-text-caption: .75rem;
+  --web-text-body: .8125rem;
+  --web-text-title: .875rem;
+  --web-text-heading: 1rem;
+  --web-line-compact: 1rem;
+  --web-line-body: 1.4;
+  --web-icon-size: 1rem;
+  --web-icon-small: .75rem;
+  --web-radius-control: .25rem;
+  --web-radius-panel: .5rem;
+  --web-radius-sheet: 1rem;
+  --web-radius-item: .125rem;
+  --web-shadow-menu: 0 0 0 1px var(--web-border-subtle), 0 .25rem .75rem #0003;
+  --web-shadow-panel: 0 .5rem 1.5rem #0003;
+  --web-focus-ring: 2px solid var(--web-accent);
+
+  /* CSS zoom must not make physical touch targets smaller than 44/52px. */
+  --web-touch-min: calc(2.75rem / var(--web-ui-scale, 1));
+  --web-touch-target: calc(3.25rem / var(--web-ui-scale, 1));
+  --web-control-regular: 2.25rem;
+  --web-control-compact: 1.5rem;
+  --web-toolbar-height: 2.75rem;
+  --web-navigation-row: 1.75rem;
+  --web-menu-row: 1.5rem;
+  --web-menu-font: var(--web-text-caption);
+  --web-menu-row-padding: var(--web-space-1);
+  --web-sheet-max-height: calc(82dvh / var(--web-ui-scale, 1));
+  --web-sheet-padding-start: max(var(--web-space-3), calc(env(safe-area-inset-left, 0px) / var(--web-ui-scale, 1)));
+  --web-sheet-padding-end: max(var(--web-space-3), calc(env(safe-area-inset-right, 0px) / var(--web-ui-scale, 1)));
+  --web-sheet-padding-bottom: max(var(--web-space-3), calc(env(safe-area-inset-bottom, 0px) / var(--web-ui-scale, 1)));
+}
+
+/* Density follows both viewport and input: a wide touch tablet keeps the
+   desktop layout while receiving comfortable controls. Layout switching is
+   separately owned by useCompactBrowser and the shell/menu media rules. */
+@media (width < 48rem), (pointer: coarse) {
+  :root {
+    --web-control-regular: max(2.25rem, var(--web-touch-target));
+    --web-control-compact: max(1.5rem, var(--web-touch-target));
+    --web-toolbar-height: max(2.75rem, var(--web-touch-target));
+    --web-navigation-row: max(1.75rem, var(--web-touch-min));
+    --web-menu-row: var(--web-touch-target);
+    --web-menu-font: var(--web-text-body);
+    --web-menu-row-padding: var(--web-space-2);
+  }
+}

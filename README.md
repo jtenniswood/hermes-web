@@ -34,6 +34,9 @@ Open <http://localhost:5174/>. Run the focused type check with:
 pnpm typecheck
 ```
 
+For shared design tokens, component choices, and responsive checks, see the
+[web UI styling guide](docs/ui-styles.md).
+
 ## Build and deploy
 
 Release builds and Nix dependency verification run in GitHub Actions. Download

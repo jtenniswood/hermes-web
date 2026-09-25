@@ -1,0 +1,331 @@
+/* Shared desktop menus and mobile action sheets. */
+.browser-settings-menu .browser-action-icon {
+  color: var(--web-text-subtle);
+}
+
+.browser-action-anchor {
+  position: fixed;
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+}
+
+.browser-action-menu {
+  z-index: 110;
+  min-width: 13rem;
+  max-width: var(--radix-dropdown-menu-content-available-width);
+  max-height: var(--radix-dropdown-menu-content-available-height);
+  overflow: auto;
+  padding: var(--web-space-1);
+}
+
+.browser-action-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--web-menu-row-padding) var(--web-space-2);
+  border: 0;
+  border-radius: var(--web-radius-item);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--web-menu-font);
+  line-height: var(--web-line-compact);
+  text-align: left;
+  cursor: pointer;
+  min-height: var(--web-menu-row);
+  box-sizing: border-box;
+}
+
+.browser-action-item:hover,.browser-action-item:focus-visible,.browser-action-item[data-highlighted] {
+  outline: none;
+  background: var(--web-active);
+}
+
+.browser-action-item:disabled,.browser-action-item[data-disabled] {
+  color: var(--web-text-subtle);
+  opacity: .65;
+  cursor: default;
+  background: transparent;
+}
+
+.browser-action-item[data-destructive] {
+  color: var(--web-danger);
+}
+
+.browser-action-item[data-destructive]:hover,.browser-action-item[data-destructive]:focus-visible,.browser-action-item[data-destructive][data-highlighted] {
+  background: color-mix(in srgb,var(--web-danger) 12%,var(--web-bg));
+}
+
+.browser-action-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: #0006;
+}
+
+.browser-action-sheet {
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 111;
+  bottom: 0;
+  left: 0;
+  width: calc(100vw / var(--web-ui-scale,1));
+  max-height: var(--web-sheet-max-height);
+  display: flex;
+  flex-direction: column;
+  padding: var(--web-space-6) var(--web-sheet-padding-end) var(--web-sheet-padding-bottom) var(--web-sheet-padding-start);
+  border-radius: var(--web-radius-sheet) var(--web-radius-sheet) 0 0;
+  box-shadow: 0 -.5rem 2rem #0004;
+}
+
+.browser-action-sheet::before {
+  display: block;
+  width: 2.25rem;
+  height: .25rem;
+  flex: 0 0 auto;
+  margin: -.9rem auto .75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb,currentColor 28%,transparent);
+  content: '';
+}
+
+.browser-action-title {
+  margin: 0;
+  padding: var(--web-menu-row-padding) var(--web-space-2);
+  font-size: var(--web-text-heading);
+  font-weight: 600;
+}
+
+.browser-action-list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.browser-action-check {
+  display: inline-block;
+  width: var(--web-icon-size);
+  flex: 0 0 var(--web-icon-size);
+  margin-right: var(--web-space-2);
+  color: var(--web-accent);
+}
+
+.browser-action-group + .browser-action-group {
+  margin-top: var(--web-space-1);
+  padding-top: var(--web-space-1);
+  border-top: 1px solid var(--web-border);
+}
+
+.browser-action-menu .browser-action-group + .browser-action-group {
+  margin: var(--web-space-1) calc(-1 * var(--web-space-1)) 0;
+  padding: var(--web-space-1) var(--web-space-1) 0;
+  border-top: 1px solid var(--web-border);
+}
+
+.browser-action-group-label {
+  margin: 0;
+  padding: var(--web-menu-row-padding) var(--web-space-2);
+  color: var(--web-text-subtle);
+  font-size: var(--web-menu-font);
+  font-weight: 400;
+  line-height: var(--web-line-compact);
+}
+
+.browser-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--web-icon-size);
+  margin-right: var(--web-space-2);
+}
+
+.browser-action-menu .browser-action-icon {
+  flex-basis: var(--web-icon-size);
+  width: var(--web-icon-size);
+  margin-right: var(--web-space-2);
+  color: var(--web-text-subtle);
+  font-size: var(--web-text-heading);
+}
+
+.browser-action-menu .browser-action-check {
+  order: 1;
+  margin-left: auto;
+  margin-right: 0;
+  color: var(--web-text);
+}
+
+.browser-action-menu .browser-action-item[data-destructive] .browser-action-icon {
+  color: inherit;
+}
+
+/* All Radix menu surfaces (including plugin and dialog-owned menus) use the
+   same theme tokens. Browser action sheets share the palette, while keeping
+   their mobile geometry below. */
+:is(
+  [data-radix-menu-content],
+  .browser-action-menu,
+  .browser-action-sheet,
+  [data-slot='dropdown-menu-content'],
+  [data-slot='context-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='context-menu-sub-content']
+) {
+  border: 1px solid var(--web-border) !important;
+  background: var(--web-surface) !important;
+  color: var(--web-text) !important;
+  font-family: var(--web-font);
+}
+
+:is(
+  [data-radix-menu-content],
+  .browser-action-menu,
+  [data-slot='dropdown-menu-content'],
+  [data-slot='context-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='context-menu-sub-content']
+) {
+  box-sizing: border-box;
+  border-radius: var(--web-radius-control) !important;
+  font-size: var(--web-menu-font);
+  box-shadow: var(--web-shadow-menu) !important;
+}
+
+/* Responsive rows follow one density contract. Keep horizontal insets
+   owned by each component so icons, checks, and nested actions stay aligned. */
+
+:is(
+  [data-radix-menu-content],
+  .browser-action-menu,
+  [data-slot='dropdown-menu-content'],
+  [data-slot='context-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='context-menu-sub-content']
+) [role^='menuitem'] {
+  box-sizing: border-box;
+  min-height: var(--web-menu-row);
+  padding-block: var(--web-menu-row-padding);
+  border-radius: var(--web-radius-item);
+  font-size: var(--web-menu-font);
+  font-weight: 400;
+  line-height: var(--web-line-compact);
+  white-space: normal;
+}
+
+:is(
+  [data-slot='dropdown-menu-label'],
+  [data-slot='context-menu-label'],
+  .browser-action-menu .browser-action-group-label
+) {
+  padding-block: var(--web-menu-row-padding);
+  color: var(--web-text-subtle);
+  font-size: var(--web-menu-font);
+  font-weight: 400;
+  line-height: var(--web-line-compact);
+}
+
+:is(
+  [data-slot='dropdown-menu-separator'],
+  [data-slot='context-menu-separator']
+) {
+  margin-block: var(--web-space-1);
+  background: var(--web-border);
+}
+
+/* Leading action icons match the toolbar; nested check indicators keep their
+   component sizing so they remain secondary to the action label. */
+:is([data-radix-menu-content], .browser-action-sheet) :is([role^='menuitem'] > svg, [role^='menuitem'] > .codicon, .browser-action-icon > svg, .browser-action-icon > .codicon) {
+  width: var(--web-icon-size);
+  height: var(--web-icon-size);
+  flex-shrink: 0;
+}
+
+:is([data-radix-menu-content], .browser-action-sheet) :is([role^='menuitem'] > .codicon, .browser-action-icon > .codicon) {
+  font-size: var(--web-icon-size) !important;
+  line-height: 1;
+}
+
+/* Match pointer, keyboard, and open-submenu states across menu providers.
+   Destructive actions retain their warning color and tinted highlight. */
+:is([data-radix-menu-content], .browser-action-menu, .browser-action-sheet)
+:is([role^='menuitem'], .browser-action-item):is(:hover, :focus-visible, [data-highlighted], [data-state='open']):not([data-disabled], :disabled, [data-variant='destructive'], [data-destructive]) {
+  outline: none;
+  background: var(--web-active);
+  color: var(--web-text);
+}
+
+:is([data-radix-menu-content], .browser-action-menu, .browser-action-sheet)
+:is([role^='menuitem'], .browser-action-item):is([data-disabled], :disabled) {
+  color: var(--web-text-subtle);
+  opacity: .65;
+  background: transparent;
+}
+
+/* Upstream session/action menus use Radix poppers. On phones, present their
+   complete action lists as bottom sheets so the menu remains usable by touch
+   and retains upstream commands and labels. */
+@media (width < 48rem), (pointer: coarse) and (max-height: 27rem) {
+  /* Keep ancestors mounted for Radix's selection and dismissal handling, but
+     show only the active sheet. Submenus are portaled outside their parents. */
+  body > [data-radix-popper-content-wrapper]:has(> :is(
+    [data-slot='dropdown-menu-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-sub-content']
+  ) :is(
+    [data-slot='dropdown-menu-sub-trigger'],
+    [data-slot='context-menu-sub-trigger']
+  )[data-state='open']) {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  body > [data-radix-popper-content-wrapper]:has(> [data-slot='dropdown-menu-content']),
+  body > [data-radix-popper-content-wrapper]:has(> [data-slot='context-menu-content']),
+  body > [data-radix-popper-content-wrapper]:has(> [data-slot='dropdown-menu-sub-content']),
+  body > [data-radix-popper-content-wrapper]:has(> [data-slot='context-menu-sub-content']) {
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    width: 100vw !important;
+    transform: none !important;
+    z-index: 111 !important;
+  }
+
+  body > [data-radix-popper-content-wrapper] > :is(
+    [data-slot='dropdown-menu-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-sub-content']
+  ) {
+    box-sizing: border-box !important;
+    position: relative !important;
+    inset: auto !important;
+    width: calc(100vw / var(--web-ui-scale, 1)) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: var(--web-sheet-max-height) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: var(--web-space-4) var(--web-sheet-padding-end) var(--web-sheet-padding-bottom) var(--web-sheet-padding-start) !important;
+    border-radius: var(--web-radius-sheet) var(--web-radius-sheet) 0 0 !important;
+    transform: none !important;
+    transform-origin: bottom center !important;
+  }
+
+  body > [data-radix-popper-content-wrapper] > :is(
+    [data-slot='dropdown-menu-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-sub-content']
+  )::before {
+    display: block;
+    width: 2.25rem;
+    height: .25rem;
+    margin: -.35rem auto .75rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 28%, transparent);
+    content: '';
+  }
+
+}
