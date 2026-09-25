@@ -1820,3 +1820,119 @@ for (const width of [390, 1440]) {
     })
   }
 }
+
+test('shared UI styles: compact controls retain active and keyboard focus states', async ({ page }) => {
+  await open(page)
+  await page.evaluate(() => window.hermesDesktop.zoom.setPercent(100))
+  const sessionFilter = page.getByRole('button', { name: 'Filters', exact: true })
+  expect((await sessionFilter.boundingBox()).width).toBeCloseTo(24, 0)
+  const bots = page.getByRole('tab', { name: 'Bots', exact: true })
+  await page.keyboard.press('Tab')
+  await bots.focus()
+  await expect(bots).toHaveCSS('outline-style', 'solid')
+  await page.keyboard.press('Enter')
+  const filter = page.getByRole('button', { name: /^Filter roster/ })
+  expect((await filter.boundingBox()).width).toBeCloseTo(24, 0)
+  const inactiveColor = await filter.evaluate(el => getComputedStyle(el).color)
+  await filter.click()
+  await page.getByRole('menuitemradio', { name: 'Bots only', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await bots.focus()
+  await page.mouse.move(600, 400)
+  await expect(filter).toHaveAccessibleName('Filter roster, 1 active')
+  await expect(filter).not.toHaveCSS('color', inactiveColor)
+})
+
+// Exercise the rendered contract, including body portals and CSS zoom. These
+// cases straddle the navigation breakpoint and include touch-only landscape.
+for (const scenario of [
+  { name: 'desktop dark', width: 1440, height: 960, scale: 100, colorScheme: 'dark' },
+  { name: 'desktop light zoomed', width: 1440, height: 960, scale: 150, colorScheme: 'light' },
+  { name: 'touch tablet', width: 1024, height: 1024, scale: 100, colorScheme: 'dark', hasTouch: true },
+  { name: 'small phone zoomed', width: 320, height: 740, scale: 150, colorScheme: 'dark', compact: true, hasTouch: true },
+  { name: 'tablet boundary', width: 768, height: 1024, scale: 100, colorScheme: 'dark' },
+  { name: 'compact boundary', width: 767, height: 960, scale: 100, colorScheme: 'light', compact: true },
+  { name: 'phone dark', width: 390, height: 844, scale: 100, colorScheme: 'dark', compact: true, hasTouch: true },
+  { name: 'phone light zoomed', width: 390, height: 844, scale: 150, colorScheme: 'light', compact: true, hasTouch: true },
+  { name: 'landscape touch', width: 844, height: 390, scale: 100, colorScheme: 'dark', compact: true, hasTouch: true },
+  { name: 'landscape touch zoomed', width: 844, height: 390, scale: 150, colorScheme: 'light', compact: true, hasTouch: true }
+]) {
+  test(`shared UI styles: ${scenario.name}`, async ({ browser }, testInfo) => {
+    const { width, height, scale, compact = false, hasTouch = false, colorScheme } = scenario
+    const context = await browser.newContext({ viewport: { width, height }, hasTouch, colorScheme })
+    const page = await context.newPage()
+    const errors = installBrowserErrorCollector(page)
+    try {
+      await open(page)
+      await page.evaluate(percent => window.hermesDesktop.zoom.setPercent(percent), scale)
+      const toolbar = page.locator('.browser-chat-toolbar')
+      const controls = await toolbar.locator('button').evaluateAll(buttons => buttons.map(button => {
+        const icon = button.querySelector('.codicon, svg')
+        const bounds = button.getBoundingClientRect(), glyph = icon?.getBoundingClientRect()
+        return { width: bounds.width, height: bounds.height, icon: glyph?.width, centered: glyph ? Math.abs(glyph.x + glyph.width / 2 - bounds.x - bounds.width / 2) < 1 && Math.abs(glyph.y + glyph.height / 2 - bounds.y - bounds.height / 2) < 1 : false }
+      }))
+      expect(controls).toHaveLength(4)
+      for (const control of controls) {
+        expect(control.width).toBeCloseTo(Math.max(36 * scale / 100, compact || hasTouch ? 52 : 0), 0)
+        expect(control.height).toBeCloseTo(control.width, 0)
+        expect(control.icon).toBeCloseTo(16 * scale / 100, 0)
+        expect(control.centered).toBe(true)
+      }
+      const settings = page.getByRole('button', { name: 'Open settings menu', exact: true })
+      await page.keyboard.press('Tab')
+      await settings.focus()
+      await expect(settings).toHaveCSS('outline-style', 'solid')
+      await page.keyboard.press('Enter')
+      const actions = page.getByRole(compact ? 'dialog' : 'menu', { name: 'Settings and workspace', exact: true })
+      await expect(actions).toBeVisible()
+      const appearance = await actions.evaluate(el => {
+        const style = getComputedStyle(el)
+        const row = el.querySelector('.browser-action-item')
+        return { background: style.backgroundColor, border: style.borderTopColor, width: parseFloat(style.borderTopWidth), font: getComputedStyle(row).fontFamily, rowHeight: row.getBoundingClientRect().height }
+      })
+      expect(appearance.background).not.toBe('rgba(0, 0, 0, 0)')
+      expect(appearance.width).toBeGreaterThan(0)
+      expect(appearance.rowHeight).toBeCloseTo(compact || hasTouch ? 52 : 24 * scale / 100, 0)
+      const bounds = await actions.boundingBox()
+      expect(bounds.x).toBeGreaterThanOrEqual(-1)
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1)
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(height + 1)
+      if (compact) {
+        expect(bounds.width).toBeCloseTo(width, 0)
+        expect(bounds.y + bounds.height).toBeCloseTo(height, 0)
+        const last = actions.getByRole('button', { name: 'Agents', exact: true })
+        await last.scrollIntoViewIfNeeded()
+        const lastBox = await last.boundingBox()
+        expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(height + 1)
+      }
+      await page.screenshot({ path: testInfo.outputPath('shared-styles.png') })
+      await page.keyboard.press('Escape')
+      await expect(settings).toBeFocused()
+      if (compact) await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
+      await page.getByRole('button', { name: 'Filters', exact: true }).click()
+      const filters = page.locator('[data-slot="dropdown-menu-content"]:visible').last()
+      await expect(filters).toBeVisible()
+      await expect(filters).toHaveCSS('background-color', appearance.background)
+      await expect(filters).toHaveCSS('border-top-color', appearance.border)
+      const ordering = filters.getByRole('menuitem', { name: 'Ordering', exact: true })
+      await expect(ordering).toHaveCSS('font-family', appearance.font)
+      expect((await ordering.boundingBox()).height).toBeCloseTo(appearance.rowHeight, 0)
+      if (compact) await ordering.click()
+      else await ordering.hover()
+      const submenu = page.locator('[data-slot="dropdown-menu-sub-content"]:visible')
+      await expect(submenu).toBeVisible()
+      await expect(submenu).toHaveCSS('background-color', appearance.background)
+      const submenuBox = await submenu.boundingBox()
+      expect(submenuBox.x + submenuBox.width).toBeLessThanOrEqual(width + 1)
+      expect(submenuBox.y + submenuBox.height).toBeLessThanOrEqual(height + 1)
+      await page.keyboard.press('Escape')
+      await page.keyboard.press('Escape')
+      if (compact) await page.keyboard.press('Escape')
+      await expect(editor(page)).toBeVisible()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true)
+      errors.assertClean()
+    } finally {
+      await context.close()
+    }
+  })
+}

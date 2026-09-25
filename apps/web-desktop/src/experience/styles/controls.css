@@ -1,0 +1,59 @@
+/* BrowserToolbarButton owns normal/compact variants. These upstream controls
+   use the same contract without modifying the fetched renderer. */
+:is([data-browser-toolbar-button], :where(.browser-approval-control > button), .browser-roster-action-trigger, :where(.browser-sessions-pane [data-browser-section-header] button[data-size='icon-xs'])) {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--web-control-regular);
+  height: var(--web-control-regular);
+  padding: 0;
+  border: 0;
+  border-radius: var(--web-radius-control);
+  color: var(--web-text-muted);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+:is([data-browser-control-size='compact'], .browser-roster-action-trigger, :where(.browser-sessions-pane [data-browser-section-header] button[data-size='icon-xs'])) {
+  width: var(--web-control-compact);
+  height: var(--web-control-compact);
+}
+
+:is([data-browser-toolbar-button], :where(.browser-approval-control > button), .browser-roster-action-trigger, :where(.browser-sessions-pane [data-browser-section-header] button[data-size='icon-xs'])):is(:hover, :focus-visible, [aria-expanded='true']):not(:disabled) {
+  background: var(--web-hover);
+  color: var(--web-text);
+}
+
+:is([data-browser-toolbar-button], :where(.browser-approval-control > button), .browser-roster-action-trigger, :where(.browser-sessions-pane [data-browser-section-header] button[data-size='icon-xs'])):focus-visible {
+  outline: var(--web-focus-ring);
+  outline-offset: -2px;
+}
+
+[data-browser-toolbar-button]:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+:is([data-browser-toolbar-button], :where(.browser-approval-control > button), .browser-roster-action-trigger, :where(.browser-sessions-pane [data-browser-section-header] button[data-size='icon-xs'])) :is(.codicon, svg) {
+  width: var(--web-icon-size);
+  height: var(--web-icon-size);
+  flex-shrink: 0;
+}
+
+/* Upstream font icons sometimes set their size inline. */
+:is([data-browser-toolbar-button], :where(.browser-approval-control > button), .browser-roster-action-trigger, :where(.browser-sessions-pane [data-browser-section-header] button[data-size='icon-xs'])) .codicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--web-icon-size) !important;
+  line-height: 1;
+}
+
+/* Secondary navigation controls share the same keyboard focus treatment. */
+:is(.browser-navigation-tabs button, .browser-navigation-section-trigger, .browser-navigation-section-list button, .browser-profile-choice, .browser-bot-section-heading):focus-visible {
+  outline: var(--web-focus-ring);
+  outline-offset: -2px;
+}
