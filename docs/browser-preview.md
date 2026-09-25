@@ -25,8 +25,11 @@ update still marks the relevant update control.
 
 ## Run the isolated preview
 
-The `browser-preview` workflow builds and tests the actual nginx
-image, then publishes an immutable amd64 PR image and its synthetic gateway.
+Add the `preview-image` label to a same-repository PR to run the
+`browser-preview` workflow. It builds and tests the actual nginx image, then
+publishes an immutable amd64 PR image and its synthetic gateway. This optional
+job is separate from the required compatibility checks so ordinary edit/test
+iterations do not wait for an image publication.
 Download the `browser-preview-images-<commit>` artifact for the exact image names.
 From this branch, start a separate Docker Compose project:
 
