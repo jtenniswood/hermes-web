@@ -66,6 +66,12 @@ body > [data-slot='fan-menu'] {
   zoom: calc(1 / var(--web-ui-scale, 1));
 }
 
+/* Keep the Sessions/Bots workspace tabs prominent while giving their labels
+   a little more room in the narrow sidebar. */
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) [data-tree-tab] {
+  font-size: 1.25rem !important;
+}
+
 /* HUD is an Electron-only floating window. Keep the upstream renderer intact,
    but remove its titlebar entry from the browser wrapper. The icon selector is
    stable across translated labels and scoped to titlebar tool clusters. */
