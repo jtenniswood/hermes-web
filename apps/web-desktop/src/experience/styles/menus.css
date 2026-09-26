@@ -177,10 +177,16 @@
 }
 
 .browser-action-menu .browser-action-check {
-  order: 1;
-  margin-left: auto;
-  margin-right: 0;
+  position: absolute;
+  right: var(--web-space-2);
+  width: var(--web-icon-size);
+  margin: 0;
   color: var(--web-text);
+}
+
+.browser-action-menu .browser-action-item:has(> .browser-action-check) {
+  position: relative;
+  padding-right: calc(var(--web-space-2) + var(--web-icon-size) + var(--web-space-2));
 }
 
 .browser-action-menu .browser-action-item[data-destructive] .browser-action-icon {
