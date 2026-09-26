@@ -1,42 +1,44 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useState, type ReactNode } from 'react'
 import { BrowserActionSurface, type BrowserActionAnchor, type BrowserAction } from './ui/action-surface'
 import { useMobileBrowser } from './ui/use-compact-browser'
 
-const HIDDEN_SECTIONS_KEY = 'hermes-web.browser.hidden-sections'
-const PINNED_HIDDEN_KEY = 'hermes-web.browser.pinned-section-hidden'
-const CRON_HIDDEN_KEY = 'hermes-web.browser.cron-section-hidden'
+import { HIDDEN_SECTIONS_KEY, readHiddenSections } from './sidebar-section-preferences'
 
 type SidebarSection = { key: string; label: string }
 
-function readHiddenSections(): string[] {
-  try {
-    const saved = JSON.parse(localStorage.getItem(HIDDEN_SECTIONS_KEY) || 'null')
-    if (Array.isArray(saved)) return saved.filter((value): value is string => typeof value === 'string' && value !== 'sessions')
-    // Carry forward section preferences from versions that only exposed these two options.
-    const hidden: string[] = []
-    if (localStorage.getItem(PINNED_HIDDEN_KEY) === 'true') hidden.push('pinned')
-    if (localStorage.getItem(CRON_HIDDEN_KEY) === 'true') hidden.push('cron-jobs')
-    return hidden
-  } catch { return [] }
-}
+type SectionRegistry = ReturnType<typeof useBrowserSidebarSections>
+const SidebarSectionsContext = createContext<SectionRegistry | null>(null)
 
-function sectionKey(label: string, group: HTMLElement): string {
-  if (group.classList.contains('browser-pinned-section')) return 'pinned'
-  if (group.classList.contains('browser-session-list-section')) return 'sessions'
-  return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-}
-
-function sectionLabel(header: HTMLElement | null): string {
-  const label = header?.querySelector<HTMLElement>('[data-browser-section-label]')?.textContent?.trim() || ''
-  const repeated = /^(.+?)\s*\1$/.exec(label)
-  return repeated?.[1] || label
+// Called by the checked renderer adapter. Identity comes from the section's
+// data model; translated labels are display-only and rows may be collapsed.
+export function useBrowserSidebarSection(key: string, label: string) {
+  const registry = useContext(SidebarSectionsContext)
+  const instance = useId()
+  const register = registry?.register
+  useEffect(() => register?.(instance, { key, label }), [register, instance, key, label])
+  return {
+    'data-browser-section-id': key,
+    'data-browser-section-hidden': key !== 'sessions' && registry?.hiddenSections.includes(key) ? '' : undefined
+  }
 }
 
 export function useBrowserSidebarSections() {
-  const [hiddenSections, setHiddenSections] = useState(readHiddenSections)
-  const [availableSections, setAvailableSections] = useState<SidebarSection[]>([])
+  const [hiddenSections, setHiddenSections] = useState(() => {
+    try { return readHiddenSections(localStorage) } catch { return [] }
+  })
+  const [registered, setRegistered] = useState<Map<string, SidebarSection>>(() => new Map())
+  const register = useCallback((instance: string, section: SidebarSection) => {
+    setRegistered(current => new Map(current).set(instance, section))
+    return () => setRegistered(current => {
+      const next = new Map(current)
+      next.delete(instance)
+      return next
+    })
+  }, [])
+  const availableSections = [...new Map([...registered.values()].map(section => [section.key, section])).values()]
+  if (!availableSections.some(section => section.key === 'cron-jobs')) availableSections.push({ key: 'cron-jobs', label: 'Cron jobs' })
   useEffect(() => {
-    try { localStorage.setItem(HIDDEN_SECTIONS_KEY, JSON.stringify(hiddenSections)) } catch { /* Optional preference. */ }
+    try { localStorage.setItem(HIDDEN_SECTIONS_KEY, JSON.stringify({ version: 2, hidden: hiddenSections })) } catch { /* Optional preference. */ }
   }, [hiddenSections])
   const actions: BrowserAction[] = availableSections.filter(section => section.key !== 'sessions').map(section => ({
     key: section.key,
@@ -45,50 +47,16 @@ export function useBrowserSidebarSections() {
     keepOpen: true,
     run: () => setHiddenSections(current => current.includes(section.key) ? current.filter(key => key !== section.key) : [...current, section.key])
   }))
-  return { hiddenSections, setAvailableSections, actions }
+  return { hiddenSections, register, actions }
 }
 
 export function BrowserSessionsPane({ hidden, sections, children }: { hidden: boolean; sections: ReturnType<typeof useBrowserSidebarSections>; children: ReactNode }) {
   const compact = useMobileBrowser()
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
-  const pane = useRef<HTMLDivElement>(null)
   const fallback = { current: document.querySelector<HTMLButtonElement>('.browser-navigation-actions-trigger') }
   useEffect(() => { if (hidden) setAnchor(null) }, [hidden])
-  useEffect(() => {
-    const root = pane.current
-    if (!root) return
-    const markSections = () => {
-      const groups = Array.from(root.querySelectorAll<HTMLElement>('[data-sidebar="group"]'))
-      const discovered: SidebarSection[] = []
-      for (const group of groups) {
-        const header = group.querySelector<HTMLElement>(':scope > [data-browser-section-header]')
-        const label = sectionLabel(header)
-        if (!label) continue
-        const key = sectionKey(label, group)
-        if (key) discovered.push({ key, label })
-      }
-      const pinned = root.querySelector<HTMLElement>('.browser-pinned-section')
-      if (pinned && !discovered.some(section => section.key === 'pinned')) discovered.push({ key: 'pinned', label: 'Pinned' })
-      // Cron is omitted by upstream when there are no jobs; keep its visibility option available.
-      if (!discovered.some(section => section.key === 'cron-jobs')) discovered.push({ key: 'cron-jobs', label: 'Cron jobs' })
-      const unique = [...new Map(discovered.map(section => [section.key, section])).values()]
-      sections.setAvailableSections(current => current.length === unique.length && current.every((section, index) => section.key === unique[index]?.key && section.label === unique[index]?.label) ? current : unique)
-
-      for (const group of groups) {
-        const header = group.querySelector<HTMLElement>(':scope > [data-browser-section-header]')
-        const label = sectionLabel(header)
-        const key = label ? sectionKey(label, group) : ''
-        group.toggleAttribute('data-browser-section-hidden', Boolean(key) && key !== 'sessions' && sections.hiddenSections.includes(key))
-      }
-      if (pinned) pinned.toggleAttribute('data-browser-section-hidden', sections.hiddenSections.includes('pinned'))
-    }
-    markSections()
-    const observer = new MutationObserver(markSections)
-    observer.observe(root, { childList: true, subtree: true, characterData: true })
-    return () => observer.disconnect()
-  }, [sections.hiddenSections, sections.setAvailableSections])
   // Let the upstream context-menu coordinator leave this browser surface alone.
-  return <div ref={pane} data-hermes-context-menu-trigger="" hidden={hidden} className="browser-pane browser-sessions-pane" onContextMenu={event => {
+  return <SidebarSectionsContext.Provider value={sections}><div data-hermes-context-menu-trigger="" hidden={hidden} className="browser-pane browser-sessions-pane" onContextMenu={event => {
     // Session-row menus own their actions and must not open the section surface.
     if (event.defaultPrevented || (event.target instanceof Element && event.target.closest('[data-row-actions]'))) return
     event.preventDefault()
@@ -98,5 +66,5 @@ export function BrowserSessionsPane({ hidden, sections, children }: { hidden: bo
   }}>
     {children}
     <BrowserActionSurface title="Sidebar sections" actions={sections.actions} anchor={anchor} compact={compact} fallbackFocus={fallback} onClose={() => setAnchor(null)} />
-  </div>
+  </div></SidebarSectionsContext.Provider>
 }

@@ -375,6 +375,71 @@ function useBrowserComposerLayoutWidth(source: string): string {
     const width = composer.offsetWidth`)
 }
 
+function replaceBrowserContract(source: string, changes: [string, string][]): string {
+  for (const [before, after] of changes) {
+    if (source.split(before).length !== 2) throw new Error('Browser semantic hook target changed: ' + before)
+    source = source.replace(before, after)
+  }
+  return source
+}
+
+export function useBrowserSectionIdentity(source: string, root: string): string {
+  const owner = JSON.stringify(path.join(root, 'src/experience/sidebar-sections'))
+  const sessions = source.includes('interface SidebarSessionsSectionProps')
+  const changes: [string, string][] = sessions ? [
+    ['interface SidebarSessionsSectionProps {', 'interface SidebarSessionsSectionProps {\n  browserSectionId: string'],
+    ['export function SidebarSessionsSection({', 'export function SidebarSessionsSection({\n  browserSectionId,'],
+    ['}: SidebarSessionsSectionProps) {', '}: SidebarSessionsSectionProps) {\n  const browserSection = useBrowserSidebarSection(browserSectionId, label)'],
+    ['<SidebarGroup className={rootClassName}>', '<SidebarGroup {...browserSection} className={rootClassName}>']
+  ] : [
+    ['}: SidebarCronJobsSectionProps) {', "}: SidebarCronJobsSectionProps) {\n  const browserSection = useBrowserSidebarSection('cron-jobs', label)"],
+    ['<SidebarGroup className="shrink-0 p-0 pb-1">', '<SidebarGroup {...browserSection} className="shrink-0 p-0 pb-1">']
+  ]
+  return `import { useBrowserSidebarSection } from ${owner}\n` + replaceBrowserContract(source, changes)
+}
+
+export function useBrowserSectionIds(source: string): string {
+  return replaceBrowserContract(source, [
+    ['label={s.results}', 'browserSectionId="sessions" label={s.results}'],
+    ['label={s.pinned}', 'browserSectionId="pinned" label={s.pinned}'],
+    ['label={sessionsLabel}', 'browserSectionId="sessions" label={sessionsLabel}'],
+    ['label={group.label}', 'browserSectionId={`messaging:${group.sourceId}`} label={group.label}']
+  ])
+}
+
+// Suppress only the automatic desktop updater notice at its owner. Explicit
+// update settings/actions and unrelated notifications keep their behavior.
+export function omitBrowserDesktopUpdateNotice(source: string): string {
+  const start = source.indexOf('export function maybeNotifyUpdateAvailable(')
+  const end = source.indexOf('\n/**', start)
+  if (start < 0 || end < 0) throw new Error('Browser update notice owner changed')
+  return source.slice(0, start) + 'export function maybeNotifyUpdateAvailable(_status: DesktopUpdateStatus | null, _target: UpdateTarget = \'client\') {}\n' + source.slice(end)
+}
+
+export function useBrowserTouchHooks(source: string): string {
+  const labels = ['c.queueMessage', 'showStop ? c.stop : c.send', 'state.tools.label', 'copy.openModelPicker', 'triggerLabel', 'label', 'title']
+  const targets = labels.map(label => `aria-label={${label}}`).filter(target => source.includes(target))
+  if (!targets.length) throw new Error('Browser composer touch controls changed')
+  return replaceBrowserContract(source, targets.map(target => [target, `data-browser-composer-action="" ${target}`]))
+}
+
+export function useBrowserCodingActionHooks(source: string): string {
+  return replaceBrowserContract(source, [
+    ['{resolvedRepoPath && (\n              <div ', '{resolvedRepoPath && (\n              <div data-browser-coding-path="" '],
+    ['className="pointer-events-none size-4 shrink-0 text-muted-foreground/50', 'className="browser-copy-path-action pointer-events-none size-4 shrink-0 text-muted-foreground/50'],
+    ['aria-label={s.newBranch}', 'data-browser-coding-action="branch" aria-label={s.newBranch}']
+  ])
+}
+
+export function useBrowserSetupHooks(source: string): string {
+  // These are reviewed component roots, checked by the registry at build time.
+  const pattern = /<div className="fixed inset-0 z-\(--z-setup\)[^"]*">\n(\s*)<div className=/g
+  const matches = [...source.matchAll(pattern)]
+  const expected = source.includes('function DesktopInstallOverlay') ? 3 : 1
+  if (matches.length !== expected) throw new Error('Browser setup surface changed')
+  return source.replace(pattern, (match, indent) => match.replace('<div ', '<div data-browser-overlay="setup" ').replace('\n' + indent + '<div ', '\n' + indent + '<div data-browser-overlay-card="setup" '))
+}
+
 export function useBrowserSectionStyleHooks(source: string): string {
   const hooks = [
     ['<div className="group/section ', '<div data-browser-section-header="" className="group/section '],
@@ -629,6 +694,8 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
     useBrowserOpenSessionOwner: source => useBrowserOpenSessionOwner(source, root),
     useBrowserFreshSessionOwner: source => useBrowserFreshSessionOwner(source, root),
     useBrowserDirectResumeOwner: source => useBrowserDirectResumeOwner(source),
+    useBrowserSectionIdentity: source => useBrowserSectionIdentity(source, root),
+    useBrowserTouchHooks, useBrowserCodingActionHooks, useBrowserSectionIds, omitBrowserDesktopUpdateNotice, useBrowserSetupHooks,
     useBrowserSectionStyleHooks, scopeBrowserStorage, filterBrowserNarrowNavigation, closeBrowserWorkspacePanels,
     exportBrowserStatusbarItem, filterBrowserActivityToasts, removeBrowserNewSessionShortcut,
     removeBrowserNewBotChatAction, removeBrowserOpenBotChatAction, fixBrowserTooltipBoundary,
