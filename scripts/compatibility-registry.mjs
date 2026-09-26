@@ -39,6 +39,7 @@ export function validateRegistry(registry, root = repositoryRoot) {
     if (['renderer-transform', 'browser-transform'].includes(entry.kind) && !fingerprint(entry.outputHash)) throw new Error(`Missing reviewed output fingerprint: ${entry.name}`)
     if (entry.kind === 'browser-transform' && (!fingerprint(entry.inputHash) || !entry.handlers?.length)) throw new Error(`Missing browser transform sequence: ${entry.name}`)
     if (entry.kind === 'replacement' && (!entry.replacement || !existsSync(path.join(root, 'apps/web-desktop', entry.replacement)))) throw new Error(`Missing replacement: ${entry.name}`)
+    if (entry.importers !== undefined && (entry.kind !== 'replacement' || !Array.isArray(entry.importers) || !entry.importers.length || entry.importers.some(module => !relativeFile(module)))) throw new Error(`Invalid replacement importers: ${entry.name}`)
     if (entry.kind === 'alias' && (!entry.replacement || !(entry.specifier || entry.pattern) || !['renderer', 'vite'].includes(entry.aliasGroup))) throw new Error(`Invalid alias: ${entry.name}`)
   }
   for (const entry of registry) for (const prerequisite of entry.after || []) {
