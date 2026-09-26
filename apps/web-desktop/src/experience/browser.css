@@ -225,9 +225,6 @@ html[data-experience="browser"] span:has(> img[src*="nous-girl.jpg"]) { display:
 .browser-bots-search { display:flex; min-width:0; align-items:center; gap:var(--web-space-1); padding:0 var(--web-space-2) var(--web-space-1); }
 
 /* Keep the upstream inner scroll box and popover portal intact at browser zoom. */
-[data-browser-bot-dialog] { max-width:min(var(--browser-bot-dialog-width,28rem),calc(100vw / var(--web-ui-scale,1) - 2rem)) !important; max-height:calc(85dvh / var(--web-ui-scale,1)) !important; }
-[data-browser-bot-dialog="section"] { --browser-bot-dialog-width:24rem; }
-[data-browser-bot-dialog="advanced"] { --browser-bot-dialog-width:48rem; min-width:min(26.25rem,calc(100vw / var(--web-ui-scale,1) - 2rem)) !important; min-height:min(22.5rem,calc(85dvh / var(--web-ui-scale,1))) !important; }
 
 .browser-roster-action-row { display: flex; align-items: center; min-width: 0; }
 .browser-roster-action-row > :first-child { flex: 1; min-width: 0; }

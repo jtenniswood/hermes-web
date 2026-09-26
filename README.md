@@ -269,6 +269,14 @@ This deliberately favors a delayed upstream update over silently changed chat
 routing. `pnpm test:foundation` checks the transforms, import boundary, and
 shared TypeScript/Vite alias mappings.
 
+Prefer browser components and adapters with explicit props over new source
+rewrites. For example, `src/upstream/browser-dialog.tsx` adapts the open state,
+focus callbacks, and dimensions of Bot, section, and confirmation dialogs through
+the shared dialog primitives. The registry scopes that replacement to its
+consumers, so changes to upstream form markup do not require focus-transform
+repairs. Forms, validation, and commands remain upstream-owned. Fingerprints
+still protect the shared primitive and every remaining source transformation.
+
 ### Browser state and application updates
 
 Credentials are stored under `hermes-web.connection.v2.<gateway identity>`.

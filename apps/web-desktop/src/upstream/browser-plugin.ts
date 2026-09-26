@@ -99,21 +99,6 @@ export function useBrowserFreshSessionOwner(source: string, root: string): strin
     .replace(end, end.replace('    },', '    }),'))
 }
 
-export function useBrowserRosterDialogFocus(source: string, root: string): string {
-  const owner = JSON.stringify(path.join(root, 'src/experience/ui/dialog-focus'))
-  const targets = [
-    ['export function GroupDialog({ bot, onClose }: GroupDialogProps) {', 'true', '      <DialogContent className="max-w-sm">', '      <DialogContent className="max-w-sm" data-browser-bot-dialog="section" onCloseAutoFocus={browserReturnFocus}>'],
-    ['export function EditProfileDialog({ bot, open, onClose }: EditProfileDialogProps) {', 'open', '      <DialogContent\n', '      <DialogContent\n        data-browser-bot-dialog={advanced ? \'advanced\' : \'section\'}\n        onCloseAutoFocus={browserReturnFocus}\n'],
-    ['}: ConfirmDialogProps) {', 'open', '      <DialogContent\n', '      <DialogContent\n        data-browser-bot-dialog="confirm"\n        onCloseAutoFocus={browserReturnFocus}\n']
-  ]
-  const target = targets.find(([start]) => source.includes(start))
-  if (!target) throw new Error('Browser roster dialog boundary changed')
-  const [start, open, before, after] = target
-  if (source.split(start).length !== 2 || source.split(before).length !== 2) throw new Error('Browser roster dialog focus target changed')
-  source = source.replace(start, start + `\n  const browserReturnFocus = useBrowserDialogReturnFocus(${open})`).replace(before, after)
-  return source.includes('import { useBrowserDialogReturnFocus }') ? source : `import { useBrowserDialogReturnFocus } from ${owner}\n` + source
-}
-
 export function useBrowserRosterActionSurfaces(source: string, root: string): string {
   const owner = JSON.stringify(path.join(root, 'src/experience/browser-roster-actions'))
   const start = '  return (\n    <ContextMenu>'
@@ -139,31 +124,6 @@ export function useBrowserSectionActionSurface(source: string, root: string): st
   const from = source.indexOf(start) + start.length
   const to = source.indexOf(end, from)
   return `import { BrowserBotSectionHeader } from ${owner}\n` + source.slice(0, from) + '\n  return <BrowserBotSectionHeader {...{ canMoveDown, canMoveUp, collapsed, count, id, name, onDelete, onMove, onRename, onToggle }} />\n}\n' + source.slice(to)
-}
-
-export function useBrowserBotDialogFocus(source: string, root: string): string {
-  const owner = JSON.stringify(path.join(root, 'src/experience/ui/dialog-focus'))
-  const changes = [
-    ['export function CreateAgentDialog({ open, onClose, roster }: CreateAgentDialogProps) {', 'export function CreateAgentDialog({ open, onClose, roster }: CreateAgentDialogProps) {\n  const browserReturnFocus = useBrowserDialogReturnFocus(open)'],
-    ['export function CreateGroupChatDialog({ open, roster, onClose, onCreated }: CreateGroupChatDialogProps) {', 'export function CreateGroupChatDialog({ open, roster, onClose, onCreated }: CreateGroupChatDialogProps) {\n  const browserReturnFocus = useBrowserDialogReturnFocus(open)'],
-    ['      <DialogContent\n', '      <DialogContent\n        data-browser-bot-dialog={advanced ? \'advanced\' : \'create\'}\n        onCloseAutoFocus={browserReturnFocus}\n'],
-    ['      <DialogContent className="max-w-md">', '      <DialogContent className="max-w-md" data-browser-bot-dialog="group" onCloseAutoFocus={browserReturnFocus}>']
-  ]
-  for (const [before, after] of changes) {
-    if (source.split(before).length !== 2) throw new Error('Browser Bot dialog focus boundary changed')
-    source = source.replace(before, after)
-  }
-  return `import { useBrowserDialogReturnFocus } from ${owner}\n` + source
-}
-
-export function useBrowserSectionDialogFocus(source: string, root: string): string {
-  const owner = JSON.stringify(path.join(root, 'src/experience/ui/dialog-focus'))
-  const start = 'export function SectionNameDialog({ initialName, mode, onOpenChange, onSubmit, open }: SectionNameDialogProps) {'
-  const content = '      <DialogContent className="max-w-sm">'
-  if (source.split(start).length !== 2 || source.split(content).length !== 2) throw new Error('Browser section dialog focus boundary changed')
-  return `import { useBrowserDialogReturnFocus } from ${owner}\n` + source
-    .replace(start, start + '\n  const browserReturnFocus = useBrowserDialogReturnFocus(open)')
-    .replace(content, '      <DialogContent className="max-w-sm" data-browser-bot-dialog="section" onCloseAutoFocus={browserReturnFocus}>')
 }
 
 export function keepBrowserWorkspaceRoute(source: string, root: string): string {
@@ -654,17 +614,19 @@ export function browserPlugin(root: string): Plugin {
     async resolveId(source, importer) {
       const virtual = registry.find(entry => entry.kind === 'virtual-module' && entry.specifier === source)
       if (virtual) return path.join(sourceRoot, virtual.module!)
-      const replacements = registry.filter(entry => entry.kind === 'replacement' && entry.owner.endsWith('/browser-plugin.ts'))
+      const normalizedImporter = importer?.replaceAll('\\', '/').split('?')[0]
+      const replacements = registry.filter(entry => entry.kind === 'replacement' && entry.owner.endsWith('/browser-plugin.ts') &&
+        (!entry.importers || entry.importers.some(module => normalizedImporter?.endsWith('/desktop/src/' + module))))
       if (replacements.some(entry => entry.bypassImporters?.some(suffix => importer?.replaceAll('\\', '/').endsWith(suffix)))) return null
       const stem = source.replace(/\.tsx?$/, '')
       if (!replacements.some(entry => {
         const parts = entry.module!.replace(/\.tsx?$/, '').split('/')
         const names = parts.at(-1) === 'index' ? [parts.at(-2)!, parts.slice(-2).join('/')] : [parts.at(-1)!]
-        return names.some(name => stem === name || stem.endsWith('/' + name))
+        return entry.specifier === source || names.some(name => stem === name || stem.endsWith('/' + name))
       })) return null
       const resolved = await this.resolve(source, importer, { skipSelf: true })
       const id = resolved?.id.replaceAll('\\', '/')
-      const replacement = registry.find(entry => entry.kind === 'replacement' && entry.owner.endsWith('/browser-plugin.ts') && id?.endsWith('/desktop/src/' + entry.module))
+      const replacement = replacements.find(entry => id?.endsWith('/desktop/src/' + entry.module))
       if (replacement) return path.join(root, replacement.replacement!)
       return null
     },
@@ -682,11 +644,8 @@ function applyBrowserTransform(code: string, id: string, root: string, order: nu
   if (digest(code) === entry.outputHash) return { code, map: null }
   if (digest(code) !== entry.inputHash) throw new Error(`Browser compatibility changed: ${entry.name} (${entry.module}). Review this registry entry.`)
   const handlers: Record<string, (source: string) => string> = {
-    useBrowserRosterDialogFocus: source => useBrowserRosterDialogFocus(source, root),
     useBrowserRosterActionSurfaces: source => useBrowserRosterActionSurfaces(source, root),
     useBrowserSectionActionSurface: source => useBrowserSectionActionSurface(source, root),
-    useBrowserBotDialogFocus: source => useBrowserBotDialogFocus(source, root),
-    useBrowserSectionDialogFocus: source => useBrowserSectionDialogFocus(source, root),
     keepBrowserWorkspaceRoute: source => keepBrowserWorkspaceRoute(source, root),
     respectBrowserOverlayFocusReturn: source => respectBrowserOverlayFocusReturn(source, root),
     useBrowserOverlayFocusOwner: source => useBrowserOverlayFocusOwner(source, root),

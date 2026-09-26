@@ -1636,50 +1636,6 @@
     "outputHash": "359e84c36034bafaa5b1cf5deeb92d4f307cef447b2e514e323f6cc72bf6c438"
   },
   {
-    "name": "browser-bot-dialog-return-focus",
-    "kind": "browser-transform",
-    "order": 20,
-    "module": "plugins/hermes-bots/create-dialog.tsx",
-    "handlers": [
-      "useBrowserBotDialogFocus"
-    ],
-    "reason": "Restore the opening browser control and provide owned viewport bounds for Bot creation and section dialogs.",
-    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
-    "tests": [
-      {
-        "file": "tests/browser/browser.spec.mjs",
-        "scenario": "Bots shared actions preserve filters, focus, and drafts"
-      }
-    ],
-    "removal": "Remove when upstream controlled Bot creation and section dialogs restore their opening control and fit browser viewport scaling.",
-    "sourceRoot": "renderer",
-    "sourceHash": "ae04834651e918250de5bc39da213d8a1e88ccee518c5cf812228b51d66147d6",
-    "inputHash": "ae04834651e918250de5bc39da213d8a1e88ccee518c5cf812228b51d66147d6",
-    "outputHash": "92cd575345dd4227c56f7b34d9c4ddee1f3ebe682673093309e69732bdb1b8ef"
-  },
-  {
-    "name": "browser-section-dialog-return-focus",
-    "kind": "browser-transform",
-    "order": 20,
-    "module": "plugins/hermes-bots/user-sections-ui.tsx",
-    "handlers": [
-      "useBrowserSectionDialogFocus"
-    ],
-    "reason": "Restore the opening browser control and provide owned viewport bounds for Bot creation and section dialogs.",
-    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
-    "tests": [
-      {
-        "file": "tests/browser/browser.spec.mjs",
-        "scenario": "Bots shared actions preserve filters, focus, and drafts"
-      }
-    ],
-    "removal": "Remove when upstream controlled Bot creation and section dialogs restore their opening control and fit browser viewport scaling.",
-    "sourceRoot": "renderer",
-    "sourceHash": "4e4e7f22a72b2247f90fb1d038bd57c57b05f1af1ddf575395fcf8c63696b54b",
-    "inputHash": "4e4e7f22a72b2247f90fb1d038bd57c57b05f1af1ddf575395fcf8c63696b54b",
-    "outputHash": "6e7ea7b1b6f3663531eaad0200ab23380599b45addf7adb6c7f69db2110016a2"
-  },
-  {
     "name": "browser-roster-action-surfaces",
     "kind": "browser-transform",
     "order": 40,
@@ -1720,9 +1676,6 @@
     "handlers": [
       "useBrowserSectionActionSurface"
     ],
-    "after": [
-      "browser-section-dialog-return-focus"
-    ],
     "reason": "Use owned section headings and the same rename, reorder, and delete actions on desktop and touch.",
     "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
     "tests": [
@@ -1734,81 +1687,8 @@
     "removal": "Remove when upstream section headings expose accessible browser action surfaces with stable focus targets.",
     "sourceRoot": "renderer",
     "sourceHash": "4e4e7f22a72b2247f90fb1d038bd57c57b05f1af1ddf575395fcf8c63696b54b",
-    "inputHash": "6e7ea7b1b6f3663531eaad0200ab23380599b45addf7adb6c7f69db2110016a2",
-    "outputHash": "9700f6cb47495b113002fbdf84074202a2c2a881b1b7aca85b8f253a084382d3"
-  },
-  {
-    "name": "browser-group-dialog-focus",
-    "kind": "browser-transform",
-    "order": 40,
-    "module": "plugins/hermes-bots/create-dialog.tsx",
-    "handlers": [
-      "useBrowserRosterDialogFocus"
-    ],
-    "after": [
-      "browser-bot-dialog-return-focus"
-    ],
-    "reason": "Return focus to the Bot row after managing group memberships and constrain the dialog to the scaled viewport.",
-    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
-    "tests": [
-      {
-        "file": "tests/browser/browser.spec.mjs",
-        "scenario": "roster row actions preserve touch access, sections, focus, and drafts"
-      }
-    ],
-    "removal": "Remove when upstream group membership dialogs restore their opening control and respect browser scale.",
-    "sourceRoot": "renderer",
-    "sourceHash": "ae04834651e918250de5bc39da213d8a1e88ccee518c5cf812228b51d66147d6",
-    "inputHash": "92cd575345dd4227c56f7b34d9c4ddee1f3ebe682673093309e69732bdb1b8ef",
-    "outputHash": "93cacd46acdd4e39d1fb7ea47d89cfa9d53eef93059a35736a8fa02fd1c8736d"
-  },
-  {
-    "name": "browser-edit-dialog-focus",
-    "kind": "browser-transform",
-    "order": 40,
-    "module": "plugins/hermes-bots/edit-profile-dialog.tsx",
-    "handlers": [
-      "useBrowserRosterDialogFocus"
-    ],
-    "reason": "Return focus after editing Bot profiles and keep normal and advanced edit dialogs within scaled browser bounds.",
-    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
-    "tests": [
-      {
-        "file": "tests/browser/browser.spec.mjs",
-        "scenario": "roster row actions preserve touch access, sections, focus, and drafts"
-      }
-    ],
-    "removal": "Remove when upstream profile edit dialogs restore their opening control and respect browser scale.",
-    "sourceRoot": "renderer",
-    "sourceHash": "3b0ee267ed337106c8ce620149821794e0bf5626cfd1595ae2f0e98dafabf00a",
-    "inputHash": "3b0ee267ed337106c8ce620149821794e0bf5626cfd1595ae2f0e98dafabf00a",
-    "outputHash": "eaa8a20201e96de45e9ce31669c30f14f269d3c95d656753385d0fe78c6f72ba"
-  },
-  {
-    "name": "browser-confirm-dialog-focus",
-    "kind": "browser-transform",
-    "order": 40,
-    "module": "components/ui/confirm-dialog.tsx",
-    "handlers": [
-      "useBrowserRosterDialogFocus"
-    ],
-    "reason": "Restore browser focus after controlled confirmations and keep their bounds within scaled viewports; confirmation commands and inline failures stay upstream-owned.",
-    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
-    "tests": [
-      {
-        "file": "tests/browser/browser.spec.mjs",
-        "scenario": "roster row actions preserve touch access, sections, focus, and drafts"
-      },
-      {
-        "file": "tests/browser/interruptions.spec.mjs",
-        "scenario": "rejected Bot duplication and deletion leave the roster and draft intact"
-      }
-    ],
-    "removal": "Remove when upstream controlled confirmation dialogs restore a valid opening control and respect browser scale.",
-    "sourceRoot": "renderer",
-    "sourceHash": "261bf3e28d0d650463ff4cd1fcd79f1b5fa09576d43fa315d8a2505dbfcc2b54",
-    "inputHash": "261bf3e28d0d650463ff4cd1fcd79f1b5fa09576d43fa315d8a2505dbfcc2b54",
-    "outputHash": "67122a851a2b444ede0b19b7b23cd3623276db0a1b638129f61e10a68e397477"
+    "inputHash": "4e4e7f22a72b2247f90fb1d038bd57c57b05f1af1ddf575395fcf8c63696b54b",
+    "outputHash": "c510019a003c95fa91170ab021f15034ae9567d6beef7d42b2b61d94b16d9a2a"
   },
   {
     "name": "browser-sessions-section-styling",
@@ -2113,5 +1993,77 @@
     "sourceHash": "3c94bb8ba4c359a0dc249ec4b13169b34b535503f15a1b27d71d5e1a0b74100a",
     "inputHash": "3c94bb8ba4c359a0dc249ec4b13169b34b535503f15a1b27d71d5e1a0b74100a",
     "outputHash": "28d95460846d6a0701ea82e7271e6b7995827e0ab035ecb91854cd58cd299665"
+  },
+  {
+    "name": "browser-dialog-boundary",
+    "kind": "replacement",
+    "order": 20,
+    "module": "components/ui/dialog.tsx",
+    "sourceRoot": "renderer",
+    "sourceHash": "a5d25bb93c9d49920494f70f340855f31831a7b90132e3b7f0d6b28510279a31",
+    "replacement": "src/upstream/browser-dialog.tsx",
+    "importers": [
+      "plugins/hermes-bots/create-dialog.tsx",
+      "plugins/hermes-bots/edit-profile-dialog.tsx",
+      "plugins/hermes-bots/user-sections-ui.tsx",
+      "components/ui/confirm-dialog.tsx"
+    ],
+    "reason": "Adapt dialog open state and content props for browser focus restoration and scaled viewport bounds, retaining upstream forms, commands, and primitives.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/compatibility-registry.test.mjs",
+        "scenario": "Vite resolves SDK and direct dialog imports through the scoped browser adapters"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "Bots shared actions preserve filters, focus, and drafts"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "roster row actions preserve touch access, sections, focus, and drafts"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "rejected Bot duplication and deletion leave the roster and draft intact"
+      }
+    ],
+    "removal": "Remove when upstream controlled dialogs restore their opening control and constrain resizable content to the scaled browser viewport."
+  },
+  {
+    "name": "browser-dialog-sdk-boundary",
+    "kind": "replacement",
+    "order": 20,
+    "module": "sdk/index.ts",
+    "sourceRoot": "renderer",
+    "sourceHash": "e68ccb464f1a8baf812d5881b603153c4ca57af6bffc3d5d677d6345204a9fff",
+    "replacement": "src/upstream/browser-dialog-sdk.ts",
+    "importers": [
+      "plugins/hermes-bots/create-dialog.tsx",
+      "plugins/hermes-bots/edit-profile-dialog.tsx",
+      "plugins/hermes-bots/user-sections-ui.tsx"
+    ],
+    "reason": "Expose the browser dialog adapter through the SDK for registered Bot and section forms while retaining upstream SDK commands and controls.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/compatibility-registry.test.mjs",
+        "scenario": "Vite resolves SDK and direct dialog imports through the scoped browser adapters"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "Bots shared actions preserve filters, focus, and drafts"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "roster row actions preserve touch access, sections, focus, and drafts"
+      },
+      {
+        "file": "tests/browser/interruptions.spec.mjs",
+        "scenario": "rejected Bot duplication and deletion leave the roster and draft intact"
+      }
+    ],
+    "removal": "Remove when upstream controlled dialogs restore their opening control and constrain resizable content to the scaled browser viewport.",
+    "specifier": "@hermes/plugin-sdk"
   }
 ]
