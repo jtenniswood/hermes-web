@@ -56,8 +56,9 @@ policy require review rather than automatic repair.
    resulting proposal. Subsequent scheduled runs continue automatically.
 
 Do not enable these switches just because a setup audit or source preflight
-passes. An operator chooses when to update a running deployment to a published
-digest; deployment automation is separate from upstream integration.
+passes. A renderer update reaches production only after it passes the required
+checks, merges to `main`, and the main-branch image publish and deployment
+complete.
 
 ## One-off validation before activation
 
@@ -65,7 +66,8 @@ After the App is configured and both strict Actions checks are required, dispatc
 from `main` without enabling scheduled proposals. The same App identity, token
 scope, renderer-only policy, compatibility jobs, and protected auto-merge apply.
 A passing proposal can merge into `main` and publish a tested candidate. Stable
-promotion still requires its separate switch; no deployment is restarted.
+promotion still requires its separate switch. Once an accepted proposal merges
+to `main`, the normal main-branch deployment workflow updates production.
 
 Choose a reviewed full upstream commit and set `REVIEWED_RENDERER_SHA` to that
 40-character revision. Then run:

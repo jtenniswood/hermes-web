@@ -1,0 +1,21 @@
+name: hermes-web
+
+services:
+  hermes-web:
+    image: ${HERMES_WEB_IMAGE:?HERMES_WEB_IMAGE must be set by the deployment workflow}
+    container_name: hermes-web
+    restart: unless-stopped
+    env_file:
+      - .env.hermes-web
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "${HERMES_WEB_BIND:-0.0.0.0}:${HERMES_WEB_PORT:-4174}:80"
+    volumes:
+      - "${HERMES_HOME_HOST:?Set HERMES_HOME_HOST in .deploy.env}:/data/hermes"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s

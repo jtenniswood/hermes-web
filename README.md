@@ -314,7 +314,9 @@ See [release setup and rollback](docs/releases.md) for the repository-scoped
 GitHub App, required checks, separate enablement switches, image promotion and
 rollback by digest. Scheduled renderer proposals use the exact upstream commit and
 can change only renderer lock metadata. `release.yml` is the single publisher;
-a release publishes an image without restarting the production deployment.
+merges to `main` publish an immutable image and automatically roll it out to the
+production Docker container. See [release setup and rollback](docs/releases.md)
+for the required Tailscale, SSH, and VPS configuration.
 
 The [automatic upstream update runbook](docs/upstream-updates.md) describes setup
 auditing, automatic branch refresh, compatibility reports, and repairing blocked

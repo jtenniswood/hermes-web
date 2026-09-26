@@ -64,8 +64,9 @@ then `HERMES_RENDERER_UPDATES_ENABLED=true` to enable renderer-update automation
 The updater runs every six hours and after changes to `main`. Use
 `node scripts/check-update-setup.mjs` to audit configuration without changing it.
 See the [upstream update runbook](upstream-updates.md) for branch refresh,
-compatibility reports, and the repair process. No workflow restarts a running
-deployment.
+compatibility reports, and the repair process. After a change is merged to
+`main`, the image publisher and production deployment run automatically; the
+renderer updater itself cannot merge around the repository's required checks.
 
 ## Failure handling and promotion
 
@@ -78,14 +79,46 @@ allowed. The required policy check validates both filenames and the semantic
 lockfile diff. Conservative transform fixtures deliberately stop updates when
 an upstream assumption changes; humans review those changes.
 
-`release.yml` is the quick image publisher. It runs on pushes to `main`, version
-tags, and manual dispatch. It builds and publishes one native `linux/amd64`
-image directly without waiting for compatibility or browser tests. Every
-successful build updates `latest` and a commit-specific `sha-<revision>` tag.
-Builds from `main` also update `main`; version tags such as `v1.2.3` also publish
-`1.2.3`. Docker builds still compile the frontend and use the exact renderer
-revision in `flake.lock`. The workflow does not deploy or restart a running
-container.
+`release.yml` builds and publishes one native `linux/amd64` image on pushes to
+`main`, version tags, and manual dispatch. Every successful build updates
+`latest` and a commit-specific `sha-<revision>` tag. Builds from `main` also
+update `main`; version tags such as `v1.2.3` also publish `1.2.3`. Docker builds
+compile the frontend and use the exact renderer revision in `flake.lock`.
+
+After a successful image publish from a push to `main`, the workflow joins the
+production tailnet, pulls that run's immutable image digest, and updates the
+production container with Docker Compose. It waits for the nginx health check
+and restores the previous image if the new container fails. Version-tag and
+manual builds publish images but do not deploy them.
+
+Configure these repository Actions secrets:
+
+- `TS_OAUTH_CLIENT_ID` and `TS_OAUTH_SECRET`: a Tailscale OAuth client with
+  `auth_keys` write scope and permission to create `tag:ci` nodes. Tailnet ACLs
+  must allow `tag:ci` to reach the deployment host on SSH.
+- `PRODUCTION_SSH_HOST`, `PRODUCTION_SSH_USER`, `PRODUCTION_SSH_PRIVATE_KEY`,
+  and `PRODUCTION_SSH_KNOWN_HOSTS`: the tailnet host, a dedicated deploy account,
+  its private key, and the pinned SSH host key. The account needs permission to
+  use Docker and Docker Compose.
+
+Set the repository Actions variable `PRODUCTION_DEPLOY_PATH` to an absolute
+path without spaces, for example `/opt/hermes-web`. On the VPS, create that
+directory and place these untracked files in it:
+
+- `.env.hermes-web`: the container runtime settings, based on
+  `apps/web-desktop/.env.example`.
+- `.deploy.env`: set `HERMES_HOME_HOST` to the existing host Hermes data
+  directory and optionally `HERMES_WEB_PORT` to the port used by the reverse
+  proxy (default `4174`). Set `HERMES_WEB_BIND` if the existing container binds
+  only to a specific host interface. Preserve the same data directory and port
+  used by the current container so user data and the reverse proxy remain
+  connected.
+
+The workflow copies the Compose definition and deployment script on each run.
+The first deployment replaces an unmanaged `hermes-web` container with the
+Compose-managed one; subsequent main merges pull and roll out the new digest.
+Publishing still happens in GitHub Actions; the VPS only pulls and runs the
+image.
 
 ## Disable updates and roll back
 
@@ -97,15 +130,13 @@ gh variable set HERMES_RENDERER_UPDATES_ENABLED --body false
 
 This leaves any already-open proposal visible; disable its auto-merge explicitly
 if it must not land. `HERMES_PROMOTION_ENABLED` controls renderer-update
-automation readiness. It does not disable quick image builds or updates to
-`latest`.
+automation readiness. These renderer-update switches do not disable image
+publishing or automatic deployment after a merge to `main`.
 
-To roll back a deployment, select a previous immutable image digest from the
-registry, set the deployment's image to
-`ghcr.io/OWNER/REPOSITORY@sha256:PREVIOUS_TESTED_DIGEST`, and use its normal rollout
-procedure. Pulling a digest or publishing an image does not restart production.
-Do not rebuild an old commit and call it the same artifact. Keep the current
-configuration and volumes; the state migration retains legacy browser records.
+To roll back a deployment, deploy a previous immutable image digest through the
+production workflow's remote Compose setup. Do not rebuild an old commit and
+call it the same artifact. Keep the current configuration and volumes; the
+state migration retains legacy browser records.
 
 ## Previous-image upgrade gate
 
