@@ -3,6 +3,16 @@
 // its module-level setup registers panes, layout presets, bundled plugins,
 // session routing, and the overlay bindings consumed by BrowserShell.
 import '../../../desktop/src/app/contrib/controller'
+import { $projectScope, ALL_PROJECTS, exitProjectScope } from '@/store/projects'
+
+// The browser keeps sessions in the home Projects overview. Clear a saved
+// drill-in scope before the first render and refuse later scope changes too.
+function keepProjectsOverview(): void {
+  if ($projectScope.get() !== ALL_PROJECTS) exitProjectScope()
+}
+
+keepProjectsOverview()
+$projectScope.listen(keepProjectsOverview)
 
 export function initializeBrowserShell(): void {
   // The import above is intentionally side-effect-only. BrowserShell mounts
