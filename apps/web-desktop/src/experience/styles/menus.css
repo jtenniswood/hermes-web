@@ -225,6 +225,15 @@
   line-height: var(--web-line-compact);
 }
 
+/* Match the attach popover heading to section labels in other context menus. */
+[data-slot='dropdown-menu-content'].w-60:has(> [data-slot='dropdown-menu-label'] + [role='menuitem'])
+  > [data-slot='dropdown-menu-label'] {
+  font-size: var(--web-menu-font);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 :is(
   [data-slot='dropdown-menu-separator'],
   [data-slot='context-menu-separator']
