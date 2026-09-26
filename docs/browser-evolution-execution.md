@@ -1,5 +1,10 @@
 # Browser ownership and automatic upstream updates
 
+> Historical reference, superseded by the personal-development workflow in
+> [releases and rollback](releases.md). The checklists and release gates below
+> record earlier work; they are not requirements for routine changes. Automatic
+> renderer-update activation is parked. Preserve existing user-state protections.
+
 Status: execution in progress. This record follows the September 22 reset review
 and the accepted six-stage delivery plan. Completion requires the evidence below;
 a merged PR alone does not establish an entire stage's acceptance criteria.
@@ -102,7 +107,7 @@ renderer revisions, and synthetic gateway version. It checks the candidate's
 actual entry asset after reload. The existing lower-level protocol suite remains
 in the required jobs. Required compatibility and preview CI passed on `b26bee0`; merge `52cf968`.
 Native release-candidate validation remains pending; these tests do not establish
-a real-gateway or physical-device result. See [release setup](releases.md#previous-image-upgrade-gate)
+a real-gateway or physical-device result. See [release setup](releases.md#focused-checks-when-useful)
 for baseline maintenance and the initial arm64 emulation distinction.
 
 ## Activation checklist

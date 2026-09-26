@@ -28,30 +28,36 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open <http://localhost:5174/>. Run the focused type check with:
+This is a personal project in early development. Keep changes small and the
+feedback loop short: typecheck, build, and manually try the affected workflow.
+A full test suite and release evidence record are not required for routine work.
+
+Open <http://localhost:5174/>. Check a change with:
 
 ```bash
 pnpm typecheck
+pnpm build
 ```
+
+Existing tests are optional tools for investigating a specific risk. Use focused
+checks when changing draft persistence, conversation selection, authentication,
+or update safety. Styling and other reversible UI changes usually need only a
+manual check at the affected screen size.
 
 For shared design tokens, component choices, and responsive checks, see the
 [web UI styling guide](docs/ui-styles.md).
 
 ## Build and deploy
 
-Release builds and Nix dependency verification run in GitHub Actions. Download
-and extract the `web-dist-<commit>` artifact to stage a static deployment:
+GitHub Actions typechecks and builds the Docker image, publishes it, and deploys
+that exact image after a push to `main`. The deployment restores the previous
+image if the container health check fails. Version tags and manual builds only
+publish images. See [releases and rollback](docs/releases.md) for setup and how
+to restore an earlier image if a manual check finds a problem.
 
-```bash
-HERMES_WEB_DIST_DIR="$HOME/.hermes/desktop-web" \
-  apps/web-desktop/scripts/deploy.sh /absolute/path/to/extracted-artifact
-```
-
-The script validates build identity, preserves immutable release directories,
-and atomically changes the `current` link. It does not build or restart anything.
-Restart the configured web service separately to activate a staged release.
-The Nix home-manager module serves these artifacts with nginx; `directory` now
-means the extracted artifact directory, not a source checkout.
+The optional static deployment script at `apps/web-desktop/scripts/deploy.sh`
+accepts an already-built web artifact. It stages immutable release directories
+and changes the `current` link; it does not build or restart a service.
 
 ## Docker self-hosting
 
@@ -199,8 +205,9 @@ or tailnet address cannot request microphone permission. Local development on
 when the browser asks. If access was previously blocked, enable Microphone in
 the browser's site permissions and try again.
 
-Pull requests run strict wrapper and reachable-renderer typechecking, foundation
-tests, gateway regression tests, and a production build. Upstream diagnostics
+Docker builds run strict wrapper and reachable-renderer typechecking before
+compiling the frontend. Existing foundation and browser suites can be run on
+demand; image publication does not require the full suite. Upstream diagnostics
 are not broadly ignored; the explicit diagnostic baseline is currently empty.
 
 ### Gateway configuration details
@@ -241,8 +248,9 @@ Change only this repository’s files:
 - Web bridge behavior: `apps/web-desktop/src/web-bridge/`
 - Component swaps: `apps/web-desktop/src/overrides/` plus an alias in
   `vite.config.ts`
-- New components and helpers: `apps/web-desktop/src/components/` and
-  `apps/web-desktop/src/lib/`
+- Browser components, menus, and styles: `apps/web-desktop/src/experience/`
+- Small adapters for renderer internals: `apps/web-desktop/src/upstream/`
+- Browser services: `apps/web-desktop/src/platform/`
 
 After updating the upstream renderer with `nix flake update hermes`, verify
 that any configured aliases still match its module paths.

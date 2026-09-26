@@ -1,5 +1,10 @@
 # Browser architecture reset: execution plan
 
+> Historical reference, superseded by the personal-development workflow in
+> [releases and rollback](releases.md). The checklists and release gates below
+> record earlier work; they are not requirements for routine changes. Automatic
+> renderer-update activation is parked. Preserve existing user-state protections.
+
 Status: historical delivery plan. Browser-owned controls, conversation identity,
 startup recovery, and image verification have landed. The review found unfinished
 selection/action ownership, shared desktop/touch surfaces, and real-composer
