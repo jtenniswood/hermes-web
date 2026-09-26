@@ -23,8 +23,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 // The dynamic gateway proxy below is ported from hermes-ui (MIT) so dev-mode
 // /api, /auth, /login and /api/ws route to a configured gateway same-origin.
 
-// `hgui` symlinks a worktree's node_modules to the main checkout; Vite realpaths
-// those before enforcing server.fs.allow. Whitelist the real locations.
+// `hgui` symlinks a worktree's node_modules to the main checkout. Some asset
+// URLs retain the worktree path while others resolve through the symlink, so
+// allow both spellings before enforcing server.fs.allow.
 const real = (p: string): string | null => {
   try {
     return fs.realpathSync(p)
@@ -37,6 +38,8 @@ const fsAllow = [
   ...new Set(
     [
       path.resolve(__dirname, '..'),
+      path.resolve(__dirname, 'node_modules'),
+      path.resolve(__dirname, '../../node_modules'),
       real(path.resolve(__dirname, 'node_modules')),
       real(path.resolve(__dirname, '../../node_modules'))
     ].filter((p): p is string => p !== null)
