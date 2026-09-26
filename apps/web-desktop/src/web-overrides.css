@@ -90,13 +90,6 @@ body > [data-slot='fan-menu'] {
   font-size: 1.25rem !important;
 }
 
-/* HUD is an Electron-only floating window. Keep the upstream renderer intact,
-   but remove its titlebar entry from the browser wrapper. The icon selector is
-   stable across translated labels and scoped to titlebar tool clusters. */
-[data-titlebar-cluster] button:has(> .codicon-comment-discussion) {
-  display: none;
-}
-
 /* The web composer owns these touch controls; the upstream desktop titlebar
    cluster is not mounted in the browser shell. Keep the add/tool pair compact
    and give their glyphs a little more separation. */
@@ -109,13 +102,6 @@ body > [data-slot='fan-menu'] {
   width: 0.75rem !important;
   height: 0.75rem !important;
   font-size: 0.75rem !important;
-}
-
-/* The web app is updated by its deployed image, not by the desktop updater.
-   Hide only the background update notification; other top-center alerts remain
-   available, and the update status/settings controls are still rendered. */
-[data-slot='alert']:has(.codicon-gift) {
-  display: none;
 }
 
 /* Replace the running row's animated arc with a spinner in the timestamp slot.
@@ -176,16 +162,7 @@ body > [data-slot='fan-menu'] {
   }
 
   /* Keep frequent composer actions large enough to tap after app zoom. */
-  [data-slot='composer-dock']:not([data-popped-out]) :is(
-    button[aria-label='Add context'],
-    button[aria-label^='Model'],
-    button[aria-label='Voice'],
-    button[aria-label='Voice dictation'],
-    button[aria-label='Stop'],
-    button[aria-label^='Send'],
-    button[aria-label^='Queue message'],
-    button[aria-label^='Start voice conversation']
-  ) {
+  [data-slot='composer-dock']:not([data-popped-out]) [data-browser-composer-action] {
     box-sizing: border-box;
     min-width: var(--web-touch-min);
     min-height: var(--web-touch-min);
@@ -194,12 +171,12 @@ body > [data-slot='fan-menu'] {
   /* Status-row actions are otherwise hover-only and can collapse to the icon
      size on touch screens. Keep the file and branch actions available without
      hover and give their rendered targets the same phone minimum as nav. */
-  .browser-main .status-row :has(> button[aria-label='Copy path']) {
+  [data-browser-coding-path] {
     opacity: 1 !important;
     pointer-events: auto !important;
   }
 
-  .browser-main .status-row :is(button[aria-label='Copy path'], button[aria-label='New branch']) {
+  :is(.browser-copy-path-action, [data-browser-coding-action]) {
     box-sizing: border-box;
     min-width: var(--web-touch-target);
     min-height: var(--web-touch-target);
@@ -218,7 +195,7 @@ body > [data-slot='fan-menu'] {
   /* Setup overlays contain forms that are taller than a phone viewport. The
      desktop-centred fixed card otherwise extends below the clipped app shell,
      leaving the lower connection options unreachable. */
-  .fixed.inset-0:has(> div.bg-card) {
+  [data-browser-overlay="setup"] {
     align-items: flex-start !important;
     justify-content: flex-start !important;
     overflow-y: auto !important;
@@ -228,7 +205,7 @@ body > [data-slot='fan-menu'] {
     -webkit-overflow-scrolling: touch;
   }
 
-  .fixed.inset-0:has(> div.bg-card) > div {
+  [data-browser-overlay-card="setup"] {
     flex: 0 0 auto;
     margin-block: 0.5rem;
   }

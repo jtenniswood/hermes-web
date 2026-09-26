@@ -896,7 +896,7 @@ touchTest('Cron jobs can be hidden before any jobs exist and restored later', as
   await expect(cron).toHaveAttribute('aria-checked', 'true')
   await cron.click()
   await expect(cron).toHaveAttribute('aria-checked', 'false')
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('hermes-web.browser.hidden-sections') || '[]'))).toContain('cron-jobs')
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('hermes-web.browser.hidden-sections') || '{}').hidden ?? [])).toContain('cron-jobs')
 
   jobs = [{ id: 'preview-hidden-job', name: 'Hidden verification job', prompt: 'Check navigation', enabled: true }]
   await page.reload()
@@ -935,7 +935,8 @@ touchTest('section menu includes collapsed session, messaging, and Cron sections
   await page.getByRole('button', { name: 'Navigation tabs', exact: true }).click()
   const sheet = page.getByRole('dialog', { name: 'Navigation tabs' })
   const sections = sheet.getByRole('group', { name: 'Sections' })
-  for (const name of ['Sessions', 'Discord', 'Cron jobs']) await expect(sections.getByRole('checkbox', { name, exact: true })).toBeVisible()
+  await expect(sections.getByRole('checkbox', { name: 'Sessions', exact: true })).toHaveCount(0)
+  for (const name of ['Discord', 'Cron jobs']) await expect(sections.getByRole('checkbox', { name, exact: true })).toBeVisible()
   await sections.getByRole('checkbox', { name: 'Discord', exact: true }).click()
   await expect(pane.locator('[data-browser-section-header]').filter({ hasText: 'Discord' }).locator('xpath=ancestor::*[@data-sidebar="group"][1]')).toHaveAttribute('data-browser-section-hidden', '')
 })
@@ -2007,3 +2008,70 @@ for (const scenario of [
     }
   })
 }
+
+for (const width of [390, 1440]) {
+  test.describe(`stable sidebar at ${width}px`, () => {
+    test.use({ hasTouch: width === 390 })
+    test(`sidebar visibility uses stable identity through markup changes and reload at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 960 })
+      await page.route(/\/api\/cron\/jobs(?:\?|$)/, route => route.fulfill({ json: [{ id: 'stable-section-job', name: 'Test job', prompt: 'Check sections', enabled: true }] }))
+      await open(page)
+      if (width === 390) {
+        await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
+        await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeVisible()
+      }
+      const section = page.locator('[data-browser-section-id="cron-jobs"]')
+      const header = section.locator('[data-browser-section-label]')
+      const content = section.locator('[data-sidebar="group-content"]')
+      await expect(section).toBeVisible()
+      if (await content.isVisible()) await header.click()
+      await expect(content).toHaveCount(0)
+      // A presentation-only change must not create another persisted identity or
+      // remove a collapsed section from the available actions.
+      await header.evaluate(node => { node.textContent = 'Renamed schedule' })
+      await page.getByRole('button', { name: 'Navigation tabs', exact: true }).click()
+      const action = page.getByRole(width === 390 ? 'checkbox' : 'menuitemcheckbox', { name: 'Cron jobs', exact: true })
+      await expect(action).toBeChecked()
+      await action.click()
+      await expect(action).not.toBeChecked()
+      await expect(section).toBeHidden()
+      expect(await page.evaluate(() => JSON.parse(localStorage.getItem('hermes-web.browser.hidden-sections')))).toEqual({ version: 2, hidden: ['cron-jobs'] })
+      await page.reload()
+      await expect(editor(page)).toBeVisible({ timeout: 30000 })
+      if (width === 390) {
+        await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
+        await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeVisible()
+      }
+      await expect(section).toBeHidden()
+      await page.getByRole('button', { name: 'Navigation tabs', exact: true }).click()
+      await expect(action).not.toBeChecked()
+      await action.click()
+      await expect(section).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(header).toHaveText('Cron jobs')
+      await header.click()
+      await expect(content).toBeVisible()
+    })
+  })
+}
+
+test.describe('semantic mobile controls', () => {
+  test.use({ hasTouch: true })
+  test('browser touch hooks survive control label and icon changes', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page)
+    const controls = page.locator('[data-browser-composer-action]:visible, .browser-copy-path-action:visible, [data-browser-coding-action]:visible')
+    expect(await controls.count()).toBeGreaterThanOrEqual(5)
+    for (const control of await controls.all()) {
+      await control.evaluate(node => {
+        node.setAttribute('aria-label', 'Translated action')
+        node.querySelectorAll('.codicon,svg').forEach(icon => icon.remove())
+      })
+      const box = await control.boundingBox()
+      expect(box.width).toBeGreaterThanOrEqual(44)
+      expect(box.height).toBeGreaterThanOrEqual(44)
+      await expect(control).toHaveCSS('pointer-events', 'auto')
+    }
+    await expect(page.locator('[data-browser-coding-path]')).toHaveCSS('opacity', '1')
+  })
+})
