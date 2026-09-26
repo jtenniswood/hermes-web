@@ -141,7 +141,7 @@ export function RemoteFolderPicker() {
     try {
       await apiFetch({
         method: 'POST',
-        path: '/api/fs/mkdir',
+        path: '/api/files/mkdir',
         profile: window.__HERMES_WEB_ACTIVE_PROFILE__ ?? undefined,
         body: { path }
       })
