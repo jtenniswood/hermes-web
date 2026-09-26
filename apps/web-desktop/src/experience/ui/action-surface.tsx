@@ -2,7 +2,7 @@ import { Dialog, DropdownMenu } from 'radix-ui'
 import { restoreBrowserControlFocus } from './dialog-focus'
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
-import { DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '../../upstream/browser-api'
+import { DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '../../upstream/browser-api'
 
 export type BrowserAction = {
   key: string
@@ -136,9 +136,9 @@ export function BrowserActionSurface({ title, hideTitle = false, actions = [], g
                   {action.children.filter(child => child.actions.length).map(child => {
                     const nestedItems = child.actions.map(nested => {
                       const nestedSelect = (event: Event) => { if (nested.keepOpen) event.preventDefault(); run(nested) }
-                      if (child.selection === 'single') return <DropdownMenuRadioItem key={nested.key} className="browser-action-item" value={nested.key} disabled={nested.disabled} onSelect={nestedSelect}>
+                      if (child.selection === 'single') return <DropdownMenu.RadioItem key={nested.key} className="browser-action-item" value={nested.key} disabled={nested.disabled} onSelect={nestedSelect}>
                         {indicator}{label(nested)}
-                      </DropdownMenuRadioItem>
+                      </DropdownMenu.RadioItem>
                       return nested.checked === undefined
                         ? <DropdownMenu.Item key={nested.key} className="browser-action-item" disabled={nested.disabled} onSelect={nestedSelect}>{label(nested)}</DropdownMenu.Item>
                         : <DropdownMenu.CheckboxItem key={nested.key} className="browser-action-item" checked={nested.checked} disabled={nested.disabled} onSelect={nestedSelect}>{indicator}{label(nested)}</DropdownMenu.CheckboxItem>
@@ -146,7 +146,7 @@ export function BrowserActionSurface({ title, hideTitle = false, actions = [], g
                     return <DropdownMenu.Group key={child.key} className="browser-action-group" aria-label={child.label}>
                       {child.label && <DropdownMenuLabel className="browser-action-group-label">{child.label}</DropdownMenuLabel>}
                       {child.selection === 'single'
-                        ? <DropdownMenuRadioGroup value={child.actions.find(item => item.checked)?.key || ''}>{nestedItems}</DropdownMenuRadioGroup>
+                        ? <DropdownMenu.RadioGroup value={child.actions.find(item => item.checked)?.key || ''}>{nestedItems}</DropdownMenu.RadioGroup>
                         : nestedItems}
                     </DropdownMenu.Group>
                   })}
