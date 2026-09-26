@@ -65,7 +65,7 @@ export function SettingsMenu({ triggerRef, backendVersion, onOpenGateway, onOpen
     }) },
     { key: 'systems', label: 'Systems', actions: [
       { key: 'settings', label: 'Settings', icon: <Codicon name="settings-gear" size="1rem" />, afterClose: true, run: () => onOpenRoute('/settings') },
-      { key: 'approval-mode', label: 'Approval mode', icon: <Codicon name="shield" size="1rem" />, children: [{ key: 'approval-modes', selection: 'single', actions: (['manual', 'smart', 'off'] as const).map(value => ({ key: value, label: approvalLabels[value], description: approvalDescriptions[value], checked: mode === value, afterClose: true, run: () => void setMode(value) })) }], run: () => {} },
+      { key: 'approval-mode', label: 'Approval mode', hideSubmenuTitle: true, icon: <Codicon name="shield" size="1rem" />, children: [{ key: 'approval-modes', selection: 'single', actions: (['manual', 'smart', 'off'] as const).map(value => ({ key: value, label: approvalLabels[value], description: approvalDescriptions[value], checked: mode === value, afterClose: true, run: () => void setMode(value) })) }], run: () => {} },
       { key: 'gateway', label: 'Gateway', icon: <Codicon name="pulse" size="1rem" />, afterClose: true, run: onOpenGateway }
     ] },
     ...(backendVersion ? [{ key: 'updates', label: 'Updates', actions: [{ key: backendVersion.id, label: typeof backendVersion.label === 'string' ? backendVersion.label : 'Backend update', icon: backendVersion.icon, disabled: backendVersion.disabled, afterClose: true, run: () => backendVersion.onSelect?.({ shiftKey: false }) }] }] : []),

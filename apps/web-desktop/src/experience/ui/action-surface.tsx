@@ -15,6 +15,7 @@ export type BrowserAction = {
   checked?: boolean
   keepOpen?: boolean
   description?: string
+  hideSubmenuTitle?: boolean
   children?: BrowserActionGroup[]
   run: () => void
 }
@@ -101,7 +102,7 @@ export function BrowserActionSurface({ title, hideTitle = false, actions = [], g
     <Dialog.Portal>
       <Dialog.Overlay className="browser-action-backdrop" />
       <Dialog.Content className={`browser-action-sheet ${className}`} data-browser-action-surface aria-describedby={undefined} onCloseAutoFocus={restoreFocus}>
-        <Dialog.Title className="browser-action-title" hidden={hideTitle}>{submenu?.label || title}</Dialog.Title>
+        <Dialog.Title className="browser-action-title" hidden={hideTitle || submenu?.hideSubmenuTitle}>{submenu?.label || title}</Dialog.Title>
         <div className="browser-action-list" ref={list}>
           {submenu && <button type="button" className="browser-action-item browser-action-back" aria-label="Back to settings menu" onClick={() => { pendingFocusKey.current = submenu.key; setSubmenu(null) }}><span aria-hidden="true">‹</span><span>Back</span></button>}
           {(submenu?.children ?? sections).map(group => <div key={group.key} className="browser-action-group" role={group.selection === 'single' ? 'radiogroup' : 'group'} aria-label={group.label}>
