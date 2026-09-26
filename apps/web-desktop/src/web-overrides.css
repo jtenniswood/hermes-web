@@ -100,10 +100,12 @@ body > [data-slot='fan-menu'] {
 /* Give the titlebar tools a little more breathing room and keep their glyphs
    from filling so much of each button. */
 [data-titlebar-cluster] {
-  column-gap: 0.5rem;
+  column-gap: 0.5rem !important;
 }
 
-[data-titlebar-cluster] button > .codicon {
+[data-titlebar-cluster] button > :is(.codicon, svg) {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
   font-size: 1.25rem !important;
 }
 
