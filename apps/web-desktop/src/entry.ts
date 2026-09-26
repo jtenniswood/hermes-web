@@ -1,14 +1,11 @@
 import { buildInfo } from './build-info'
 import { completeStartup, recoverStartupChunk, showStartupRecovery } from './platform/startup-recovery'
-import { trackMediaRequests } from './platform/reload-safety'
-import { consumeConnectionToken } from './platform/connection-state'
+import { startBrowserApplication } from './startup'
 import './web.css'
 import './experience/styles/tokens.css'
 import './experience/styles/controls.css'
 import './experience/styles/menus.css'
 import './web-overrides.css'
-import { runtimeConfig } from './platform/runtime'
-import { registerPwa } from './pwa/register'
 import { installTimelineRailScrubbing } from './experience/ui/timeline-rail-scrubbing'
 import { trackVisualViewport } from './platform/viewport'
 import { installComposerKeyboard } from './platform/composer-keyboard'
@@ -19,19 +16,10 @@ const stopTimelineRailScrubbing = installTimelineRailScrubbing()
 if (import.meta.hot) import.meta.hot.dispose(stopTimelineRailScrubbing)
 const stopComposerKeyboard = installComposerKeyboard()
 if (import.meta.hot) import.meta.hot.dispose(stopComposerKeyboard)
-registerPwa()
 
 async function start(): Promise<void> {
   try {
-    runtimeConfig()
-    trackMediaRequests()
-    consumeConnectionToken()
-    ;(await import('./experience/browser-experience')).initializeBrowserExperience()
-    // Complete bridge installation before any upstream module evaluates.
-    await import('./web-bridge/install')
-    ;(await import('./upstream/browser-bootstrap')).prepareBrowserBridge()
-    await import('./web-sidebar-collapse')
-    await import('./upstream/entry')
+    await startBrowserApplication()
     completeStartup()
   } catch (error) {
     if (recoverStartupChunk(error, buildInfo.wrapperRevision)) return

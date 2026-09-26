@@ -1,2 +1,4 @@
-// Upstream startup remains intact and follows browser bridge installation.
-import '../../../desktop/src/main'
+/** Evaluate upstream startup only after the caller prepares the browser bridge. */
+export async function startUpstreamRenderer(): Promise<void> {
+  await import('../../../desktop/src/main')
+}
