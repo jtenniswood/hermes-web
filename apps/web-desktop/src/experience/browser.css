@@ -118,6 +118,7 @@
    header marker while keeping the disclosure caret visible. */
 .browser-sessions-pane [data-browser-section-label] > span[aria-hidden="true"] { display:none !important; }
 .browser-sessions-pane [data-browser-section-label] > .codicon[aria-hidden="true"] { display:inline-block !important; opacity:.72 !important; }
+.browser-sessions-pane button[data-slot="row-button"] .truncate { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 /* Keep these destinations in the Sessions overflow menu so each has one
    browser control while the empty Tools tab stays out of the navigation. */
 .browser-shell [data-sidebar="menu-item"]:has([data-tour="sidebar-nav-skills"]),
