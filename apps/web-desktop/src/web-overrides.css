@@ -96,6 +96,16 @@ body > [data-slot='fan-menu'] {
   display: none;
 }
 
+/* Give the titlebar tools a little more breathing room and keep their glyphs
+   from filling so much of each button. */
+[data-titlebar-cluster] {
+  column-gap: 0.5rem;
+}
+
+[data-titlebar-cluster] button > .codicon {
+  font-size: 1.25rem !important;
+}
+
 /* The web app is updated by its deployed image, not by the desktop updater.
    Hide only the background update notification; other top-center alerts remain
    available, and the update status/settings controls are still rendered. */
