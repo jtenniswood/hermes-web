@@ -26,7 +26,6 @@ export function BrowserShell() {
 function BrowserLayout() {
   useMobileSubmenus()
   useEffect(() => installConversationSubmitScroll(), [])
-  const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
   const [backendVersion, setBackendVersion] = useState<StatusbarItem | null>(null)
   const navigate = useNavigate(), location = useLocation()
   const conversation = useBrowserConversation()
@@ -87,7 +86,7 @@ function BrowserLayout() {
     navigation.closeDrawer()
   }
   const panelPanes = panes.filter(pane => !['workspace', 'sessions', 'hermes-bots:pane', 'terminal'].includes(pane.id))
-  return <ApprovalToolbarTarget value={approvalTarget}><BackendVersionListener value={setBackendVersion}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
+  return <BackendVersionListener value={setBackendVersion}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
     <BrowserActionError />
     <div className="browser-workspace">
       {navigation.compact && !navigation.mobile && navigation.drawerOpen && <button type="button" className="browser-scrim" aria-label="Dismiss navigation" tabIndex={-1} onClick={navigation.dismissDrawer} />}
@@ -114,7 +113,6 @@ function BrowserLayout() {
             {selected && <SessionActionsMenu align="end" onArchive={sessionActions.archive} onDelete={sessionActions.delete} onPin={sessionActions.togglePin} onToggleUnread={sessionActions.toggleUnread} pinned={sessionActions.pinned} unread={sessionActions.unread} profile={sessionActions.profile} sessionId={selected} title={chatTitle}>
               <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" /></BrowserToolbarButton>
             </SessionActionsMenu>}
-            <span className="browser-approval-control" ref={setApprovalTarget} />
             <SettingsMenu triggerRef={settingsTrigger} backendVersion={backendVersion} onOpenGateway={() => { navigation.closeDrawer(); setGatewayDialogOpen(true) }} onOpenPanel={() => main.current?.focus()} onOpenRoute={openRoute} panelPanes={panelPanes} />
           </div>
         </div>
@@ -126,5 +124,5 @@ function BrowserLayout() {
       </BrowserModal>
       <BrowserToolModal />
     </div>
-  </div></BackendVersionListener></ApprovalToolbarTarget>
+  </div></BackendVersionListener>
 }
