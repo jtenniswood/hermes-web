@@ -1,7 +1,7 @@
 import { BrowserToolModal } from './tool-modal'
 import { BrowserModal } from './ui/modal'
 import { BrowserToolbarButton } from './ui/toolbar-button'
-import { useMobileSubmenus } from './ui/use-mobile-submenus'
+import { useRendererMenuCompatibility } from '../upstream/use-renderer-menu-compatibility'
 import { BrowserNavigationTabs, BrowserNavigationResizer, useBrowserNavigation } from './navigation'
 import { BrowserProfileNavigation } from './profile-navigation'
 import { BrowserGatewayPanel, useBrowserGatewayStatus } from '../upstream/browser-gateway-panel'
@@ -24,7 +24,7 @@ export function BrowserShell() {
   </SidebarProvider>
 }
 function BrowserLayout() {
-  useMobileSubmenus()
+  useRendererMenuCompatibility()
   useEffect(() => installConversationSubmitScroll(), [])
   const [backendVersion, setBackendVersion] = useState<StatusbarItem | null>(null)
   const navigate = useNavigate(), location = useLocation()
@@ -42,40 +42,6 @@ function BrowserLayout() {
   const [updateNotice, setUpdateNotice] = useState<PwaUpdateNotice | null>(() => currentPwaUpdate())
   const [updateDismissed, setUpdateDismissed] = useState(false)
   const bots = panes.find(pane => pane.id === 'hermes-bots:pane')
-  useEffect(() => {
-    let triggerPointerId: number | null = null
-    let suppressOpeningClick = false
-    let resetTimer = 0
-    const onPointerDown = (event: PointerEvent) => {
-      triggerPointerId = event.target instanceof Element && event.target.closest('button[aria-haspopup="menu"]') ? event.pointerId : null
-      suppressOpeningClick = false
-      window.clearTimeout(resetTimer)
-    }
-    const onPointerUp = (event: PointerEvent) => {
-      if (event.pointerId !== triggerPointerId) return
-      triggerPointerId = null
-      suppressOpeningClick = Boolean(document.querySelector('[data-slot="dropdown-menu-content"][data-state="open"], [data-slot="context-menu-content"][data-state="open"]'))
-      if (suppressOpeningClick) resetTimer = window.setTimeout(() => { suppressOpeningClick = false }, 0)
-    }
-    const onPointerCancel = () => { triggerPointerId = null; suppressOpeningClick = false }
-    const onClick = (event: MouseEvent) => {
-      if (!suppressOpeningClick || !(event.target instanceof Element) || !event.target.closest('[data-slot="dropdown-menu-content"] [role^="menuitem"], [data-slot="context-menu-content"] [role^="menuitem"]')) return
-      suppressOpeningClick = false
-      event.preventDefault()
-      event.stopImmediatePropagation()
-    }
-    document.addEventListener('pointerdown', onPointerDown, true)
-    document.addEventListener('pointerup', onPointerUp, true)
-    document.addEventListener('pointercancel', onPointerCancel, true)
-    document.addEventListener('click', onClick, true)
-    return () => {
-      window.clearTimeout(resetTimer)
-      document.removeEventListener('pointerdown', onPointerDown, true)
-      document.removeEventListener('pointerup', onPointerUp, true)
-      document.removeEventListener('pointercancel', onPointerCancel, true)
-      document.removeEventListener('click', onClick, true)
-    }
-  }, [])
   useEffect(() => subscribePwaUpdate(notice => {
     setUpdateNotice(notice)
     if (notice) setUpdateDismissed(false)

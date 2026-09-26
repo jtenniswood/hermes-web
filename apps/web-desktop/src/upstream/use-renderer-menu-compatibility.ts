@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
-import { useMobileBrowser } from './use-compact-browser'
+import { useMobileBrowser } from '../experience/ui/use-compact-browser'
 
 const subTrigger = '[data-slot="dropdown-menu-sub-trigger"], [data-slot="context-menu-sub-trigger"]'
 const subContent = '[data-slot="dropdown-menu-sub-content"], [data-slot="context-menu-sub-content"]'
 
-/** Adapt renderer-owned Radix submenus to the browser's single mobile sheet. */
-export function useMobileSubmenus() {
+/** Keep renderer menu event and focus workarounds out of the browser shell. */
+export function useRendererMenuCompatibility() {
   const compact = useMobileBrowser()
   useEffect(() => {
     if (!compact) return
@@ -46,4 +46,39 @@ export function useMobileSubmenus() {
       document.removeEventListener('keydown', onKeyDown, true)
     }
   }, [compact])
+
+  useEffect(() => {
+    let triggerPointerId: number | null = null
+    let suppressOpeningClick = false
+    let resetTimer = 0
+    const onPointerDown = (event: PointerEvent) => {
+      triggerPointerId = event.target instanceof Element && event.target.closest('button[aria-haspopup="menu"]') ? event.pointerId : null
+      suppressOpeningClick = false
+      window.clearTimeout(resetTimer)
+    }
+    const onPointerUp = (event: PointerEvent) => {
+      if (event.pointerId !== triggerPointerId) return
+      triggerPointerId = null
+      suppressOpeningClick = Boolean(document.querySelector('[data-slot="dropdown-menu-content"][data-state="open"], [data-slot="context-menu-content"][data-state="open"]'))
+      if (suppressOpeningClick) resetTimer = window.setTimeout(() => { suppressOpeningClick = false }, 0)
+    }
+    const onPointerCancel = () => { triggerPointerId = null; suppressOpeningClick = false }
+    const onClick = (event: MouseEvent) => {
+      if (!suppressOpeningClick || !(event.target instanceof Element) || !event.target.closest('[data-slot="dropdown-menu-content"] [role^="menuitem"], [data-slot="context-menu-content"] [role^="menuitem"]')) return
+      suppressOpeningClick = false
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('pointerup', onPointerUp, true)
+    document.addEventListener('pointercancel', onPointerCancel, true)
+    document.addEventListener('click', onClick, true)
+    return () => {
+      window.clearTimeout(resetTimer)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('pointerup', onPointerUp, true)
+      document.removeEventListener('pointercancel', onPointerCancel, true)
+      document.removeEventListener('click', onClick, true)
+    }
+  }, [])
 }
