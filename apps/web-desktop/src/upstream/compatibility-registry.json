@@ -373,18 +373,23 @@
       {
         "file": "tests/browser/browser.spec.mjs",
         "scenario": "search and disclosure form one navigation list"
+      },
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
       }
     ],
     "removal": "A browser-owned navigation surface consumes public session models and actions.",
     "handlers": [
       "useBrowserSearchLabel",
       "ungroupedSidebar",
-      "removeBrowserNewSessionShortcut"
+      "removeBrowserNewSessionShortcut",
+      "useBrowserSectionIds"
     ],
     "sourceHash": "929dff8e048ff96c6ad3beee0fc42a63aae8f837a48d6422e7549494acb29507",
     "sourceRoot": "renderer",
     "inputHash": "929dff8e048ff96c6ad3beee0fc42a63aae8f837a48d6422e7549494acb29507",
-    "outputHash": "3c3fbddf35cffa813245801982cc88cebcd7c0e626808d33318be97de4d2f29b"
+    "outputHash": "739fa7a570bf5c9b1aebc2e1b3be543baa6a0d51760aaba4f01bab6b0c55daf0"
   },
   {
     "name": "single-conversation-wiring",
@@ -1810,44 +1815,62 @@
     "kind": "browser-transform",
     "order": 20,
     "module": "app/chat/sidebar/sessions-section.tsx",
-    "reason": "Expose explicit browser styling hooks for navigation section headers and labels without changing upstream section behavior.",
+    "reason": "Register sidebar sections through React with model-owned identities and explicit styling hooks, preserving visibility when labels or disclosure state change.",
     "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
     "tests": [
       {
         "file": "tests/browser/browser.spec.mjs",
         "scenario": "section headers preserve disclosure and browser styling"
+      },
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "sidebar visibility uses stable identity through markup changes and reload"
       }
     ],
     "removal": "Remove when a public upstream section API provides stable browser styling hooks or browser components own these headings.",
     "handlers": [
-      "useBrowserSectionStyleHooks"
+      "useBrowserSectionStyleHooks",
+      "useBrowserSectionIdentity"
     ],
     "sourceRoot": "renderer",
     "sourceHash": "3291806b48008d0ca3bb234f73e0ef30fa3288f074e2107affb9f301ece70413",
     "inputHash": "3291806b48008d0ca3bb234f73e0ef30fa3288f074e2107affb9f301ece70413",
-    "outputHash": "227ce8c9217ba8229f2e60a16f0809e2ef963d93bb02b3980e1a825a5eecb40f"
+    "outputHash": "09d4ec7325bdd8d9d28166c1aed5de0bf154766b979a02e6c06827ba9b0613af"
   },
   {
     "name": "browser-cron-jobs-section-styling",
     "kind": "browser-transform",
     "order": 20,
     "module": "app/chat/sidebar/cron-jobs-section.tsx",
-    "reason": "Expose explicit browser styling hooks for navigation section headers and labels without changing upstream section behavior.",
+    "reason": "Register sidebar sections through React with model-owned identities and explicit styling hooks, preserving visibility when labels or disclosure state change.",
     "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
     "tests": [
       {
         "file": "tests/browser/browser.spec.mjs",
         "scenario": "section headers preserve disclosure and browser styling"
+      },
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "sidebar visibility uses stable identity through markup changes and reload"
       }
     ],
     "removal": "Remove when a public upstream section API provides stable browser styling hooks or browser components own these headings.",
     "handlers": [
-      "useBrowserSectionStyleHooks"
+      "useBrowserSectionStyleHooks",
+      "useBrowserSectionIdentity"
     ],
     "sourceRoot": "renderer",
     "sourceHash": "874910a58f9b53a65a197df6ee637d60951df2b7f2d74e0a004c7347764d4d45",
     "inputHash": "874910a58f9b53a65a197df6ee637d60951df2b7f2d74e0a004c7347764d4d45",
-    "outputHash": "8733712816ba9525e756de304d36efdf6184647fcfa18cdae35d845f56e88214"
+    "outputHash": "2c8da75cde4973601cb1d0e394c62eb68613ff5cee51909d59c189bbb24c2f3d"
   },
   {
     "name": "browser-draft-persistence-alias",
@@ -1868,5 +1891,227 @@
     "replacement": "./src/platform/draft-persistence.ts",
     "aliasGroup": "renderer",
     "fingerprintPolicy": "The wrapper-owned adapter is verified through the locked renderer transform and real-image draft journeys."
+  },
+  {
+    "name": "browser-semantic-updates",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "store/updates.ts",
+    "reason": "Use explicit browser behavior and styling contracts instead of rendered labels, icons, or layout.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      }
+    ],
+    "removal": "Remove when upstream exposes equivalent stable browser hooks.",
+    "handlers": [
+      "omitBrowserDesktopUpdateNotice"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "18952a06a08ecf63a0c858f2e62c4248ca55969b32b55bcb40ad4bc840c819ef",
+    "inputHash": "18952a06a08ecf63a0c858f2e62c4248ca55969b32b55bcb40ad4bc840c819ef",
+    "outputHash": "0085f41ad00bfd6b0c7041a3a993e767c47abab35514c17ebbfaec50ed7564fd"
+  },
+  {
+    "name": "browser-semantic-desktop-install-overlay",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "components/desktop-install-overlay.tsx",
+    "reason": "Use explicit browser behavior and styling contracts instead of rendered labels, icons, or layout.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      }
+    ],
+    "removal": "Remove when upstream exposes equivalent stable browser hooks.",
+    "handlers": [
+      "useBrowserSetupHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "4a91b980386db76014ba4b7f651ce267aa6dd83f09faf3e647421f8aa1cd74ea",
+    "inputHash": "4a91b980386db76014ba4b7f651ce267aa6dd83f09faf3e647421f8aa1cd74ea",
+    "outputHash": "a7f7007037335e87490771015c972e3be0538e7d4d619d7e521328a3dead0437"
+  },
+  {
+    "name": "browser-semantic-first-run-remote-form",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "components/first-run-remote-form.tsx",
+    "reason": "Use explicit browser behavior and styling contracts instead of rendered labels, icons, or layout.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      }
+    ],
+    "removal": "Remove when upstream exposes equivalent stable browser hooks.",
+    "handlers": [
+      "useBrowserSetupHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "0bfded33d47a69b01561aed0756e2427560196da1e38e60b122b596ebdbf18ea",
+    "inputHash": "0bfded33d47a69b01561aed0756e2427560196da1e38e60b122b596ebdbf18ea",
+    "outputHash": "eb05820c2bab57d14081b0484e7aa49eea175584d7b7bb43d4af660ac1f8e5c3"
+  },
+  {
+    "name": "browser-semantic-controls",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/chat/composer/controls.tsx",
+    "reason": "Use explicit browser behavior and styling contracts instead of rendered labels, icons, or layout.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "browser touch hooks survive control label and icon changes"
+      }
+    ],
+    "removal": "Remove when upstream exposes equivalent stable browser hooks.",
+    "handlers": [
+      "useBrowserTouchHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "61d99e91f129a01708775866a651e88e439b0271b97600d9fcc65fb9fde6507c",
+    "inputHash": "61d99e91f129a01708775866a651e88e439b0271b97600d9fcc65fb9fde6507c",
+    "outputHash": "a105b7c7474ade4e1a42b026d70ca7ee48a77b428bcc6da7a9a18859918442a2"
+  },
+  {
+    "name": "browser-semantic-context-menu",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/chat/composer/context-menu.tsx",
+    "reason": "Use explicit browser behavior and styling contracts instead of rendered labels, icons, or layout.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "browser touch hooks survive control label and icon changes"
+      }
+    ],
+    "removal": "Remove when upstream exposes equivalent stable browser hooks.",
+    "handlers": [
+      "useBrowserTouchHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "40b48dccb1bc2d9580cfaa949fdf65790b01ee8f05c7f7b1ab349c05b2efd4b5",
+    "inputHash": "40b48dccb1bc2d9580cfaa949fdf65790b01ee8f05c7f7b1ab349c05b2efd4b5",
+    "outputHash": "225b04dec35f3f9bfe341f4f9e7bed6e4e66a840e96881309e037a4f5c1ce99c"
+  },
+  {
+    "name": "browser-semantic-model-pill",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/chat/composer/model-pill.tsx",
+    "reason": "Use explicit browser behavior and styling contracts instead of rendered labels, icons, or layout.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "browser touch hooks survive control label and icon changes"
+      }
+    ],
+    "removal": "Remove when upstream exposes equivalent stable browser hooks.",
+    "handlers": [
+      "useBrowserTouchHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "074c565119e02c0ef5d48294f7be85bfbf8ea28cc45d1185cf52dfe384b07873",
+    "inputHash": "074c565119e02c0ef5d48294f7be85bfbf8ea28cc45d1185cf52dfe384b07873",
+    "outputHash": "41884c345cf5689df6e3f21d784c7a56504e74f4aebebc2d5ffe3f9e481931c6"
+  },
+  {
+    "name": "browser-semantic-voice-menu",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/chat/composer/voice-menu.tsx",
+    "reason": "Use explicit browser behavior and styling contracts instead of rendered labels, icons, or layout.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "browser touch hooks survive control label and icon changes"
+      }
+    ],
+    "removal": "Remove when upstream exposes equivalent stable browser hooks.",
+    "handlers": [
+      "useBrowserTouchHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "392cff54e8ea488091c1ec952742b1119e8bcafbd6276756682085312853ef45",
+    "inputHash": "392cff54e8ea488091c1ec952742b1119e8bcafbd6276756682085312853ef45",
+    "outputHash": "a249a2f76694d88cc84168070546a41d14e67d306a2aef6c47033c7fa430f96f"
+  },
+  {
+    "name": "browser-semantic-start-voice-button",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/chat/composer/start-voice-button.tsx",
+    "reason": "Use explicit browser behavior and styling contracts instead of rendered labels, icons, or layout.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "browser touch hooks survive control label and icon changes"
+      }
+    ],
+    "removal": "Remove when upstream exposes equivalent stable browser hooks.",
+    "handlers": [
+      "useBrowserTouchHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "8cb1d7ae40a0ee2477e194d4fc9e9bcb5b59801e316345d329eb822f8b3477d1",
+    "inputHash": "8cb1d7ae40a0ee2477e194d4fc9e9bcb5b59801e316345d329eb822f8b3477d1",
+    "outputHash": "7e5e6690dbc0889073615723f2da52f17f38c52ddd9913b6593a009f00f97c9a"
+  },
+  {
+    "name": "browser-semantic-coding-row",
+    "kind": "browser-transform",
+    "order": 20,
+    "module": "app/chat/composer/status-stack/coding-row.tsx",
+    "reason": "Use explicit browser behavior and styling contracts instead of rendered labels, icons, or layout.",
+    "owner": "apps/web-desktop/src/upstream/browser-plugin.ts",
+    "tests": [
+      {
+        "file": "scripts/sidebar-contracts.test.mjs",
+        "scenario": "semantic adapters preserve identity and reject upstream drift"
+      },
+      {
+        "file": "tests/browser/browser.spec.mjs",
+        "scenario": "browser touch hooks survive control label and icon changes"
+      }
+    ],
+    "removal": "Remove when upstream exposes equivalent stable browser hooks.",
+    "handlers": [
+      "useBrowserCodingActionHooks"
+    ],
+    "sourceRoot": "renderer",
+    "sourceHash": "3c94bb8ba4c359a0dc249ec4b13169b34b535503f15a1b27d71d5e1a0b74100a",
+    "inputHash": "3c94bb8ba4c359a0dc249ec4b13169b34b535503f15a1b27d71d5e1a0b74100a",
+    "outputHash": "28d95460846d6a0701ea82e7271e6b7995827e0ab035ecb91854cd58cd299665"
   }
 ]
