@@ -134,33 +134,31 @@ body > [data-slot='fan-menu'] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 0.875rem;
-  height: 0.875rem;
+  width: 0.625rem;
+  height: 0.625rem;
   overflow: hidden;
   color: transparent !important;
   font-size: 0 !important;
+  line-height: 0;
+  vertical-align: middle;
 }
 
 .browser-sessions-pane [data-working='true'] time::after {
   position: absolute;
   inset: 0;
-  border: 1.5px solid currentColor;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
   color: var(--ui-accent, #4d83ff);
   content: '';
   animation: browser-session-spinner 0.8s linear infinite;
+  transform-origin: center;
   pointer-events: none;
 }
 
 @keyframes browser-session-spinner {
-  to { rotate: 1turn; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .browser-sessions-pane [data-working='true'] time::after {
-    animation: none;
-  }
+  to { transform: rotate(1turn); }
 }
 
 /* On narrow browser viewports the fixed app controls share the top edge with
