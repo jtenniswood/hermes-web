@@ -22,6 +22,7 @@ ENV HERMES_WRAPPER_REV=$HERMES_WRAPPER_REV \
     HERMES_RELEASE_CHANNEL=$HERMES_RELEASE_CHANNEL \
     SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH
 RUN node scripts/renderer.mjs --check \
+ && pnpm run typecheck \
  && pnpm --filter web-desktop run build
 
 # Optional synthetic backend, built only for the isolated review stack.

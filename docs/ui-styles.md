@@ -62,8 +62,11 @@ receive the same theme as the shell.
 
 ## Checking changes
 
-Run `pnpm typecheck`. With the synthetic review gateway and Vite preview running,
-run the rendered style checks:
+Run `pnpm typecheck` and `pnpm build`, then manually try the changed controls
+at the relevant desktop or phone size, including keyboard focus if affected.
+For a layout regression that benefits from automation, the existing focused
+style checks are optional. With the synthetic review gateway and Vite preview
+running:
 
 ```bash
 HERMES_BROWSER_PREVIEW_URL=http://127.0.0.1:5174 \
