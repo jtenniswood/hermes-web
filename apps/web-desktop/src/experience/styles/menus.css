@@ -228,6 +228,11 @@
 /* Responsive rows follow one density contract. Keep horizontal insets
    owned by each component so icons, checks, and nested actions stay aligned. */
 
+/* Submenu triggers should align their leading content with sibling menu rows. */
+:is([data-slot='dropdown-menu-sub-trigger'], [data-slot='context-menu-sub-trigger']) {
+  padding-inline-start: var(--web-space-2) !important;
+}
+
 :is(
   [data-radix-menu-content],
   .browser-action-menu,
