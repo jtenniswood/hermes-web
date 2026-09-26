@@ -86,10 +86,8 @@ body > [data-slot='fan-menu'] {
   display: none;
 }
 
-/* A working session already exposes a pulsing status dot from the shared
-   session-state store. Use that row state for a quieter trailing spinner and
-   remove the animated border treatment, whether the session is selected or
-   running in the background. */
+/* Replace the running row's animated arc with a spinner in the timestamp slot.
+   The renderer marks live turns on the row itself and renders the age as time. */
 .browser-sessions-pane [class*='shimmer'],
 .browser-sessions-pane [class*='shimmer']::before,
 .browser-sessions-pane [class*='shimmer']::after {
@@ -98,32 +96,43 @@ body > [data-slot='fan-menu'] {
   box-shadow: none !important;
 }
 
-.browser-sessions-pane :is(button, [role='button'], a):has([class*='before:animate-ping']) {
+.browser-sessions-pane [data-working='true'] > .arc-border.arc-row {
+  display: none;
+}
+
+.browser-sessions-pane [data-working='true'] time {
+  box-sizing: border-box;
   position: relative;
-}
-
-.browser-sessions-pane :is(button, [role='button'], a):has([class*='before:animate-ping']) time {
-  visibility: hidden;
-}
-
-.browser-sessions-pane :is(button, [role='button'], a):has([class*='before:animate-ping'])::after {
-  position: absolute;
-  top: 50%;
-  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 0.875rem;
   height: 0.875rem;
+  overflow: hidden;
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+.browser-sessions-pane [data-working='true'] time::after {
+  position: absolute;
+  inset: 0;
   border: 1.5px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
   color: var(--ui-accent, #4d83ff);
   content: '';
   animation: browser-session-spinner 0.8s linear infinite;
-  transform: translateY(-50%);
   pointer-events: none;
 }
 
 @keyframes browser-session-spinner {
   to { rotate: 1turn; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .browser-sessions-pane [data-working='true'] time::after {
+    animation: none;
+  }
 }
 
 /* On narrow browser viewports the fixed app controls share the top edge with
