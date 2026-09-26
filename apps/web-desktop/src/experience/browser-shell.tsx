@@ -15,7 +15,7 @@ import { Codicon, ContribWiring, WiredPane, SidebarProvider, ContribRender, Cont
 import { useBrowserConversation } from '../upstream/conversation'
 import { useBrowserSessionActions } from '../upstream/conversation-actions'
 import { currentPwaUpdate, subscribePwaUpdate, type PwaUpdateNotice } from '../pwa/register'
-import { ApprovalToolbarTarget, BackendVersionListener, type StatusbarItem } from '../upstream/browser-api'
+import { BackendVersionListener, type StatusbarItem } from '../upstream/browser-api'
 import { installConversationSubmitScroll } from './ui/submit-scroll'
 
 export function BrowserShell() {
