@@ -39,6 +39,33 @@
   box-sizing: border-box;
 }
 
+.browser-action-label {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: .125rem;
+}
+
+.browser-action-label small {
+  color: var(--web-text-subtle);
+  font-size: .78em;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.browser-action-chevron {
+  margin-left: auto;
+  padding-left: var(--web-space-3);
+  color: var(--web-text-subtle);
+  font-size: 1.2em;
+}
+
+.browser-action-back {
+  gap: var(--web-space-2);
+  margin-bottom: var(--web-space-1);
+}
+
 .browser-action-item:hover,.browser-action-item:focus-visible,.browser-action-item[data-highlighted] {
   outline: none;
   background: var(--web-active);

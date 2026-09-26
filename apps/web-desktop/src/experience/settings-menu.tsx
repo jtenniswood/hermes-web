@@ -1,5 +1,10 @@
 import { useState, type RefObject } from 'react'
-import { APP_ROUTES, Codicon } from '../upstream/browser-api'
+import { useStore } from '@nanostores/react'
+import { $activeGatewayProfile } from '@/store/profile'
+import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
+import { APP_ROUTES, Codicon, useI18n } from '../upstream/browser-api'
+import { useBrowserApproval } from '../upstream/approval'
+import type { BrowserApprovalMode } from './contracts/actions'
 import { useBrowserSettings } from '../upstream/settings'
 import { BrowserActionSurface, type BrowserActionAnchor, type BrowserActionGroup } from './ui/action-surface'
 import { BrowserToolbarButton } from './ui/toolbar-button'
@@ -44,6 +49,13 @@ type SettingsMenuProps = {
 export function SettingsMenu({ triggerRef, onOpenGateway, onOpenPanel, onOpenRoute, panelPanes }: SettingsMenuProps) {
   const compact = useCompactBrowser()
   const [anchor, setAnchor] = useState<BrowserActionAnchor | null>(null)
+  const { t } = useI18n()
+  const activeProfile = useStore($activeGatewayProfile)
+  const { requestGateway } = useGatewayRequest()
+  const { mode, setMode } = useBrowserApproval(activeProfile || 'default', requestGateway)
+  const approvalCopy = t.shell.approvalMode
+  const approvalLabels: Record<BrowserApprovalMode, string> = { manual: approvalCopy.manual, smart: approvalCopy.smart, off: approvalCopy.off }
+  const approvalDescriptions: Record<BrowserApprovalMode, string> = { manual: approvalCopy.manualDescription, smart: 'Ask when needed', off: approvalCopy.offDescription }
   const model = useBrowserSettings(panelPanes.map(pane => ({ id: pane.id, collapsible: Boolean((pane.data as { collapsible?: boolean } | undefined)?.collapsible) })))
   const groups: BrowserActionGroup[] = [
     { key: 'notifications', label: 'Notifications', actions: [{ key: 'activity-toasts', label: 'Activity toasts', checked: model.activityToasts.enabled, icon: <Codicon name={model.activityToasts.enabled ? 'bell' : 'bell-slash'} size="1rem" />, run: model.activityToasts.toggle }] },
@@ -53,9 +65,10 @@ export function SettingsMenu({ triggerRef, onOpenGateway, onOpenPanel, onOpenRou
     }) },
     { key: 'systems', label: 'Systems', actions: [
       { key: 'settings', label: 'Settings', icon: <Codicon name="settings-gear" size="1rem" />, afterClose: true, run: () => onOpenRoute('/settings') },
+      { key: 'approval-mode', label: 'Approval mode', icon: <Codicon name="shield" size="1rem" />, children: [{ key: 'approval-modes', label: approvalCopy.title, selection: 'single', actions: (['manual', 'smart', 'off'] as const).map(value => ({ key: value, label: approvalLabels[value], description: approvalDescriptions[value], checked: mode === value, afterClose: true, run: () => void setMode(value) })) }], run: () => {} },
       { key: 'gateway', label: 'Gateway', icon: <Codicon name="pulse" size="1rem" />, afterClose: true, run: onOpenGateway }
     ] },
-    { key: 'workspace', label: 'Workspace', actions: APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => ({ key: route.path, label: toolRouteLabel(route.id), icon: <Codicon name={toolRouteIcon(route.id)} size="1rem" />, afterClose: true, run: () => onOpenRoute(route.path) })) }
+    { key: 'workspace', actions: [{ key: 'workspace-options', label: 'Workspace', icon: <Codicon name="folder" size="1rem" />, children: [{ key: 'workspace-routes', actions: APP_ROUTES.filter(route => WORKSPACE_ROUTE_IDS.has(route.id)).map(route => ({ key: route.path, label: toolRouteLabel(route.id), icon: <Codicon name={toolRouteIcon(route.id)} size="1rem" />, afterClose: true, run: () => onOpenRoute(route.path) })) }], run: () => {} }] }
   ]
   return <>
     <BrowserToolbarButton ref={triggerRef} tooltip="Settings" aria-label="Open settings menu" aria-haspopup={compact ? 'dialog' : 'menu'} aria-expanded={Boolean(anchor)} onClick={event => {

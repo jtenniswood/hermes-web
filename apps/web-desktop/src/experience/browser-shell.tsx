@@ -24,7 +24,6 @@ export function BrowserShell() {
 }
 function BrowserLayout() {
   useMobileSubmenus()
-  const [approvalTarget, setApprovalTarget] = useState<HTMLSpanElement | null>(null)
   const [versionTarget, setVersionTarget] = useState<HTMLDivElement | null>(null)
   const navigate = useNavigate(), location = useLocation()
   const conversation = useBrowserConversation()
@@ -85,7 +84,7 @@ function BrowserLayout() {
     navigation.closeDrawer()
   }
   const panelPanes = panes.filter(pane => !['workspace', 'sessions', 'hermes-bots:pane', 'terminal'].includes(pane.id))
-  return <ApprovalToolbarTarget value={approvalTarget}><BackendVersionTarget value={versionTarget}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
+  return <BackendVersionTarget value={versionTarget}><div className="browser-shell" data-browser-shell="" data-browser-conversation-kind={conversation.kind} data-browser-conversation-id={conversation.id || undefined}>
     <BrowserActionError />
     <div className="browser-workspace">
       <aside id="browser-navigation" ref={navigation.drawer} hidden={!navigation.open} className={`browser-navigation ${navigation.drawerOpen ? 'is-open' : ''}`} role={navigation.compact && navigation.drawerOpen ? 'dialog' : undefined} aria-modal={navigation.compact && navigation.drawerOpen ? true : undefined} aria-label="Navigation" style={{ '--browser-navigation-width': `${navigation.width}px` } as CSSProperties}>
@@ -112,7 +111,6 @@ function BrowserLayout() {
             {selected && <SessionActionsMenu align="end" onArchive={sessionActions.archive} onDelete={sessionActions.delete} onPin={sessionActions.togglePin} onToggleUnread={sessionActions.toggleUnread} pinned={sessionActions.pinned} unread={sessionActions.unread} profile={sessionActions.profile} sessionId={selected} title={chatTitle}>
               <BrowserToolbarButton tooltip="Chat actions" type="button" className="browser-chat-actions" aria-label="Chat actions"><Codicon name="kebab-vertical" /></BrowserToolbarButton>
             </SessionActionsMenu>}
-            <span className="browser-approval-control" ref={setApprovalTarget} />
             <SettingsMenu triggerRef={settingsTrigger} onOpenGateway={() => { navigation.closeDrawer(); setGatewayDialogOpen(true) }} onOpenPanel={() => main.current?.focus()} onOpenRoute={openRoute} panelPanes={panelPanes} />
           </div>
         </div>
@@ -124,5 +122,5 @@ function BrowserLayout() {
       </BrowserModal>
       <BrowserToolModal />
     </div>
-  </div></BackendVersionTarget></ApprovalToolbarTarget>
+  </div></BackendVersionTarget>
 }
