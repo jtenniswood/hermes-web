@@ -8,11 +8,17 @@ permissions:
   contents: read
   packages: write
 concurrency:
-  group: image-publication
-  cancel-in-progress: true
+  group: image-publication-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.identity.outputs.image }}
+      digest: ${{ steps.publish.outputs.digest }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -39,6 +45,7 @@ jobs:
             echo EOF
           } >> "$GITHUB_OUTPUT"
       - name: Build and publish amd64 image
+        id: publish
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -51,3 +58,73 @@ jobs:
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             io.hermes.release.channel=stable
+
+  deploy-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate deployment settings
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.PRODUCTION_SSH_KNOWN_HOSTS }}
+          TS_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          TS_CLIENT_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+          DEPLOY_PATH: ${{ vars.PRODUCTION_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_HOST" || { echo 'Missing secret PRODUCTION_SSH_HOST' >&2; exit 1; }
+          test -n "$DEPLOY_USER" || { echo 'Missing secret PRODUCTION_SSH_USER' >&2; exit 1; }
+          test -n "$DEPLOY_KEY" || { echo 'Missing secret PRODUCTION_SSH_PRIVATE_KEY' >&2; exit 1; }
+          test -n "$DEPLOY_KNOWN_HOSTS" || { echo 'Missing secret PRODUCTION_SSH_KNOWN_HOSTS' >&2; exit 1; }
+          test -n "$TS_CLIENT_ID" || { echo 'Missing secret TS_OAUTH_CLIENT_ID' >&2; exit 1; }
+          test -n "$TS_CLIENT_SECRET" || { echo 'Missing secret TS_OAUTH_SECRET' >&2; exit 1; }
+          [[ "$DEPLOY_PATH" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo 'Set vars.PRODUCTION_DEPLOY_PATH to an absolute path without spaces' >&2; exit 1; }
+      - name: Connect runner to the production tailnet
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Prepare SSH and deployment directory
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.PRODUCTION_SSH_KNOWN_HOSTS }}
+          DEPLOY_PATH: ${{ vars.PRODUCTION_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH'"
+          scp -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes deploy/production/compose.yml deploy/production/deploy.sh "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+      - name: Pull and roll out the published image
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          DEPLOY_PATH: ${{ vars.PRODUCTION_DEPLOY_PATH }}
+          IMAGE: ${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GHCR_TOKEN" | ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "docker login ghcr.io --username '$GHCR_USER' --password-stdin && bash '$DEPLOY_PATH/deploy.sh' '$DEPLOY_PATH' '$IMAGE'"
+      - name: Record deployed image
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}
+        run: printf 'Deployed `%s` to production after merge to main.\n' "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
