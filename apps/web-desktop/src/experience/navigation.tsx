@@ -4,7 +4,7 @@ import { Codicon } from '../upstream/browser-api'
 import { BrowserActionSurface, type BrowserActionAnchor } from './ui/action-surface'
 import { BrowserToolbarButton } from './ui/toolbar-button'
 import { useCompactBrowser, useMobileBrowser } from './ui/use-compact-browser'
-import { $conversationOpenRequest } from './conversation-navigation'
+import { $conversationOpenRequest, $preserveNavigationRequest, preserveNavigationForNextSelection } from './conversation-navigation'
 import { clampNavigationWidth, DEFAULT_NAVIGATION_WIDTH, MAX_NAVIGATION_WIDTH, MIN_NAVIGATION_WIDTH, NAVIGATION_TAB_LABELS, NAVIGATION_TABS, readNavigationTab, readNavigationWidth, readVisibleNavigationTabs, type NavigationTab, writeBrowserPreference } from './browser-preferences'
 
 /** Browser navigation preferences and focus never own the conversation state. */
@@ -24,6 +24,24 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
   const [tab, setTab] = useState<NavigationTab>(readNavigationTab)
   const [visibleTabs, setVisibleTabs] = useState<NavigationTab[]>(readVisibleNavigationTabs)
   const previous = useRef({ selectionKey, path })
+  const preserveNextSelection = useRef(false)
+  const preserveTimeout = useRef(0)
+  useEffect(() => $preserveNavigationRequest.listen(() => {
+    preserveNextSelection.current = true
+    window.clearTimeout(preserveTimeout.current)
+    // Expire the intent if opening a side chat does not change the selection.
+    preserveTimeout.current = window.setTimeout(() => { preserveNextSelection.current = false }, 2000)
+  }), [])
+  useEffect(() => () => window.clearTimeout(preserveTimeout.current), [])
+  useEffect(() => {
+    if (!compact) return
+    const preserveProjectChat = (event: globalThis.MouseEvent) => {
+      const button = event.target instanceof Element ? event.target.closest('button') : null
+      if (button?.classList.contains('group-hover/workspace:opacity-100')) preserveNavigationForNextSelection()
+    }
+    document.addEventListener('click', preserveProjectChat, true)
+    return () => document.removeEventListener('click', preserveProjectChat, true)
+  }, [compact])
   useEffect(() => { setDrawerOpen(false) }, [compact, mobile])
   useEffect(() => $conversationOpenRequest.listen(() => {
     if (!drawerOpen) return
@@ -32,8 +50,13 @@ export function useBrowserNavigation({ selectionKey, path, main, trigger }: {
   }), [drawerOpen, main])
   useEffect(() => {
     if (previous.current.selectionKey !== selectionKey || previous.current.path !== path) {
-      setDrawerOpen(false)
-      if (drawerOpen) requestAnimationFrame(() => main.current?.focus())
+      if (preserveNextSelection.current) {
+        preserveNextSelection.current = false
+        window.clearTimeout(preserveTimeout.current)
+      } else {
+        setDrawerOpen(false)
+        if (drawerOpen) requestAnimationFrame(() => main.current?.focus())
+      }
     }
     previous.current = { selectionKey, path }
   }, [selectionKey, path])
