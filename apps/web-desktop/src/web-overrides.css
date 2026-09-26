@@ -28,6 +28,22 @@ body,
   width: 100% !important;
 }
 
+/* Keep project actions visible in the browser sidebar and give the new-session
+   control the leading position with enough room to tap it independently. */
+[data-sessions-project] [data-row-actions]:has(button:has(.codicon-kebab-vertical)):has(button:has(.codicon-add)) {
+  gap: 0.75rem;
+}
+
+[data-sessions-project] [data-row-actions]:has(button:has(.codicon-kebab-vertical)):has(button:has(.codicon-add)) > button:has(.codicon-add) {
+  order: 0;
+  opacity: 1 !important;
+}
+
+[data-sessions-project] [data-row-actions]:has(button:has(.codicon-kebab-vertical)):has(button:has(.codicon-add)) > button:has(.codicon-kebab-vertical) {
+  order: 1;
+  opacity: 1 !important;
+}
+
 /* Body-level Radix portals use viewport coordinates, already scaled by the
    root's CSS zoom. Keep their positioning wrapper in viewport units and scale
    only the content, so both anchoring and collision detection use its actual
